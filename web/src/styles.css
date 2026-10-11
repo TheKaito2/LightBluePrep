@@ -1584,7 +1584,8 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
   border-radius: var(--rad-xl); background: var(--n-0); box-shadow: var(--sh-2);
 }
 .pcard-score { grid-area: score; gap: var(--sp-3); padding: var(--sp-6); }
-.pcard-streak { grid-area: streak; background: var(--streak-100); box-shadow: none; }
+.pcard-streak { grid-area: streak; background: var(--streak-100); box-shadow: none; position: relative; }
+.pcard-bulb { position: absolute; top: 14px; right: 16px; pointer-events: none; }
 .pcard-cover { grid-area: cover; background: var(--rw-100); box-shadow: none; }
 .pcard-top { display: flex; align-items: center; gap: var(--sp-2); }
 .pcard-ico {
@@ -1827,6 +1828,7 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
   .pcard-big, .pcard-score .pcard-big { font-size: 26px; gap: 3px; }
   .pcard-unit { font-size: var(--fs-2xs); }
   .days, .spark, .cover-meter, .delta, .pcard-note, .pcard-streak .pcard-sub, .pcard-cover .pcard-sub { display: none; }
+  .pcard-bulb { width: 30px; height: auto; top: auto; bottom: 8px; right: 8px; }
   .secscores { gap: 2px; }
   .secscore { grid-template-columns: auto 1fr; gap: 4px; }
   .secscore-bar { display: none; }
