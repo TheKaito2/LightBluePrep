@@ -379,20 +379,35 @@ export function Home({
                                 : <span className="acc none">new</span>}
                               <span className="skbar"><span style={{ transform: `scaleX(${s.n ? s.seen / s.n : 0})` }} /></span>
                             </button>
-                            {sOn && pt?.types[s.code] ? (
-                              <div className="chips sktypes" role="group" aria-label={`${s.name}: question types`}>
-                                {Object.entries(pt.types[s.code]).map(([key, t]) => {
-                                  const ref = `${s.code}.${key}`
-                                  const tOn = value.types?.includes(ref) ?? false
-                                  return (
-                                    <button key={key} className={tOn ? 'chip on' : 'chip'} aria-pressed={tOn}
-                                            title={t.how} onClick={() => set({ types: toggle(value.types, ref) })}>
-                                      {t.label} <span className="chip-n">{ptCounts?.get(ref) ?? 0}</span>
-                                    </button>
-                                  )
-                                })}
-                              </div>
-                            ) : null}
+                            {sOn && pt?.types[s.code] ? (() => {
+                              const types = Object.entries(pt.types[s.code])
+                              const picked = types.filter(([key]) => value.types?.includes(`${s.code}.${key}`)).length
+                              return (
+                                <div className="sktypes">
+                                  <span className="sktypes-cap">
+                                    {picked ? `${picked} of ${types.length} types` : 'All types · tap to narrow'}
+                                  </span>
+                                  <ul className="sktypes-list" aria-label={`${s.name}: question types`}>
+                                    {types.map(([key, t]) => {
+                                      const ref = `${s.code}.${key}`
+                                      const tOn = value.types?.includes(ref) ?? false
+                                      return (
+                                        <li key={key}>
+                                          <button className={tOn ? 'sktype on' : 'sktype'} role="checkbox" aria-checked={tOn}
+                                                  title={t.how} onClick={() => set({ types: toggle(value.types, ref) })}>
+                                            <span className={`box xs is-${tOn ? 'on' : 'off'}`}>
+                                              <Icon name="check" size={9} strokeWidth={3.4} />
+                                            </span>
+                                            <span className="sktype-name">{t.label}</span>
+                                            <span className="sktype-n">{ptCounts?.get(ref) ?? 0}</span>
+                                          </button>
+                                        </li>
+                                      )
+                                    })}
+                                  </ul>
+                                </div>
+                              )
+                            })() : null}
                           </li>
                         )
                       })}

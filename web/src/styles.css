@@ -2419,7 +2419,23 @@ a.tool { text-decoration: none; color: inherit; }
   .similar-go { grid-column: 1; grid-row: auto; margin-top: 10px; justify-self: start; }
 }
 
-/* ---- Home: process types under a ticked skill ---- */
-.sktypes { margin: 6px 0 10px 30px; gap: 6px; }
-.sktypes .chip { font-size: var(--fs-xs); padding: 5px 10px; }
-.sktypes .chip.on { background: var(--sec-600); border-color: var(--sec-600); color: #fff; }
+/* ---- Home: process types under a ticked skill ----
+   A nested checklist hung off a rail under the skill name, so it reads as part
+   of that skill rather than a second filter bar. */
+.sktypes { margin: 2px 0 8px 38px; padding-left: var(--sp-3); border-left: 2px solid var(--sec-200); }
+.sktypes-cap { display: block; padding: 4px var(--sp-2) 2px; font-size: var(--fs-2xs); font-weight: var(--fw-bold); letter-spacing: .05em; text-transform: uppercase; color: var(--n-500); }
+.sktypes-list { list-style: none; margin: 0; padding: 0; }
+.sktype {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--sp-2);
+  width: 100%; padding: 6px var(--sp-2); border: 0; border-radius: var(--rad-sm);
+  background: none; font: inherit; text-align: left; color: var(--n-700); cursor: pointer;
+  transition: background var(--dur-fast);
+}
+.sktype:hover { background: var(--n-25); color: var(--n-900); }
+.sktype:hover .box.is-off { border-color: var(--sec-500); }
+.sktype.on { background: var(--sec-50); color: var(--sec-700); }
+.sktype-name { font-size: var(--fs-sm); line-height: 1.3; }
+.sktype.on .sktype-name { font-weight: var(--fw-semi); }
+.sktype-n { font-size: var(--fs-2xs); color: var(--n-500); font-variant-numeric: tabular-nums; }
+.sktype:focus-visible { outline: 2px solid var(--sec-500); outline-offset: 1px; }
+.box.xs { width: 15px; height: 15px; border-radius: 5px; border-width: 1.5px; }
