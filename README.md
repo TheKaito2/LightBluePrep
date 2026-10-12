@@ -8,10 +8,12 @@ Live: **https://lightblueprep.pages.dev**
 
 ## What it does
 
-- **Topics first.** Tick domains and skills on Home, each with your coverage and accuracy, and narrow any skill to one or more **question types**: 180 solving-process types across the 29 skills ("Find the constant for no or infinite solutions", "Join two complete sentences").
+- **Topics first.** Tick domains and skills on Home, each with your coverage and accuracy, and narrow any skill to one or more **question types**: 178 solving-process types across the 29 skills ("Find the constant for no or infinite solutions", "Join two complete sentences").
 - **Options.** Skip what you've done, drill only what you got wrong or marked, Mixed / By topic / Random order, and timed **practice sets** of 10 to 50 that grade at the end like Bluebook.
 - **Review.** Everything you've answered, with filters for Incorrect, Marked and Has a note (by mistake type), a **Redo** for any pile or section, and **Practice similar** under each question.
-- **College Board question IDs** behind the Info button, with one-click copy and a YouTube search for walkthroughs of that exact question. Search any ID from Home.
+- **College Board question IDs** behind the Info button, with one-click copy, a shareable link and a YouTube search for walkthroughs of that exact question. Search any ID from Home.
+- **Links into the app**: `/?q=<question ID>` opens one question, `/?skill=<code>` practises a skill, `/?type=<skill.key>` one question type. A static page per skill at [/skills/](https://lightblueprep.pages.dev/skills/) lists its question types with those links.
+- **Installable**: Add to Home Screen gives a full-screen app with its own icon.
 - **Bluebook-style practice screen**: split passage view, built-in Desmos, a math reference sheet, highlights and notes, cross-out, mark for review, the official explanation for every answer choice, and a mistake log after a wrong answer.
 - **Progress**: streaks, an estimated score per section, and stats by skill.
 - **Free, no account, no ads, no tracking.** Questions are fetched by your browser straight from College Board; this project never hosts them. Optional Google sign-in syncs progress between devices. Visits are counted anonymously, with no cookies and no IDs.
@@ -34,6 +36,14 @@ npx wrangler pages deploy dist-pages --project-name lightblueprep --branch main
 
 Config lives in `web/.env.pages`: `VITE_DONATE_URL` shows the Support link; `VITE_SYNC_API` and `VITE_GOOGLE_CLIENT_ID` turn on sign-in and sync (blank = off); `VITE_CF_BEACON` is the Cloudflare Web Analytics token (blank = no beacon; a fork should blank it or use its own). The security headers are in `web/public/_headers`, which only Cloudflare Pages applies.
 
+The sync Worker deploys separately with `cd worker && npx wrangler deploy`. When a change adds a file under `worker/migrations/`, run it on the database first, then deploy the Worker:
+
+```
+cd worker
+npx wrangler d1 execute lightblueprep --remote --file=migrations/<file>.sql
+npx wrangler deploy
+```
+
 ### Usage counts
 
 Two anonymous counts, both in [web/src/lib/usage.ts](web/src/lib/usage.ts) and both described in the privacy policy. Cloudflare Web Analytics (dashboard, Web Analytics) has page views and where visitors came from, but counts visits, not people. For people, each browser tells the sync Worker once when it answers its first question and once at its tenth different question, with no ID; the Worker keeps a total per day:
@@ -43,15 +53,25 @@ cd worker
 npx wrangler d1 execute lightblueprep --remote --command "SELECT step, SUM(n) AS browsers FROM milestones GROUP BY step"
 ```
 
-`step` 1 is browsers that tried it, 10 is browsers that used it. One person on two devices counts twice. Anyone can POST to the endpoint, so check the totals against Web Analytics visits.
+`step` 1 is browsers that tried it, 10 is browsers that used it. One person on two devices counts twice. Anyone can POST to the endpoint, so check the totals against Web Analytics visits. The same totals, plus signed-in accounts, sit at the top of the feedback inbox (`#inbox`, admins only).
 
-The sync Worker deploys separately with `cd worker && npx wrangler deploy`. When a change adds a file under `worker/migrations/`, run it on the database first, then deploy the Worker:
+### Skill pages and search engines
+
+`web/public/skills/` (one page per skill, an index, and `sitemap.xml`) is generated from the local bank and `process-types.json`. Re-run it whenever the process types change, then deploy:
 
 ```
-cd worker
-npx wrangler d1 execute lightblueprep --remote --file=migrations/<file>.sql
-npx wrangler deploy
+python3 scripts/skill_pages.py
 ```
+
+After a deploy that adds or changes pages, tell Bing and the other IndexNow engines (no account needed; the key file in `web/public` proves ownership). Google reads the sitemap from Search Console instead.
+
+```
+python3 scripts/indexnow.py
+```
+
+### Watchdog
+
+[.github/workflows/watchdog.yml](.github/workflows/watchdog.yml) runs daily: the site and the Worker answer, and College Board's API still serves the index, both kinds of question body and the practice-test list, with CORS still open, all through the app's own client (`web/src/lib/cbApi.live.test.ts`, skipped in the normal suite). A failed run is what makes GitHub email the repo owner. GitHub switches scheduled workflows off after 60 days without a commit.
 
 ## Technical documentation
 

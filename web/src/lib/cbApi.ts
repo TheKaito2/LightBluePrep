@@ -13,12 +13,12 @@
 import { dedupeStubs, tagStub, type Stub } from './normalize'
 import type { Section } from '../types'
 
-const LIST_URL = 'https://qbank-api.collegeboard.org/msreportingquestionbank-prod'
+export const LIST_URL = 'https://qbank-api.collegeboard.org/msreportingquestionbank-prod'
   + '/questionbank/digital/get-questions'
-const DETAIL_URL = 'https://qbank-api.collegeboard.org/msreportingquestionbank-prod'
+export const DETAIL_URL = 'https://qbank-api.collegeboard.org/msreportingquestionbank-prod'
   + '/questionbank/digital/get-question'
-const IBN_URL = (ibn: string) => `https://saic.collegeboard.org/disclosed/${ibn}.json`
-const LOOKUP_URL = 'https://qbank-api.collegeboard.org/msreportingquestionbank-prod'
+export const IBN_URL = (ibn: string) => `https://saic.collegeboard.org/disclosed/${ibn}.json`
+export const LOOKUP_URL = 'https://qbank-api.collegeboard.org/msreportingquestionbank-prod'
   + '/questionbank/lookup'
 
 const SAT_EVENT_ID = 99

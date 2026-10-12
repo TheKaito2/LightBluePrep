@@ -81,5 +81,14 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   tenth question answered, with no ID; the Worker keeps daily totals in a new
   `milestones` table (migration in worker/migrations/). Privacy policy and
   About updated to match.
+- 2026-10-12: Links into the app (?q= question, ?skill=, ?type=) and a Link
+  button in Info; a static page per skill under /skills/ with the sitemap
+  (scripts/skill_pages.py); web app manifest and 512px icons; structured data
+  on the home page; IndexNow submission (scripts/indexnow.py); usage totals
+  in the feedback inbox; a daily watchdog workflow for the site, the Worker
+  and College Board's API.
+- 2026-10-12: Relabeled the question types for Inferences (now 5) and
+  Cross-text Connections (now 4), whose old types overlapped; 178 types in
+  all.
 
 The full history of changes is in the git log.

@@ -206,7 +206,11 @@ export default function App() {
     const go = () => {
       if (window.location.hash !== '#inbox') return
       setView('inbox')
-      history.replaceState(null, '', window.location.pathname + window.location.search)
+      // A URL object, never pathname + search: a pathname of "//" turns that
+      // string into a protocol-relative URL and replaceState throws.
+      const url = new URL(window.location.href)
+      url.hash = ''
+      history.replaceState(null, '', url)
     }
     go()
     window.addEventListener('hashchange', go)
@@ -238,11 +242,46 @@ export default function App() {
    * previous list, which flashed an unrelated question for a moment.
    */
   const practiceFilters = useCallback((next: Filters) => {
-    setFilters(next)
     api.questionSet(next).then((d) => {
+      // An empty pool (a stale link's unknown skill) changes nothing: no
+      // practice on nothing, and no invisible filter left behind on Home.
+      if (!d.questions.length) return
+      // A link names only the skill. Its section is what makes the header read
+      // "Math: Linear functions" rather than "All questions: ...".
+      setFilters(next.skills?.length === 1 && !next.section
+        ? { ...next, section: d.questions[0].section } : next)
       setItems(arrange(d.questions, order, seed)); setIndex(0); setView('practice')
     }).catch((e: Error) => setError(e.message))
   }, [order, seed])
+
+  /**
+   * Links into the app: ?q=<College Board ID> opens that question, ?skill=<code>
+   * practises a skill and ?type=<skill.key> one question type. They come from
+   * Info's Link button, video descriptions and the static /skills pages. Read
+   * once on load, then dropped from the address bar so a reload lands on Home.
+   */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const q = params.get('q')?.trim().toLowerCase()
+    const skill = params.get('skill')
+    const type = params.get('type')
+    if (!q && !skill && !type) return
+    // A URL object, like the #inbox handler: "//?q=" must not throw.
+    const url = new URL(window.location.href)
+    for (const key of ['q', 'skill', 'type']) url.searchParams.delete(key)
+    history.replaceState(null, '', url)
+    if (q) {
+      findIds(q).then((m) => {
+        if (m[0]?.cb_id?.toLowerCase() === q) practiceOne(m[0].id)
+      }).catch((e: Error) => setError(e.message))
+    } else if (type?.includes('.')) {
+      practiceFilters({ skills: [type.slice(0, type.lastIndexOf('.'))], types: [type] })
+    } else if (skill) {
+      practiceFilters({ skills: [skill] })
+    }
+    // Once, on load: these callbacks change identity as the list loads, and
+    // re-running would reopen the link every time.
+  }, [])
 
   // Landing back on Home reloads the list: answers since then change its status
   // marks, and opening one question or a set replaced `items` with just those.

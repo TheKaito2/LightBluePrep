@@ -21,6 +21,8 @@
     <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Add to Home Screen: name, icons and a full-screen window. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Link previews. Discord, Slack, iMessage and the rest fetch the page
          with a plain crawler that does not run JavaScript, so these have to sit
          in the static HTML; nothing React sets at runtime is ever seen. og:image
@@ -34,6 +36,9 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="LightBluePrep" />
     <meta property="og:url" content="https://lightblueprep.pages.dev/" />
+    <!-- The /skills pages link here with ?skill= and ?type=. Those are one page
+         to a search engine, not hundreds of near copies. -->
+    <link rel="canonical" href="https://lightblueprep.pages.dev/" />
     <meta property="og:title" content="LightBluePrep · Free SAT question bank" />
     <meta property="og:description"
           content="Every official College Board SAT practice question, free. Filter by topic, hide the ones you've done, re-drill what you missed, and look up any question by its ID." />
@@ -44,6 +49,19 @@
     <meta property="og:image:alt"
           content="LightBluePrep: every official College Board SAT practice question, free." />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- Structured data for search engines: the site's name (so results can say
+         "LightBluePrep" rather than the bare domain) and that it is a free web
+         app. A data block, never executed, so the CSP's script-src does not
+         apply. A fork on another domain edits these URLs too. -->
+    <script type="application/ld+json">
+      {"@context": "https://schema.org", "@graph": [
+        {"@type": "WebSite", "name": "LightBluePrep", "url": "https://lightblueprep.pages.dev/"},
+        {"@type": "WebApplication", "name": "LightBluePrep", "url": "https://lightblueprep.pages.dev/",
+         "applicationCategory": "EducationalApplication", "operatingSystem": "Any",
+         "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+         "description": "Every official College Board SAT practice question, free. Filter by topic, hide the ones you've done, re-drill what you missed, and look up any question by its ID."}
+      ]}
+    </script>
     <!-- The stripe down the left edge of a Discord embed. Also tints the
          address bar on Android Chrome, which is fine here because the app is
          light only. The logo tile's blue (--brand-700 in tokens.css). -->

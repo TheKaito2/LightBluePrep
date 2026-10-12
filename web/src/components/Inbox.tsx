@@ -17,10 +17,13 @@ export function Inbox() {
   const [items, setItems] = useState<fb.FeedbackItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [show, setShow] = useState<Show>('open')
+  const [usage, setUsage] = useState<fb.UsageStats | null>(null)
 
   const load = useCallback(() => {
     setError(null)
     fb.list().then(setItems).catch((e: Error) => setError(e.message))
+    // The list call above already reports a refusal; this one just stays hidden.
+    fb.stats().then(setUsage).catch(() => setUsage(null))
   }, [])
   useEffect(load, [load])
 
@@ -37,6 +40,19 @@ export function Inbox() {
         <h1 className="about-h1">Feedback inbox</h1>
         <button className="btn" onClick={load}>Refresh</button>
       </div>
+      {usage ? (
+        <>
+          {/* The anonymous counts from lib/usage.ts. Browsers, not people:
+              one person on two devices counts twice. */}
+          <div className="inbox-stats" aria-label="Usage">
+            <div><b>{usage.tried}</b><span>tried it (1+ question)</span></div>
+            <div><b>{usage.used}</b><span>used it (10+ questions)</span></div>
+            <div><b>{usage.tried_today}</b><span>new today (UTC)</span></div>
+            <div><b>{usage.accounts}</b><span>signed in</span></div>
+          </div>
+          <p className="qsub">Counted since 12 October 2026, per browser.</p>
+        </>
+      ) : null}
       <p className="qsub">
         {openCount} open · {(items ?? []).length} total
         {(items ?? []).length >= 500 ? ' (showing the newest 500)' : ''}

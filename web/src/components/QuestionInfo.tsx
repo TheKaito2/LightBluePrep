@@ -64,18 +64,24 @@ export function QuestionInfo({ question }: { question: Question }) {
 }
 
 function QuestionId({ id }: { id: string }) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState<'id' | 'link' | null>(null)
   const search = `https://www.youtube.com/results?search_query=${encodeURIComponent(id)}`
+  // App opens ?q= on load (the deep-link effect in App.tsx).
+  const link = `${window.location.origin}${import.meta.env.BASE_URL}?q=${encodeURIComponent(id)}`
+  const copy = (what: 'id' | 'link', text: string) => {
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(what)
+      setTimeout(() => setCopied(null), 1400)
+    }).catch(() => {})
+  }
   return (
     <span className="q-id">
-      <button className="q-id-copy" title="Copy question ID"
-              onClick={() => {
-                navigator.clipboard?.writeText(id).then(() => {
-                  setCopied(true)
-                  setTimeout(() => setCopied(false), 1400)
-                }).catch(() => {})
-              }}>
-        {copied ? 'Copied' : id}
+      <button className="q-id-copy" title="Copy question ID" onClick={() => copy('id', id)}>
+        {copied === 'id' ? 'Copied' : id}
+      </button>
+      <button className="q-id-link" title="Copy a link that opens this question"
+              onClick={() => copy('link', link)}>
+        {copied === 'link' ? 'Copied' : 'Link'}
       </button>
       <a className="q-id-yt" href={search} target="_blank" rel="noreferrer"
          title="Search YouTube for this question">YouTube</a>

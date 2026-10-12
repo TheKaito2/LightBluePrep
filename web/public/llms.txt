@@ -17,6 +17,8 @@ Who it is for: high school students preparing for the Digital SAT who want the o
 ## Links
 
 - [Practice site](https://lightblueprep.pages.dev/): start here
+- [Every SAT skill](https://lightblueprep.pages.dev/skills/): the 29 Digital SAT skills, each with its question count and question types, linking straight into practice
+- Deep links: `https://lightblueprep.pages.dev/?q=<College Board question ID>` opens one question; `?skill=<skill code>` practises a skill
 - [Source code (GPL-3.0)](https://github.com/TheKaito2/LightBluePrep): built on Bluebank by jackwangxyw
 - [Privacy policy](https://lightblueprep.pages.dev/privacy): no tracking, no ads; sign-in stores only an anonymous ID
 

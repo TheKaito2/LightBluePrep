@@ -819,6 +819,17 @@ async function handleAdmin(request, env, origin, url) {
     await env.DB.prepare("DELETE FROM feedback WHERE status = 'done'").run()
     return json({ ok: true }, 200, origin)
   }
+  if (url.pathname === '/admin/stats' && request.method === 'GET') {
+    // The usage scoreboard for the inbox: totals only, nothing per person.
+    const stats = await env.DB.prepare(
+      'SELECT'
+      + ' (SELECT COALESCE(SUM(n), 0) FROM milestones WHERE step = 1) AS tried,'
+      + ' (SELECT COALESCE(SUM(n), 0) FROM milestones WHERE step = 10) AS used,'
+      + ' (SELECT COALESCE(SUM(n), 0) FROM milestones WHERE step = 1 AND day = ?) AS tried_today,'
+      + ' (SELECT COUNT(*) FROM users) AS accounts',
+    ).bind(new Date().toISOString().slice(0, 10)).first()
+    return json(stats, 200, origin)
+  }
   if (url.pathname === '/admin/feedback' && request.method === 'GET') {
     const { results } = await env.DB.prepare(
       'SELECT id, created_at, kind, message, question_id, cb_id, context, status'

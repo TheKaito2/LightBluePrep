@@ -1893,19 +1893,20 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
   display: inline-flex; align-items: center; margin-right: 10px;
   border: 1px solid var(--line); border-radius: 999px; overflow: hidden; font-size: 12px;
 }
-.q-id-copy, .q-id-yt {
+.q-id-copy, .q-id-link, .q-id-yt {
   border: 0; background: var(--bg); padding: 3px 9px; font: inherit; font-size: 12px;
   color: var(--ink-2); cursor: pointer; text-decoration: none; white-space: nowrap;
 }
 .q-id-copy { font-family: ui-monospace, "SF Mono", Menlo, monospace; min-width: 11ch; }
+.q-id-link { border-left: 1px solid var(--line); color: var(--brand-700); font-weight: 600; min-width: 7ch; }
 .q-id-yt { border-left: 1px solid var(--line); color: var(--red); font-weight: 600; }
-.q-id-copy:hover, .q-id-yt:hover { background: var(--bg-soft); }
-.q-id-copy:focus-visible, .q-id-yt:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: -2px; }
+.q-id-copy:hover, .q-id-link:hover, .q-id-yt:hover { background: var(--bg-soft); }
+.q-id-copy:focus-visible, .q-id-link:focus-visible, .q-id-yt:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: -2px; }
 @media (max-width: 470px) {
   .q-head { gap: 8px; }
   .q-id { margin-right: 4px; }
   .q-id-copy { font-size: 11px; padding: 3px 7px; min-width: 9ch; }
-  .q-id-yt { font-size: 11px; padding: 3px 8px; }
+  .q-id-link, .q-id-yt { font-size: 11px; padding: 3px 8px; }
 }
 
 /* ---- LightBluePrep brand ---- */
@@ -1980,6 +1981,14 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
 /* ---- feedback inbox (owner only) ---- */
 .inbox { max-width: 760px; margin: 0 auto; padding: 36px 24px 80px; }
 .inbox-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.inbox-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0 6px; }
+.inbox-stats div { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; background: var(--bg); }
+.inbox-stats b {
+  display: block; font-family: var(--display); font-size: 28px; font-weight: 800;
+  letter-spacing: -.03em; line-height: 1.1;
+}
+.inbox-stats span { font-size: 13px; color: var(--ink-2); }
+@media (max-width: 560px) { .inbox-stats { grid-template-columns: repeat(2, 1fr); } }
 .inbox-seg { display: inline-flex; margin: 16px 0 6px; }
 .inbox-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .inbox-item { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--bg); }

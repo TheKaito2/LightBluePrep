@@ -1,0 +1,46 @@
+name: Watchdog
+
+# Daily check that the site, the sync Worker and College Board's question API
+# still work. The site has no server of its own for questions: every visitor's
+# browser fetches them from College Board, so a change on their side breaks it
+# silently. A failed run is what makes GitHub email the repo owner.
+#
+# GitHub switches scheduled workflows off after 60 days without a commit to the
+# repository. If the emails stop, check the Actions tab.
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Site and sync Worker answer
+        run: |
+          curl -fsS -o /dev/null https://lightblueprep.pages.dev/
+          curl -fsS https://lightblueprep-sync.kristpaulm.workers.dev/health | grep -q '"d1Bound":true'
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        working-directory: web
+        run: npm ci
+
+      - name: College Board API
+        working-directory: web
+        env:
+          CB_LIVE: '1'
+        run: npx vitest run src/lib/cbApi.live.test.ts

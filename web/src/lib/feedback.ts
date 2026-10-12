@@ -55,6 +55,14 @@ export async function isAdmin(): Promise<boolean> {
   return Boolean(body.admin)
 }
 
+/** The usage scoreboard: totals from the Worker's milestones table, and accounts. */
+export interface UsageStats { tried: number; used: number; tried_today: number; accounts: number }
+
+export async function stats(): Promise<UsageStats> {
+  const res = await ok(await request('/admin/stats'))
+  return await res.json() as UsageStats
+}
+
 export async function list(): Promise<FeedbackItem[]> {
   const res = await ok(await request('/admin/feedback'))
   return ((await res.json()) as { feedback: FeedbackItem[] }).feedback

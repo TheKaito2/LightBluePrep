@@ -9,6 +9,7 @@
 import { REPO } from './Github'
 import { PageHead } from './PageHead'
 import { openSupport, supportAvailable } from './Support'
+import { backend } from '../api'
 import { configured } from '../lib/auth'
 import { countsPeople, countsVisits } from '../lib/usage'
 import { FeedbackLink } from './Feedback'
@@ -32,6 +33,12 @@ export function About() {
           set. Review keeps everything you answered, so you can redo a whole
           pile at once or practise questions solved the same way.
         </p>
+        {backend === 'local' ? (
+          <p className="about-p">
+            Every skill and its question types, with how many questions each has,
+            are listed on one page: <a className="about-link" href="/skills/">all SAT skills</a>.
+          </p>
+        ) : null}
         <p className="about-p">
           LightBluePrep does not host the questions. Your browser downloads them
           straight from College Board and keeps a copy, so the first visit takes
