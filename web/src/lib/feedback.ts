@@ -37,8 +37,12 @@ async function ok(res: Response): Promise<Response> {
 export async function send(
   kind: FeedbackKind, message: string, ctx: FeedbackContext, website = '',
 ): Promise<void> {
-  await ok(await request('/feedback', {
+  // A bare fetch, not request(): request() attaches the session token, and an
+  // anonymous message must not carry anything that could tie it to an account,
+  // even if the Worker ignores it today.
+  await ok(await fetch(`${API}/feedback`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     // ctx goes first: the dialog's chosen kind must win over the opener's default.
     body: JSON.stringify({ ...ctx, kind, message, cb_id: ctx.cb_id ?? undefined, fax_ref: website }),
   }))

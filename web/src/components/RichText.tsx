@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { applyHighlights, selectionToOffsets } from '../lib/ranges'
 import { typeset } from '../lib/mathjax'
+import { sanitize } from '../lib/sanitize'
 import type { Annotation } from '../types'
 
 interface Props {
@@ -40,7 +41,7 @@ function wrapTables(host: HTMLElement): void {
 
 /**
  * Renders official question HTML: MathML, inline SVG figures, tables, and
- * base64 images all arrive as-is from the bank.
+ * base64 images all arrive from the bank, and pass through lib/sanitize.ts.
  *
  * Order matters. Highlights are applied while the math is still <math>, then
  * MathJax replaces it; because the offset space skips math entirely, typesetting
@@ -54,7 +55,9 @@ export function RichText({
   useEffect(() => {
     const host = ref.current
     if (!host) return
-    host.innerHTML = html
+    // Cleaned in an inert template first: nothing in it runs or loads until it
+    // is in the page, and by then anything that could is gone (lib/sanitize.ts).
+    host.replaceChildren(sanitize(html))
     wrapTables(host)
     applyHighlights(host, annotations.filter((a) => a.field === field))
     void typeset(host)
