@@ -14,7 +14,7 @@ Live: **https://lightblueprep.pages.dev**
 - **College Board question IDs** behind the Info button, with one-click copy and a YouTube search for walkthroughs of that exact question. Search any ID from Home.
 - **Bluebook-style practice screen**: split passage view, built-in Desmos, a math reference sheet, highlights and notes, cross-out, mark for review, the official explanation for every answer choice, and a mistake log after a wrong answer.
 - **Progress**: streaks, an estimated score per section, and stats by skill.
-- **Free, no account, no ads, no tracking.** Questions are fetched by your browser straight from College Board; this project never hosts them. Optional Google sign-in syncs progress between devices.
+- **Free, no account, no ads, no tracking.** Questions are fetched by your browser straight from College Board; this project never hosts them. Optional Google sign-in syncs progress between devices. Visits are counted anonymously, with no cookies and no IDs.
 
 ## Credits and license
 
@@ -32,7 +32,18 @@ npm run build:pages
 npx wrangler pages deploy dist-pages --project-name lightblueprep --branch main
 ```
 
-Config lives in `web/.env.pages`: `VITE_DONATE_URL` shows the Support link; `VITE_SYNC_API` and `VITE_GOOGLE_CLIENT_ID` turn on sign-in and sync (blank = off). The security headers are in `web/public/_headers`, which only Cloudflare Pages applies.
+Config lives in `web/.env.pages`: `VITE_DONATE_URL` shows the Support link; `VITE_SYNC_API` and `VITE_GOOGLE_CLIENT_ID` turn on sign-in and sync (blank = off); `VITE_CF_BEACON` is the Cloudflare Web Analytics token (blank = no beacon; a fork should blank it or use its own). The security headers are in `web/public/_headers`, which only Cloudflare Pages applies.
+
+### Usage counts
+
+Two anonymous counts, both in [web/src/lib/usage.ts](web/src/lib/usage.ts) and both described in the privacy policy. Cloudflare Web Analytics (dashboard, Web Analytics) has page views and where visitors came from, but counts visits, not people. For people, each browser tells the sync Worker once when it answers its first question and once at its tenth different question, with no ID; the Worker keeps a total per day:
+
+```
+cd worker
+npx wrangler d1 execute lightblueprep --remote --command "SELECT step, SUM(n) AS browsers FROM milestones GROUP BY step"
+```
+
+`step` 1 is browsers that tried it, 10 is browsers that used it. One person on two devices counts twice. Anyone can POST to the endpoint, so check the totals against Web Analytics visits.
 
 The sync Worker deploys separately with `cd worker && npx wrangler deploy`. When a change adds a file under `worker/migrations/`, run it on the database first, then deploy the Worker:
 
@@ -132,7 +143,7 @@ The client id has to come from a Web application OAuth client in the Google Clou
 
 `ALLOWED_SUBS` is optional. Unset, anyone with a Google account can sign in and gets their own private row. Set to a comma separated list of Google subs, it locks the deployment to those accounts. `ADMIN_SUBS` lists the subs that can read the feedback inbox. To find your own sub, sign in once and run `SELECT sub, created_at FROM users` in the D1 console; nothing is logged.
 
-The Worker rate-limits sign-in and feedback per IP and sync per account (the `ratelimits` in [worker/wrangler.jsonc](worker/wrangler.jsonc); each is optional, so a dashboard paste with no bindings still runs), refuses oversized requests, validates every row it stores, caps sessions at ten per account, and keeps each account's row counts on its cursor row so the storage ceilings never need a `COUNT(*)` over the account.
+The Worker rate-limits sign-in, feedback and the usage count per IP and sync per account (the `ratelimits` in [worker/wrangler.jsonc](worker/wrangler.jsonc); each is optional, so a dashboard paste with no bindings still runs), refuses oversized requests, validates every row it stores, caps sessions at ten per account, and keeps each account's row counts on its cursor row so the storage ceilings never need a `COUNT(*)` over the account.
 
 Attempts merge by union on a uuid, so a sync that fails, runs twice, or arrives out of order can't lose or duplicate anything. Marks, annotations, the mistake log and sets are last write wins, decided on the server so a device with a wrong clock can't stomp newer data, and guarded on the device too, so a reply that lands mid-edit can't undo the edit. Deleting a set writes a tombstone that syncs like any other change. If you set this up before the mistake log or the `sets` table existed, re-run `schema.sql`, then run each file in `worker/migrations/` once, and re-paste the worker.
 

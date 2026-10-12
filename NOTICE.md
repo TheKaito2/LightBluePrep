@@ -76,5 +76,10 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   host name. Removed two unused dependencies (and with them every audit
   finding), tightened the image policy, added HSTS, and replaced upstream's
   GitHub Pages workflow with a test-only CI.
+- 2026-10-12: Anonymous usage counts. Cloudflare Web Analytics for page views
+  (no cookies), and a once-per-browser ping to the sync Worker at the first and
+  tenth question answered, with no ID; the Worker keeps daily totals in a new
+  `milestones` table (migration in worker/migrations/). Privacy policy and
+  About updated to match.
 
 The full history of changes is in the git log.

@@ -5,8 +5,10 @@
 # img-src: every image in the question bank is an inline data: URI, so images
 # may come only from this site, data:/blob:, and Desmos. That also stops an
 # injected <img> or CSS url() from beaconing anywhere else.
+# Cloudflare Web Analytics (src/lib/usage.ts): the one beacon script by exact
+# path, and cloudflareinsights.com to receive what it reports.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'sha256-nSDD8RPwsKtoaGGW7MQC9IQHuRErkl6Wo0XnL/y1cwU=' https://accounts.google.com/gsi/client https://www.desmos.com; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https://www.desmos.com; font-src 'self' data: https://www.desmos.com; connect-src 'self' https://qbank-api.collegeboard.org https://saic.collegeboard.org https://lightblueprep-sync.kristpaulm.workers.dev https://accounts.google.com/gsi/ https://www.desmos.com; frame-src https://accounts.google.com/gsi/; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'sha256-nSDD8RPwsKtoaGGW7MQC9IQHuRErkl6Wo0XnL/y1cwU=' https://accounts.google.com/gsi/client https://www.desmos.com https://static.cloudflareinsights.com/beacon.min.js; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https://www.desmos.com; font-src 'self' data: https://www.desmos.com; connect-src 'self' https://qbank-api.collegeboard.org https://saic.collegeboard.org https://lightblueprep-sync.kristpaulm.workers.dev https://accounts.google.com/gsi/ https://www.desmos.com https://cloudflareinsights.com; frame-src https://accounts.google.com/gsi/; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

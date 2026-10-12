@@ -7,9 +7,11 @@ import './fonts.css'
 import '@fontsource-variable/bricolage-grotesque'
 import './tokens.css'
 import './styles.css'
+import { loadBeacon } from './lib/usage'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
   </StrictMode>,
 )
+loadBeacon()

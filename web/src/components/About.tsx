@@ -10,6 +10,7 @@ import { REPO } from './Github'
 import { PageHead } from './PageHead'
 import { openSupport, supportAvailable } from './Support'
 import { configured } from '../lib/auth'
+import { countsPeople, countsVisits } from '../lib/usage'
 import { FeedbackLink } from './Feedback'
 
 const UPSTREAM = 'https://github.com/jackwangxyw/Bluebank'
@@ -45,11 +46,20 @@ export function About() {
       <section className="about-block">
         <h2 className="about-h2">Privacy</h2>
         <p className="about-p">
-          No account needed. <strong>No ads, no analytics, no tracking.</strong>{' '}
+          No account needed.{' '}
+          <strong>
+            {countsVisits || countsPeople ? 'No ads, no tracking cookies.' : 'No ads, no analytics, no tracking.'}
+          </strong>{' '}
           Your answers, notes and marks are saved in your own browser and never
           leave it{canSignIn ? ' unless you sign in' : ''}. Feedback you send is
           stored anonymously, with no name, email or account attached.
         </p>
+        {countsVisits || countsPeople ? (
+          <p className="about-p">
+            {countsVisits ? 'Visits are counted with Cloudflare Web Analytics, which sets no cookies and stores nothing on your device. ' : ''}
+            {countsPeople ? 'To see how many people use the site, your browser tells our server once when it answers its first question and once at its tenth, with no ID attached.' : ''}
+          </p>
+        ) : null}
         <p className="about-p">
           Your browser talks to College Board to fetch the questions, and to
           Desmos only if you open the calculator. Both see your IP address, like

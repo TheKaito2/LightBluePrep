@@ -50,11 +50,12 @@ interface Env {
   ALLOWED_SUBS?: string
   /** Comma-separated Google subs allowed to read the feedback inbox. */
   ADMIN_SUBS?: string
-  /** Workers rate-limit bindings, all optional: per IP for /feedback and
-   * /auth/google, per account for /sync. */
+  /** Workers rate-limit bindings, all optional: per IP for /feedback,
+   * /auth/google and /milestone, per account for /sync. */
   FEEDBACK_LIMITER?: RateLimiter
   AUTH_LIMITER?: RateLimiter
   SYNC_LIMITER?: RateLimiter
+  MILESTONE_LIMITER?: RateLimiter
 }
 
 interface RateLimiter {

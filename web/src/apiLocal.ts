@@ -29,6 +29,7 @@ import { byShuffleKey } from './lib/shuffle'
 import * as cb from './lib/cbApi'
 import * as store from './lib/store'
 import * as sync from './lib/sync'
+import * as usage from './lib/usage'
 import type {
   Annotation, Filters, GradeResult, Mistake, MistakeTag, PracticeSet, Question,
   Section, SetAnswer, SetItem, Stats, StoredQuestion, TaxonomyRow,
@@ -409,6 +410,8 @@ export async function answer(
   const list = c.attempts.get(id)
   if (list) list.push(attempt)
   else c.attempts.set(id, [attempt])
+  // Keyed by question, so this is different questions answered, not answers.
+  void usage.answered(c.attempts.size)
 
   return result
 }

@@ -19,7 +19,7 @@
  *                     anyone may sign in; setting it makes the site single-user
  *                     again, which is the kill switch.
  *   ADMIN_SUBS        secret. Subs allowed to read the feedback inbox.
- *   AUTH_LIMITER, SYNC_LIMITER, FEEDBACK_LIMITER
+ *   AUTH_LIMITER, SYNC_LIMITER, FEEDBACK_LIMITER, MILESTONE_LIMITER
  *                     rate limit bindings (wrangler.jsonc). Each is optional:
  *                     unbound means unlimited, so a dashboard paste still runs.
  *
@@ -58,8 +58,10 @@
  *                COUNT(*). NULL means "not counted yet" and is filled once.
  *   sets.deleted A tombstone. A deleted set keeps its row (emptied) so the
  *                deletion syncs to every device like any other change.
+ *   milestones   One total per day per step (see handleMilestone). No id of any
+ *                kind: it cannot say who was counted, only how many.
  *
- * Existing databases: run worker/migrations/2026-10-12-counters.sql once.
+ * Existing databases: run each file in worker/migrations/ once.
  * ---------------------------------------------------------------------------
  */
 
@@ -771,6 +773,34 @@ async function handleFeedback(request, env, origin) {
   return json({ ok: true }, 200, origin)
 }
 
+// ---------------------------------------------------------------- milestones
+//
+// How many people use the site, counted without knowing who anyone is. A
+// browser sends POST /milestone/1 when it answers its first question and
+// /milestone/10 at its tenth different question, once each, ever: it remembers
+// that itself (web/src/lib/usage.ts), so nothing here needs an id, a cookie or
+// the IP. All that is stored is one total per day per step.
+//
+// ponytail: anyone can POST here, so a determined script can inflate the count;
+// the per-IP limit only slows it. Sanity-check the totals against Web
+// Analytics visits. If it ever gets gamed, put Turnstile in front of it.
+
+/** @param {Request} request @param {Env} env @param {string | null} origin @param {number} step */
+async function handleMilestone(request, env, origin, step) {
+  // The site's fetch is cross-origin, so a browser always sends Origin. One
+  // without it is a script, not the site.
+  if (!origin) return fail('origin required', 403, origin)
+  if (!(await allowed(env.MILESTONE_LIMITER, request.headers.get('CF-Connecting-IP') || 'unknown'))) {
+    return fail('too many requests, try again in a minute', 429, origin)
+  }
+  const day = new Date().toISOString().slice(0, 10)
+  await env.DB.prepare(
+    'INSERT INTO milestones (day, step, n) VALUES (?, ?, 1)'
+    + ' ON CONFLICT(day, step) DO UPDATE SET n = n + 1',
+  ).bind(day, step).run()
+  return json({ ok: true }, 200, origin)
+}
+
 /** @param {Request} request @param {Env} env @param {string | null} origin @param {URL} url */
 async function handleAdmin(request, env, origin, url) {
   const sentToken = (request.headers.get('Authorization') || '').startsWith('Bearer ')
@@ -882,6 +912,10 @@ export default {
       }
       if (url.pathname === '/feedback' && request.method === 'POST') {
         return await handleFeedback(request, env, origin)
+      }
+      const milestone = url.pathname.match(/^\/milestone\/(1|10)$/)
+      if (milestone && request.method === 'POST') {
+        return await handleMilestone(request, env, origin, Number(milestone[1]))
       }
       if (url.pathname.startsWith('/admin/')) {
         return await handleAdmin(request, env, origin, url)
