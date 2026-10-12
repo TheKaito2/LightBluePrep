@@ -8,12 +8,13 @@ Live: **https://lightblueprep.pages.dev**
 
 ## What it does
 
-- **Question browser.** Filters in a sidebar (section, domain and skill tree, difficulty, status), every matching question listed beside it with your last result: New, Correct, Correct after retry, Incorrect, Marked.
-- **Hide done.** One switch skips everything you have already answered. **Start / Continue** opens the first question you haven't done.
-- **Order your way.** Mixed (stable numbering), By topic, or Random (reshuffle any time).
-- **College Board question IDs** on every question, with one-click copy and a YouTube search for walkthroughs of that exact question.
-- **Bluebook-style practice screen**: split passage view, built-in Desmos, highlights and notes, cross-out, mark for review, official explanation for every answer choice, mistake log, timed practice sets, stats by skill.
-- **Free, no account, no ads, no tracking.** Questions are fetched by your browser straight from College Board; this project never hosts them.
+- **Topics first.** Tick domains and skills on Home, each with your coverage and accuracy, and narrow any skill to one or more **question types**: 180 solving-process types across the 29 skills ("Find the constant for no or infinite solutions", "Join two complete sentences").
+- **Options.** Skip what you've done, drill only what you got wrong or marked, Mixed / By topic / Random order, and timed **practice sets** of 10 to 50 that grade at the end like Bluebook.
+- **Review.** Everything you've answered, with filters for Incorrect, Marked and Has a note (by mistake type), a **Redo** for any pile or section, and **Practice similar** under each question.
+- **College Board question IDs** behind the Info button, with one-click copy and a YouTube search for walkthroughs of that exact question. Search any ID from Home.
+- **Bluebook-style practice screen**: split passage view, built-in Desmos, a math reference sheet, highlights and notes, cross-out, mark for review, the official explanation for every answer choice, and a mistake log after a wrong answer.
+- **Progress**: streaks, an estimated score per section, and stats by skill.
+- **Free, no account, no ads, no tracking.** Questions are fetched by your browser straight from College Board; this project never hosts them. Optional Google sign-in syncs progress between devices.
 
 ## Credits and license
 
@@ -27,11 +28,19 @@ Not affiliated with or endorsed by College Board. SAT and Bluebook are trademark
 
 ```
 cd web
-BASE=/ npm run build:pages
+npm run build:pages
 npx wrangler pages deploy dist-pages --project-name lightblueprep --branch main
 ```
 
-Config lives in `web/.env.pages`: `VITE_DONATE_URL` shows the Support link; `VITE_SYNC_API` and `VITE_GOOGLE_CLIENT_ID` turn on sign-in and sync (blank = off).
+Config lives in `web/.env.pages`: `VITE_DONATE_URL` shows the Support link; `VITE_SYNC_API` and `VITE_GOOGLE_CLIENT_ID` turn on sign-in and sync (blank = off). The security headers are in `web/public/_headers`, which only Cloudflare Pages applies.
+
+The sync Worker deploys separately with `cd worker && npx wrangler deploy`. When a change adds a file under `worker/migrations/`, run it on the database first, then deploy the Worker:
+
+```
+cd worker
+npx wrangler d1 execute lightblueprep --remote --file=migrations/<file>.sql
+npx wrangler deploy
+```
 
 ## Technical documentation
 
@@ -108,11 +117,9 @@ On the static build it's IndexedDB under database `bluebank`, and `indexedDB.del
 The cached index is re-read after a week, in the background so it never costs you a cold start. Without that it was fetched once on your first visit and never again, so new questions added to the bank would never show up on that device.
 
 ### Deploying the Static Build
-[.github/workflows/pages.yml](.github/workflows/pages.yml) builds `dist-pages/` and publishes it on every push to main. It runs `npm test` first and won't deploy a red suite. Two things it can't do for you.
+Deploy `dist-pages/` with `wrangler pages deploy` as above. [.github/workflows/ci.yml](.github/workflows/ci.yml) only runs both test suites and a build on every push; it deploys nothing. (Upstream's workflow published to GitHub Pages, which ignores `_headers`, so it would have served a copy with no CSP.) GitHub doesn't run workflows on a fork until you enable them on its Actions tab.
 
-Turn Pages on before the first run, under repo Settings, Pages, Build and deployment, with Source set to GitHub Actions. Leave it on the default and the build passes while the deploy step fails.
-
-Vite needs a base path or every asset 404s, including the vendored MathJax. The workflow sets `BASE: /` because this deploys to satbluebank.com, which serves from the root. A fork deploying to `username.github.io/repo` wants the repo name there instead, and a local `npm run build:pages` hardcodes `/Bluebank/`, so build with `BASE=/ npm run build:pages` to match what CI ships.
+The build is served from the root. To serve it from a sub-path instead, for example `username.github.io/repo`, build with `BASE=/repo/ npm run build:pages`.
 
 ### Running Your Own Sync Server
 Skip this unless you want sync on your own deployment. Leave `VITE_SYNC_API` and `VITE_GOOGLE_CLIENT_ID` blank in [web/.env.pages](web/.env.pages) and the account UI doesn't render at all, which is also the rollback.
@@ -123,9 +130,11 @@ The server is one Cloudflare Worker over a D1 database, in [worker/](worker). Cr
 
 The client id has to come from a Web application OAuth client in the Google Cloud Console, with that same origin listed under Authorized JavaScript origins. Google's list, `ALLOWED_ORIGINS` and `.env.pages` all have to agree, and one of them disagreeing is the usual reason sign-in fails. `GET /health` reports which bindings actually landed and which client id the worker thinks it has, so check that first. Saving a binding in the dashboard without hitting Deploy leaves it missing at runtime and nothing else tells you.
 
-`ALLOWED_SUBS` is optional. Unset, anyone with a Google account can sign in and gets their own private row. Set to a comma separated list of Google subs, it locks the deployment to those accounts. While it's still unset, every sign-in prints that account's sub to Worker, Logs, Live, which is the only place to read your own, and no email goes with it.
+`ALLOWED_SUBS` is optional. Unset, anyone with a Google account can sign in and gets their own private row. Set to a comma separated list of Google subs, it locks the deployment to those accounts. `ADMIN_SUBS` lists the subs that can read the feedback inbox. To find your own sub, sign in once and run `SELECT sub, created_at FROM users` in the D1 console; nothing is logged.
 
-Attempts merge by union on a uuid, so a sync that fails, runs twice, or arrives out of order can't lose or duplicate anything. Marks, annotations, the mistake log and sets are last write wins, decided on the server so a device with a wrong clock can't stomp newer data. If you set this up before the mistake log or the `sets` table existed, re-run `schema.sql` and re-paste the worker. Every statement is `CREATE TABLE IF NOT EXISTS`, so running it again is safe and only adds what's missing.
+The Worker rate-limits sign-in and feedback per IP and sync per account (the `ratelimits` in [worker/wrangler.jsonc](worker/wrangler.jsonc); each is optional, so a dashboard paste with no bindings still runs), refuses oversized requests, validates every row it stores, caps sessions at ten per account, and keeps each account's row counts on its cursor row so the storage ceilings never need a `COUNT(*)` over the account.
+
+Attempts merge by union on a uuid, so a sync that fails, runs twice, or arrives out of order can't lose or duplicate anything. Marks, annotations, the mistake log and sets are last write wins, decided on the server so a device with a wrong clock can't stomp newer data, and guarded on the device too, so a reply that lands mid-edit can't undo the edit. Deleting a set writes a tombstone that syncs like any other change. If you set this up before the mistake log or the `sets` table existed, re-run `schema.sql`, then run each file in `worker/migrations/` once, and re-paste the worker.
 
 ### The API
 Four endpoints, no authentication of any kind. Confirmed with bare curl sending only `Content-Type`, and confirmed again from a real browser on a foreign origin.
@@ -176,8 +185,8 @@ Two things do reach out, and only when you ask for them. Desmos loads from their
 
 ### Tests
 ```
-python -m pytest tests -q     # 86
-cd web && npm test            # 86
+python -m unittest discover tests   # 92
+cd web && npm test                  # 112
 ```
 
 The rationale parser and the grader exist in both Python and TypeScript, and the TypeScript ports were checked against the Python by running both over the whole corpus: every rationale split identically, every explanation classified identically, every recovered key identical. The HTML in the committed cases is paraphrased rather than copied, so no question content is in the repo.

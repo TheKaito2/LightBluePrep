@@ -1,0 +1,51 @@
+name: CI
+
+# Tests and a build on every push and pull request. Nothing is deployed from
+# here: the site goes out with `wrangler pages deploy` (see README), whose
+# _headers carry the CSP. The upstream workflow this replaces published to
+# GitHub Pages, which ignores _headers, so enabling Actions would have put a
+# second copy of the site online with no security headers at all.
+#
+# Actions are pinned to full commit SHAs, not tags: a tag can be moved to
+# different code, a commit cannot.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Python tests
+        run: python -m unittest discover tests
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        working-directory: web
+        run: npm ci
+
+      - name: Web tests
+        working-directory: web
+        run: npm test
+
+      - name: Build
+        working-directory: web
+        run: npm run build:pages

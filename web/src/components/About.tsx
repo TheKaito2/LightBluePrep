@@ -25,9 +25,11 @@ export function About() {
       <section className="about-block">
         <h2 className="about-h2">How it works</h2>
         <p className="about-p">
-          Pick a section, tick the topics you want, and the list shows every
-          matching question with how you did on it last time. Hide the ones you
-          have already done, or filter down to just the ones you got wrong.
+          Tick the topics you want on Practice, narrow a topic down to one kind
+          of question if you like, and start. Options lets you skip what you
+          have already done, drill only the ones you got wrong, or run a timed
+          set. Review keeps everything you answered, so you can redo a whole
+          pile at once or practise questions solved the same way.
         </p>
         <p className="about-p">
           LightBluePrep does not host the questions. Your browser downloads them
@@ -35,8 +37,8 @@ export function About() {
           a few seconds and after that it is fast and works offline.
         </p>
         <p className="about-p">
-          Each question shows its College Board ID. Copy it, or tap YouTube to
-          look for a walkthrough of that exact question.
+          Tap Info on any question for its College Board ID. Copy it, or tap
+          YouTube to look for a walkthrough of that exact question.
         </p>
       </section>
 

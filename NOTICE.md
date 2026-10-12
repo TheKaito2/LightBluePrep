@@ -65,5 +65,16 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   section. Build script: scripts/process_types.py.
 - 2026-10-10: Home: ticking a skill shows its process types as chips, to
   narrow that skill to one or more types.
+- 2026-10-12: Security and reliability audit. Fixed: practice after leaving a
+  set had no Submit button; edits made during a sync could be reverted and
+  never synced; deleted sets came back (now synced tombstones); a first
+  sign-in with over 2,000 changes lost the excess. Question HTML is sanitized
+  before rendering. The sync Worker now rate-limits sign-in and sync,
+  caps request size and sessions, validates every stored row, and keeps row
+  counts instead of counting every sync (migration in worker/migrations/).
+  The local Python server only answers its own page and Vite on a loopback
+  host name. Removed two unused dependencies (and with them every audit
+  finding), tightened the image policy, added HSTS, and replaced upstream's
+  GitHub Pages workflow with a test-only CI.
 
 The full history of changes is in the git log.
