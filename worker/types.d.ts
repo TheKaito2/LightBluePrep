@@ -25,6 +25,7 @@
 interface D1Result<T = any> {
   results?: T[]
   success: boolean
+  meta?: { changes?: number; rows_read?: number; rows_written?: number }
 }
 
 interface D1PreparedStatement {
@@ -49,6 +50,13 @@ interface Env {
   ALLOWED_SUBS?: string
   /** Comma-separated Google subs allowed to read the feedback inbox. */
   ADMIN_SUBS?: string
-  /** Workers rate-limit binding for POST /feedback. Optional. */
-  FEEDBACK_LIMITER?: { limit(opts: { key: string }): Promise<{ success: boolean }> }
+  /** Workers rate-limit bindings, all optional: per IP for /feedback and
+   * /auth/google, per account for /sync. */
+  FEEDBACK_LIMITER?: RateLimiter
+  AUTH_LIMITER?: RateLimiter
+  SYNC_LIMITER?: RateLimiter
+}
+
+interface RateLimiter {
+  limit(opts: { key: string }): Promise<{ success: boolean }>
 }

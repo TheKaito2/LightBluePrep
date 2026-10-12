@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS annotations (sub TEXT NOT NULL, question_id TEXT NOT 
 CREATE INDEX IF NOT EXISTS idx_annotations_seq ON annotations(sub, seq);
 CREATE TABLE IF NOT EXISTS mistakes (sub TEXT NOT NULL, question_id TEXT NOT NULL, tags_json TEXT NOT NULL, note TEXT, updated_at INTEGER NOT NULL, seq INTEGER NOT NULL, PRIMARY KEY (sub, question_id));
 CREATE INDEX IF NOT EXISTS idx_mistakes_seq ON mistakes(sub, seq);
-CREATE TABLE IF NOT EXISTS sets (sub TEXT NOT NULL, id TEXT NOT NULL, created_at INTEGER NOT NULL, finished_at INTEGER, updated_at INTEGER NOT NULL, seconds INTEGER NOT NULL DEFAULT 0, filters_json TEXT NOT NULL, items_json TEXT NOT NULL, seq INTEGER NOT NULL, PRIMARY KEY (sub, id));
+CREATE TABLE IF NOT EXISTS sets (sub TEXT NOT NULL, id TEXT NOT NULL, created_at INTEGER NOT NULL, finished_at INTEGER, updated_at INTEGER NOT NULL, seconds INTEGER NOT NULL DEFAULT 0, filters_json TEXT NOT NULL, items_json TEXT NOT NULL, seq INTEGER NOT NULL, deleted INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (sub, id));
 CREATE INDEX IF NOT EXISTS idx_sets_seq ON sets(sub, seq);
-CREATE TABLE IF NOT EXISTS cursors (sub TEXT PRIMARY KEY, seq INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS cursors (sub TEXT PRIMARY KEY, seq INTEGER NOT NULL DEFAULT 0, n_attempts INTEGER, n_marks INTEGER, n_annotations INTEGER, n_mistakes INTEGER, n_sets INTEGER);
 CREATE TABLE IF NOT EXISTS feedback (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, kind TEXT NOT NULL, message TEXT NOT NULL, question_id TEXT, cb_id TEXT, context TEXT, status TEXT NOT NULL DEFAULT 'open');
 CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);

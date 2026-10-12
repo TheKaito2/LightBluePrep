@@ -18,6 +18,10 @@
  *   ALLOWED_SUBS      secret, OPTIONAL. Comma-separated Google subs. Unset means
  *                     anyone may sign in; setting it makes the site single-user
  *                     again, which is the kill switch.
+ *   ADMIN_SUBS        secret. Subs allowed to read the feedback inbox.
+ *   AUTH_LIMITER, SYNC_LIMITER, FEEDBACK_LIMITER
+ *                     rate limit bindings (wrangler.jsonc). Each is optional:
+ *                     unbound means unlimited, so a dashboard paste still runs.
  *
  * Data policy, enforced here and not just documented: the only identifier
  * stored is the Google `sub`. The email in the verified token is read to check
@@ -49,6 +53,13 @@
  *   attempts     PRIMARY KEY (sub, id) is what makes the merge a union.
  *   marks,       PRIMARY KEY (sub, question_id), last-write-wins on updated_at,
  *   annotations  guarded server-side in handleSync below.
+ *   cursors      Also holds n_<table>: how many rows each account has, kept
+ *                current on every write so the storage ceilings never need a
+ *                COUNT(*). NULL means "not counted yet" and is filled once.
+ *   sets.deleted A tombstone. A deleted set keeps its row (emptied) so the
+ *                deletion syncs to every device like any other change.
+ *
+ * Existing databases: run worker/migrations/2026-10-12-counters.sql once.
  * ---------------------------------------------------------------------------
  */
 
@@ -66,9 +77,22 @@ const ALLOWED_ORIGINS = [
 ]
 
 const SESSION_DAYS = 90
+/** Sessions kept per account. Signing in on an eleventh device ends the oldest. */
+const MAX_SESSIONS = 10
 
 /** Ceiling per request, so one call cannot fill the database. */
 const MAX_ITEMS_PER_REQUEST = 2000
+
+/**
+ * Body ceilings, checked before anything is parsed. The client sends sync in
+ * batches of 500 changes, which real data keeps well under a megabyte.
+ */
+const BODY_LIMIT = {
+  auth: 8 * 1024,
+  feedback: 16 * 1024,
+  admin: 4 * 1024,
+  sync: 4 * 1024 * 1024,
+}
 
 /**
  * Ceilings per account, so one signed-in user cannot fill it either. Checked in
@@ -87,11 +111,20 @@ const MAX_ITEMS_PER_REQUEST = 2000
  */
 const CAPS = {
   attempts: 100000,
-  marks: 20000,
-  annotations: 20000,
-  mistakes: 20000,
-  sets: 5000,
+  marks: 10000,
+  annotations: 10000,
+  mistakes: 10000,
+  sets: 3000,
 }
+
+/** The five synced tables, with the column each one is keyed on per account. */
+const TABLES = [
+  ['attempts', 'id'],
+  ['marks', 'question_id'],
+  ['annotations', 'question_id'],
+  ['mistakes', 'question_id'],
+  ['sets', 'id'],
+]
 
 // ---------------------------------------------------------------- http helpers
 
@@ -113,8 +146,39 @@ function corsHeaders(origin) {
 function json(body, status, origin) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
+    headers: {
+      'Content-Type': 'application/json',
+      // Sync replies are someone's practice history and /auth returns a
+      // session token: nothing here may sit in a browser or proxy cache.
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      ...corsHeaders(origin),
+    },
   })
+}
+
+/**
+ * Parse a JSON body of at most `max` bytes. Checked on the declared length
+ * before reading, and again after, since a chunked body declares none.
+ * @param {Request} request @param {number} max
+ * @returns {Promise<{ tooBig: boolean, body: any }>}
+ */
+async function readJson(request, max) {
+  if (Number(request.headers.get('Content-Length') || 0) > max) return { tooBig: true, body: null }
+  const text = await request.text()
+  if (text.length > max) return { tooBig: true, body: null }
+  try { return { tooBig: false, body: JSON.parse(text) } } catch { return { tooBig: false, body: null } }
+}
+
+/**
+ * True when `key` is still under `limiter`'s budget. An unbound limiter means
+ * no limit, so the file still runs pasted into a dashboard with no bindings.
+ * @param {RateLimiter | undefined} limiter @param {string} key
+ */
+async function allowed(limiter, key) {
+  if (!limiter) return true
+  const { success } = await limiter.limit({ key })
+  return success
 }
 
 /** @param {string} message @param {number} status @param {string | null} origin */
@@ -204,10 +268,18 @@ async function subForRequest(request, env) {
 
 // ---------------------------------------------------------------- validation
 
+/**
+ * Question, attempt and set ids: College Board uuids and ibn codes ("015193-DC"),
+ * and our own uuids. Nothing else is a valid key.
+ */
+const ID = /^[A-Za-z0-9_-]{1,64}$/
 /** @param {unknown} v @returns {boolean} */
-const isStr = (v) => typeof v === 'string' && v.length > 0 && v.length <= 200
+const isStr = (v) => typeof v === 'string' && ID.test(v)
 /** @param {unknown} v @returns {boolean} */
 const isInt = (v) => typeof v === 'number' && Number.isFinite(v)
+
+const HIGHLIGHT_COLORS = ['yellow', 'blue', 'pink', 'underline']
+const MAX_HIGHLIGHTS = 100
 
 /**
  * Drop malformed rows rather than writing junk, and rather than 400-ing the
@@ -278,8 +350,8 @@ function cleanSets(raw) {
   for (const r of raw.slice(0, MAX_ITEMS_PER_REQUEST)) {
     if (!r || !isStr(r.id) || !isInt(r.created_at) || !isInt(r.updated_at)) continue
     if (!Array.isArray(r.items)) continue
-    // A set is at most a few hundred questions; anything past this is not one.
-    if (r.items.length > 500) continue
+    // The app makes sets of up to 50; anything past this is not one.
+    if (r.items.length > 200) continue
     const items = []
     for (const i of r.items) {
       if (!i || !isStr(i.question_id)) continue
@@ -291,7 +363,8 @@ function cleanSets(raw) {
       })
     }
     const filters = r.filters && typeof r.filters === 'object' ? r.filters : {}
-    if (JSON.stringify(filters).length > 4000) continue
+    if (JSON.stringify(filters).length > 2000) continue
+    const deleted = r.deleted === true
     out.push({
       id: r.id,
       created_at: Math.trunc(r.created_at),
@@ -299,8 +372,10 @@ function cleanSets(raw) {
       finished_at: isInt(r.finished_at) ? Math.trunc(r.finished_at) : null,
       updated_at: Math.trunc(r.updated_at),
       seconds: isInt(r.seconds) ? Math.trunc(r.seconds) : 0,
-      filters,
-      items,
+      // A tombstone carries no content: the row only exists to say "gone".
+      filters: deleted ? {} : filters,
+      items: deleted ? [] : items,
+      deleted: deleted ? 1 : 0,
     })
   }
   return out
@@ -312,11 +387,27 @@ function cleanAnnotations(raw) {
   const out = []
   for (const r of raw.slice(0, MAX_ITEMS_PER_REQUEST)) {
     if (!r || !isStr(r.question_id) || !isInt(r.updated_at)) continue
-    if (!Array.isArray(r.items)) continue
-    if (JSON.stringify(r.items).length > 100000) continue
+    if (!Array.isArray(r.items) || r.items.length > MAX_HIGHLIGHTS) continue
+    // Rebuilt field by field rather than stored as sent, so a row is always a
+    // list of highlights and never an arbitrary blob of someone's JSON.
+    const items = []
+    for (const h of r.items) {
+      if (!h || typeof h.field !== 'string' || h.field.length > 40) continue
+      if (!isInt(h.start_offset) || !isInt(h.end_offset)) continue
+      if (h.start_offset < 0 || h.end_offset < h.start_offset || h.end_offset > 1e6) continue
+      if (!HIGHLIGHT_COLORS.includes(h.color)) continue
+      items.push({
+        id: isInt(h.id) ? Math.trunc(h.id) : items.length + 1,
+        field: h.field,
+        start_offset: Math.trunc(h.start_offset),
+        end_offset: Math.trunc(h.end_offset),
+        color: h.color,
+        note: typeof h.note === 'string' ? h.note.slice(0, 1000) : null,
+      })
+    }
     out.push({
       question_id: r.question_id,
-      items: r.items,
+      items,
       updated_at: Math.trunc(r.updated_at),
     })
   }
@@ -332,8 +423,17 @@ function cleanAnnotations(raw) {
  * @returns {Promise<Response>}
  */
 async function handleAuth(request, env, origin) {
-  const body = await request.json().catch(() => null)
-  if (!body || !body.credential) return fail('missing credential', 400, origin)
+  // Every call costs a request to Google and, on success, a D1 write, so it is
+  // limited per IP like feedback. The IP is only a key and is never stored.
+  if (!(await allowed(env.AUTH_LIMITER, request.headers.get('CF-Connecting-IP') || 'unknown'))) {
+    return fail('too many sign-in attempts, try again in a minute', 429, origin)
+  }
+  const { tooBig, body } = await readJson(request, BODY_LIMIT.auth)
+  if (tooBig) return fail('request too large', 413, origin)
+  // A Google ID token is a JWT of a couple of kilobytes; anything else is junk.
+  if (!body || typeof body.credential !== 'string' || body.credential.length > 4096) {
+    return fail('missing credential', 400, origin)
+  }
 
   if (!env.GOOGLE_CLIENT_ID) {
     return fail('GOOGLE_CLIENT_ID is not set on the Worker. Check GET /health.', 500, origin)
@@ -342,15 +442,13 @@ async function handleAuth(request, env, origin) {
   const sub = await verifyGoogleToken(body.credential, env.GOOGLE_CLIENT_ID)
   if (!sub) return fail('invalid token', 401, origin)
 
-  const allowed = (env.ALLOWED_SUBS || '').split(',').map((s) => s.trim()).filter(Boolean)
-  if (allowed.length && !allowed.includes(sub)) {
+  const allowList = (env.ALLOWED_SUBS || '').split(',').map((s) => s.trim()).filter(Boolean)
+  if (allowList.length && !allowList.includes(sub)) {
     return fail('this account is not allowed to sign in', 403, origin)
   }
-  if (!allowed.length) {
-    // The only way to learn your own sub for the kill switch. Read it from
-    // Worker -> Logs -> Live, then set ALLOWED_SUBS. Prints no email.
-    console.log('ALLOWED_SUBS unset, allowing sub=' + sub)
-  }
+  // No log of the sub here any more: it used to print on every sign-in so the
+  // owner could find theirs. `SELECT sub FROM users` in the D1 console does that
+  // without writing anyone's account id into the Worker logs.
 
   const now = Math.floor(Date.now() / 1000)
   const token = newToken()
@@ -364,9 +462,40 @@ async function handleAuth(request, env, origin) {
     ).bind(hashed, sub, now, now + SESSION_DAYS * 86400),
     // Opportunistic cleanup; sessions are the only table that accumulates junk.
     env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(now),
+    // And a ceiling per account: without it one valid Google token, replayed
+    // for its hour of life, could mint sessions until D1 was full.
+    env.DB.prepare(
+      'DELETE FROM sessions WHERE sub = ? AND token NOT IN'
+      + ' (SELECT token FROM sessions WHERE sub = ? ORDER BY created_at DESC LIMIT ?)',
+    ).bind(sub, sub, MAX_SESSIONS),
   ])
 
   return json({ token }, 200, origin)
+}
+
+/**
+ * Which of `keys` already exist for this account in `table`. Chunked because D1
+ * binds at most 100 parameters per query. Reads only the incoming keys, so its
+ * cost follows the size of the request, not the size of the account.
+ * @param {Env} env @param {string} sub @param {string} table @param {string} column
+ * @param {string[]} keys
+ * @returns {Promise<Set<string>>}
+ */
+async function existingKeys(env, sub, table, column, keys) {
+  const found = new Set()
+  if (!keys.length) return found
+  const statements = []
+  for (let i = 0; i < keys.length; i += 90) {
+    const chunk = keys.slice(i, i + 90)
+    // Table and column come from the TABLES literal, never from the request.
+    statements.push(env.DB.prepare(
+      `SELECT ${column} AS k FROM ${table} WHERE sub = ? AND ${column} IN (${chunk.map(() => '?').join(',')})`,
+    ).bind(sub, ...chunk))
+  }
+  for (const result of await env.DB.batch(statements)) {
+    for (const row of result.results || []) found.add(row.k)
+  }
+  return found
 }
 
 /**
@@ -378,65 +507,70 @@ async function handleAuth(request, env, origin) {
 async function handleSync(request, env, origin) {
   const sub = await subForRequest(request, env)
   if (!sub) return fail('not signed in', 401, origin)
+  // Per account, so one signed-in user cannot spend the database's daily read
+  // and write allowance for everyone else. A real client syncs a few times a
+  // minute at most; the client backs off on 429 and nothing is lost.
+  if (!(await allowed(env.SYNC_LIMITER, sub))) {
+    return fail('syncing too fast, will retry shortly', 429, origin)
+  }
 
-  const body = await request.json().catch(() => null)
+  const { tooBig, body } = await readJson(request, BODY_LIMIT.sync)
+  if (tooBig) return fail('sync request too large', 413, origin)
   if (!body) return fail('bad body', 400, origin)
 
   const since = isInt(body.since) ? Math.trunc(body.since) : 0
-  const attempts = cleanAttempts(body.attempts)
-  const marks = cleanMarks(body.marks)
-  const annotations = cleanAnnotations(body.annotations)
-  const mistakes = cleanMistakes(body.mistakes)
-  const sets = cleanSets(body.sets)
-
-  // Refuse only when what is ALREADY stored is at the ceiling, rather than when
-  // stored + incoming would cross it. Two reasons, both about not breaking real
-  // users:
-  //
-  //   - Most incoming rows are not new. seedOutbox() re-pushes a device's whole
-  //     history on sign-in, and the LWW tables re-push a row every time it is
-  //     edited, so stored + incoming wildly overcounts. The old attempts check
-  //     did this and could wedge an account near the ceiling permanently: every
-  //     retry sent the same rows and got the same 413 forever.
-  //   - The cost of the looser rule is that one request can overshoot by at
-  //     most MAX_ITEMS_PER_REQUEST before the next one is refused. That is a
-  //     bounded overshoot on an abuse stop, which does not matter.
-  //
-  // The whole request is refused rather than the offending table being dropped,
-  // because the client clears its outbox on any 2xx: silently discarding one
-  // table's writes would let the client believe they had synced.
-  const checks = []
-  if (attempts.length) checks.push('attempts')
-  if (marks.length) checks.push('marks')
-  if (annotations.length) checks.push('annotations')
-  if (mistakes.length) checks.push('mistakes')
-  if (sets.length) checks.push('sets')
-
-  if (checks.length) {
-    // Table names come from the literal list above, never from the request.
-    const counts = await env.DB.batch(checks.map((table) => env.DB.prepare(
-      'SELECT COUNT(*) AS n FROM ' + table + ' WHERE sub = ?').bind(sub)))
-    for (let i = 0; i < checks.length; i++) {
-      const rows = (counts[i] && counts[i].results) || []
-      const n = (rows[0] && rows[0].n) || 0
-      if (n >= CAPS[checks[i]]) {
-        return fail('storage limit reached for ' + checks[i] + ' on this account', 413, origin)
-      }
-    }
+  const incoming = {
+    attempts: cleanAttempts(body.attempts),
+    marks: cleanMarks(body.marks),
+    annotations: cleanAnnotations(body.annotations),
+    mistakes: cleanMistakes(body.mistakes),
+    sets: cleanSets(body.sets),
   }
 
-  // Bump the cursor first and read it back. D1 has no interactive transactions,
-  // so this cannot be folded into the batch below. A crash in between burns a
-  // seq number, which nothing cares about.
+  // Bump the cursor first and read it back, with the stored row counts. D1 has
+  // no interactive transactions, so this cannot be folded into the batch below.
+  // A refusal or crash after this burns a seq number, which nothing cares about.
   const bumped = await env.DB.prepare(
     'INSERT INTO cursors (sub, seq) VALUES (?, 1)'
-    + ' ON CONFLICT(sub) DO UPDATE SET seq = seq + 1 RETURNING seq',
+    + ' ON CONFLICT(sub) DO UPDATE SET seq = seq + 1'
+    + ' RETURNING seq, n_attempts, n_marks, n_annotations, n_mistakes, n_sets',
   ).bind(sub).first()
   const seq = (bumped && bumped.seq) || 1
 
+  // The storage ceilings. These used to COUNT(*) every table on every sync,
+  // which reads every row the account has: the most expensive query in the
+  // system, and on the free plan a few hundred active users' worth of it would
+  // spend the whole day's read allowance. Now the counts live on the cursor row
+  // and only the incoming keys are looked up.
+  //
+  // Refused when what is ALREADY stored is at the ceiling, not when stored +
+  // incoming would cross it: re-sent rows (sign-in re-pushes a device's whole
+  // history) are not new, and counting them could wedge an account near the
+  // ceiling forever. One request can overshoot by at most a batch.
+  //
+  // The whole request is refused rather than one table dropped, because the
+  // client clears its outbox on any 2xx.
+  const counts = {}
+  for (const [table, column] of TABLES) {
+    const rows = incoming[table]
+    let stored = bumped ? bumped['n_' + table] : 0
+    if (stored === null || stored === undefined) {
+      // Never counted (older account, or before this column existed): once.
+      const row = await env.DB.prepare(
+        'SELECT COUNT(*) AS n FROM ' + table + ' WHERE sub = ?').bind(sub).first()
+      stored = Number((row && row.n) || 0)
+    }
+    if (rows.length && stored >= CAPS[table]) {
+      return fail('storage limit reached for ' + table + ' on this account', 413, origin)
+    }
+    const keys = rows.map((r) => r[column])
+    const have = rows.length ? await existingKeys(env, sub, table, column, keys) : new Set()
+    counts[table] = stored + keys.filter((k) => !have.has(k)).length
+  }
+
   const writes = []
 
-  for (const a of attempts) {
+  for (const a of incoming.attempts) {
     // Union by (sub, id). An attempt is immutable once written, so IGNORE is
     // the whole merge rule: replaying the same attempt is a no-op.
     writes.push(env.DB.prepare(
@@ -448,7 +582,7 @@ async function handleSync(request, env, origin) {
 
   // Last-write-wins, guarded SERVER-side so a client with a wrong clock cannot
   // stomp newer data. The WHERE on the DO UPDATE is what enforces it.
-  for (const m of marks) {
+  for (const m of incoming.marks) {
     writes.push(env.DB.prepare(
       'INSERT INTO marks (sub, question_id, flagged, updated_at, seq) VALUES (?,?,?,?,?)'
       + ' ON CONFLICT(sub, question_id) DO UPDATE SET'
@@ -457,7 +591,7 @@ async function handleSync(request, env, origin) {
     ).bind(sub, m.question_id, m.flagged, m.updated_at, seq))
   }
 
-  for (const n of annotations) {
+  for (const n of incoming.annotations) {
     writes.push(env.DB.prepare(
       'INSERT INTO annotations (sub, question_id, items_json, updated_at, seq)'
       + ' VALUES (?,?,?,?,?)'
@@ -468,7 +602,7 @@ async function handleSync(request, env, origin) {
     ).bind(sub, n.question_id, JSON.stringify(n.items), n.updated_at, seq))
   }
 
-  for (const m of mistakes) {
+  for (const m of incoming.mistakes) {
     writes.push(env.DB.prepare(
       'INSERT INTO mistakes (sub, question_id, tags_json, note, updated_at, seq)'
       + ' VALUES (?,?,?,?,?,?)'
@@ -481,24 +615,31 @@ async function handleSync(request, env, origin) {
 
   // Last-write-wins, guarded server-side like marks and annotations. A set is
   // worked through over time, so two devices can both hold a version of it.
-  for (const s of sets) {
+  // A deletion is just a newer version with `deleted` set, so it wins the same way.
+  for (const st of incoming.sets) {
     writes.push(env.DB.prepare(
       'INSERT INTO sets'
       + ' (sub, id, created_at, finished_at, updated_at, seconds, filters_json,'
-      + '  items_json, seq)'
-      + ' VALUES (?,?,?,?,?,?,?,?,?)'
+      + '  items_json, seq, deleted)'
+      + ' VALUES (?,?,?,?,?,?,?,?,?,?)'
       + ' ON CONFLICT(sub, id) DO UPDATE SET'
       + '   finished_at = excluded.finished_at, updated_at = excluded.updated_at,'
       + '   seconds = excluded.seconds, filters_json = excluded.filters_json,'
-      + '   items_json = excluded.items_json, seq = excluded.seq'
+      + '   items_json = excluded.items_json, seq = excluded.seq,'
+      + '   deleted = excluded.deleted'
       + ' WHERE excluded.updated_at > sets.updated_at',
-    ).bind(sub, s.id, s.created_at, s.finished_at, s.updated_at, s.seconds,
-           JSON.stringify(s.filters), JSON.stringify(s.items), seq))
+    ).bind(sub, st.id, st.created_at, st.finished_at, st.updated_at, st.seconds,
+           JSON.stringify(st.filters), JSON.stringify(st.items), seq, st.deleted))
   }
 
-  if (writes.length) await env.DB.batch(writes)
+  writes.push(env.DB.prepare(
+    'UPDATE cursors SET n_attempts = ?, n_marks = ?, n_annotations = ?, n_mistakes = ?,'
+    + ' n_sets = ? WHERE sub = ?',
+  ).bind(counts.attempts, counts.marks, counts.annotations, counts.mistakes, counts.sets, sub))
 
-  // Deliberately returns the caller's own writes back to it. For the two LWW
+  await env.DB.batch(writes)
+
+  // Deliberately returns the caller's own writes back to it. For the LWW
   // stores that is how the client learns what the server actually decided, so a
   // rejected update self-corrects on the same round trip.
   const [outAttempts, outMarks, outAnnotations, outMistakes, outSets] = await env.DB.batch([
@@ -516,7 +657,7 @@ async function handleSync(request, env, origin) {
     ).bind(sub, since),
     env.DB.prepare(
       'SELECT id, created_at, finished_at, updated_at, seconds, filters_json,'
-      + ' items_json FROM sets WHERE sub = ? AND seq > ?',
+      + ' items_json, deleted FROM sets WHERE sub = ? AND seq > ?',
     ).bind(sub, since),
   ])
 
@@ -551,6 +692,7 @@ async function handleSync(request, env, origin) {
         seconds: row.seconds,
         filters,
         items,
+        ...(row.deleted ? { deleted: true } : {}),
       }
     }),
   }, 200, origin)
@@ -590,12 +732,11 @@ const optStr = (v, max) => (typeof v === 'string' && v.length > 0 && v.length <=
 
 /** @param {Request} request @param {Env} env @param {string | null} origin */
 async function handleFeedback(request, env, origin) {
-  if (env.FEEDBACK_LIMITER) {
-    const key = request.headers.get('CF-Connecting-IP') || 'unknown'
-    const { success } = await env.FEEDBACK_LIMITER.limit({ key })
-    if (!success) return fail('too many messages, try again in a minute', 429, origin)
+  if (!(await allowed(env.FEEDBACK_LIMITER, request.headers.get('CF-Connecting-IP') || 'unknown'))) {
+    return fail('too many messages, try again in a minute', 429, origin)
   }
-  const body = await request.json().catch(() => null)
+  const { tooBig, body } = await readJson(request, BODY_LIMIT.feedback)
+  if (tooBig) return fail('message too large', 413, origin)
   if (!body || typeof body !== 'object') return fail('bad request', 400, origin)
   // Honeypot: a field people never see. Bots that fill every input get a fake
   // success and nothing is written.
@@ -630,21 +771,14 @@ async function handleFeedback(request, env, origin) {
   return json({ ok: true }, 200, origin)
 }
 
-/** @param {Request} request @param {Env} env @returns {Promise<boolean>} */
-async function isAdmin(request, env) {
-  const sub = await subForRequest(request, env)
-  if (!sub) return false
-  const admins = (env.ADMIN_SUBS || '').split(',').map((s) => s.trim()).filter(Boolean)
-  return admins.includes(sub)
-}
-
 /** @param {Request} request @param {Env} env @param {string | null} origin @param {URL} url */
 async function handleAdmin(request, env, origin, url) {
   const sentToken = (request.headers.get('Authorization') || '').startsWith('Bearer ')
-  const admin = await isAdmin(request, env)
-  if (sentToken && !admin && !(await subForRequest(request, env))) {
-    return fail('not signed in', 401, origin)
-  }
+  const sub = await subForRequest(request, env)
+  // A token that no longer matches a session is a 401, so the client drops it.
+  if (sentToken && !sub) return fail('not signed in', 401, origin)
+  const admins = (env.ADMIN_SUBS || '').split(',').map((s) => s.trim()).filter(Boolean)
+  const admin = Boolean(sub && admins.includes(sub))
   if (url.pathname === '/admin/me' && request.method === 'GET') {
     return json({ admin }, 200, origin)
   }
@@ -663,7 +797,7 @@ async function handleAdmin(request, env, origin, url) {
   }
   const m = url.pathname.match(/^\/admin\/feedback\/([0-9a-f-]{36})$/)
   if (m && request.method === 'POST') {
-    const body = await request.json().catch(() => null)
+    const { body } = await readJson(request, BODY_LIMIT.admin)
     const status = body && (body.status === 'open' || body.status === 'done') ? body.status : null
     if (!status) return fail('status must be open or done', 400, origin)
     await env.DB.prepare('UPDATE feedback SET status = ? WHERE id = ?').bind(status, m[1]).run()
