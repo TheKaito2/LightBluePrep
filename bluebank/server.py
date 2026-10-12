@@ -23,6 +23,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 WEB_DIST = PROJECT_ROOT / "web" / "dist"
 MAX_BODY = 1 << 20   # 1 MB is far more than any annotation set
 
+# The Vite dev server, which runs on its own port and calls this one. Besides
+# these, only the page this server itself serves may call the API.
+DEV_ORIGINS = {"http://localhost:5173", "http://127.0.0.1:5173"}
+LOOPBACK_NAMES = {"localhost", "127.0.0.1", "::1"}
+
 
 class Api:
     """Route table. Each handler takes (conn, query, body) and returns JSON."""
@@ -209,16 +214,44 @@ class Handler(BaseHTTPRequestHandler):
             super().log_message(fmt, *args)
 
     # -- helpers ---------------------------------------------------------
+    def _origin_ok(self):
+        """No Origin (curl, a plain page load), this server's own page, or Vite.
+
+        This used to answer every origin with `Access-Control-Allow-Origin: *`,
+        so any website open in the same browser could read and rewrite your
+        local progress while the server ran, and a no-cors POST could do it
+        without even a preflight. Now a foreign origin is refused outright.
+        """
+        origin = self.headers.get("Origin")
+        if not origin:
+            return True
+        return origin in DEV_ORIGINS or origin == "http://" + (self.headers.get("Host") or "")
+
+    def _host_ok(self):
+        """On the default loopback bind, only answer to a loopback host name.
+
+        Stops DNS rebinding: a site that re-points its own name at 127.0.0.1
+        is same-origin with itself, so CORS never applies, but the Host header
+        still carries its name.
+        """
+        if not self.server.loopback:
+            return True
+        name = urlparse("//" + (self.headers.get("Host") or "")).hostname
+        return name in LOOPBACK_NAMES
+
     def _send(self, status, payload=None, raw=None, content_type="application/json"):
         if raw is None:
             raw = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(raw)))
-        # The Vite dev server runs on another port; this is a localhost tool.
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.send_header("Access-Control-Allow-Methods", "GET,POST,PUT,OPTIONS")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        origin = self.headers.get("Origin")
+        if origin and self._origin_ok():
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+            self.send_header("Access-Control-Allow-Methods", "GET,POST,PUT,OPTIONS")
         self.end_headers()
         if self.command != "HEAD":
             self.wfile.write(raw)
@@ -232,7 +265,19 @@ class Handler(BaseHTTPRequestHandler):
         return json.loads(self.rfile.read(length).decode("utf-8"))
 
     # -- verbs -----------------------------------------------------------
+    def _refuse(self):
+        """The host and origin checks, for every verb. True when refused."""
+        if not self._host_ok():
+            self._send(403, {"error": "unknown host"})
+            return True
+        if not self._origin_ok():
+            self._send(403, {"error": "origin not allowed"})
+            return True
+        return False
+
     def do_OPTIONS(self):
+        if self._refuse():
+            return
         self._send(204, raw=b"")
 
     def do_GET(self):
@@ -245,6 +290,8 @@ class Handler(BaseHTTPRequestHandler):
         self._handle("PUT")
 
     def _handle(self, method):
+        if self._refuse():
+            return
         parsed = urlparse(self.path)
         path = parsed.path
         if not path.startswith("/api/"):
@@ -274,7 +321,10 @@ class Handler(BaseHTTPRequestHandler):
         if root is None or not root.exists():
             return self._send(404, {"error": "frontend not built; run `npm run build` in web/"})
         target = (root / path.lstrip("/")).resolve()
-        if not str(target).startswith(str(root.resolve())):
+        # A real containment check. The old string-prefix one let
+        # "/../dist-pages/..." through, because "web/dist-pages" starts with
+        # "web/dist".
+        if not target.is_relative_to(root.resolve()):
             return self._send(403, {"error": "path outside web root"})
         if target.is_dir() or not target.exists():
             target = root / "index.html"
@@ -287,6 +337,7 @@ class Handler(BaseHTTPRequestHandler):
 def serve(host="127.0.0.1", port=8000, db_path=None, web_root=WEB_DIST,
           verbose=False):
     httpd = ThreadingHTTPServer((host, port), Handler)
+    httpd.loopback = host in LOOPBACK_NAMES
     httpd.db_path = db_path
     httpd.web_root = Path(web_root) if web_root else None
     httpd.verbose = verbose

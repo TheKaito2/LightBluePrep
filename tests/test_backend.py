@@ -806,3 +806,74 @@ class TestReviewOrder(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestServerBoundary(unittest.TestCase):
+    """The local server answers only its own page, Vite, and loopback names."""
+
+    @classmethod
+    def setUpClass(cls):
+        import threading
+        from http.server import ThreadingHTTPServer
+        from bluebank import server
+        cls.tmp = tempfile.mkdtemp()
+        root = os.path.join(cls.tmp, "web", "dist")
+        os.makedirs(root)
+        os.makedirs(os.path.join(cls.tmp, "web", "dist-pages"))
+        with open(os.path.join(root, "index.html"), "w") as f:
+            f.write("<p>app</p>")
+        with open(os.path.join(cls.tmp, "web", "dist-pages", "secret.txt"), "w") as f:
+            f.write("SIBLING")
+        cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+        cls.httpd.loopback = True
+        cls.httpd.db_path = os.path.join(cls.tmp, "t.db")
+        cls.httpd.web_root = server.Path(root)
+        cls.httpd.verbose = False
+        cls.port = cls.httpd.server_address[1]
+        threading.Thread(target=cls.httpd.serve_forever, daemon=True).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+        cls.httpd.server_close()
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def request(self, method, path, headers=None, body=None):
+        import http.client
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        conn.putrequest(method, path, skip_host=True)
+        for k, v in {"Host": f"localhost:{self.port}", **(headers or {})}.items():
+            conn.putheader(k, v)
+        data = body.encode() if body else b""
+        conn.putheader("Content-Length", str(len(data)))
+        conn.endheaders(data)
+        res = conn.getresponse()
+        out = (res.status, dict(res.getheaders()), res.read().decode())
+        conn.close()
+        return out
+
+    def test_own_page_is_served(self):
+        status, _, text = self.request("GET", "/")
+        self.assertEqual(status, 200)
+        self.assertIn("app", text)
+
+    def test_rebound_host_name_is_refused(self):
+        status, _, _ = self.request("GET", "/", {"Host": f"evil.example:{self.port}"})
+        self.assertEqual(status, 403)
+
+    def test_foreign_origin_cannot_write(self):
+        status, headers, _ = self.request("POST", "/api/sets/x/delete",
+                                          {"Origin": "https://evil.example",
+                                           "Content-Type": "text/plain"}, "{}")
+        self.assertEqual(status, 403)
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+
+    def test_vite_origin_is_allowed_and_echoed(self):
+        status, headers, _ = self.request("OPTIONS", "/api/stats",
+                                          {"Origin": "http://localhost:5173"})
+        self.assertEqual(status, 204)
+        self.assertEqual(headers.get("Access-Control-Allow-Origin"), "http://localhost:5173")
+
+    def test_sibling_directory_is_not_served(self):
+        status, _, text = self.request("GET", "/../dist-pages/secret.txt")
+        self.assertNotIn("SIBLING", text)
