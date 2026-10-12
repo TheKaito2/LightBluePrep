@@ -304,7 +304,8 @@ export function QuestionView(props: Props) {
             <Icon name="underline" size={16} />
           </button>
           <span className="hl-sep" />
-          <input className="hl-note-input" placeholder="Add a note" value={noteDraft}
+          {/* 1000 is what the sync Worker keeps; longer would be cut silently. */}
+          <input className="hl-note-input" placeholder="Add a note" value={noteDraft} maxLength={1000}
                  onChange={(e) => setNoteDraft(e.target.value)}
                  onKeyDown={(e) => { if (e.key === 'Enter') commit('yellow') }} />
           <button className="hl-icon" title="Cancel"

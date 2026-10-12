@@ -23,6 +23,16 @@ const CURSOR_KEY = 'sync.cursor'
 const DEBOUNCE_MS = 2000
 
 /**
+ * Most pending changes sent in one request. The Worker reads at most 2,000
+ * rows per table and dropped the rest, while this side cleared everything it
+ * had sent: a first sign-in with more history than that lost the excess from
+ * sync for good. Smaller batches also keep each request well under the
+ * Worker's body limit. Whatever is left goes on the next round (run() reschedules
+ * while the outbox is non-empty).
+ */
+const BATCH = 500
+
+/**
  * Backoff after a failed sync.
  *
  * Without this, a failure left the badge amber until the user happened to write
@@ -87,10 +97,11 @@ export function syncNow(): Promise<void> {
 async function run(): Promise<void> {
   emit('syncing')
   try {
-    // Snapshot the outbox first. Only these keys are cleared at the end, so a
-    // write that lands mid-request survives to the next sync.
-    const keys = await store.loadOutbox()
-    const payload = await collect(keys)
+    // Snapshot the outbox first. Only these entries are cleared at the end, and
+    // only if unchanged, so a write that lands mid-request survives to the next
+    // sync even when it re-queues the same key.
+    const sent = (await store.loadOutbox()).slice(0, BATCH)
+    const payload = await collect(sent.map((e) => e.key))
     const since = (await store.getMeta<number>(CURSOR_KEY)) ?? 0
 
     const res = await auth.request('/sync', {
@@ -105,12 +116,14 @@ async function run(): Promise<void> {
 
     await apply(data)
     await store.setMeta(CURSOR_KEY, data.cursor)
-    await store.clearOutbox(keys)
+    await store.clearOutbox(sent)
 
     retryDelay = 0
     const remaining = await store.loadOutbox()
     emit(remaining.length ? 'pending' : 'synced')
-    if (remaining.length) schedule()
+    // A backlog (first sign-in) drains in quick rounds rather than one per
+    // debounce; still far under the Worker's per-account rate limit.
+    if (remaining.length) schedule(500)
   } catch (e) {
     // Nothing is cleared on failure, so the outbox still holds everything.
     // Surfaced as amber in the UI rather than swallowed: a sync that silently
@@ -184,8 +197,8 @@ async function apply(data: ServerResponse): Promise<void> {
       question_id: m.question_id, tags: m.tags, note: m.note, updated_at: m.updated_at,
     })
   }
-  // Sets are a union on the uuid like attempts, not last-write-wins: a finished
-  // set never changes, so re-putting one is a no-op by construction.
+  // Sets are last-write-wins like marks, guarded locally so a pull that lands
+  // mid-set cannot undo this tab's newer write. A tombstone arrives the same way.
   for (const s of data.sets ?? []) await store.putSet(s)
 
   if (wrote) {

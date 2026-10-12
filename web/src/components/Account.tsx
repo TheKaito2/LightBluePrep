@@ -1,9 +1,8 @@
 /**
  * The account badge and its panel: the only sync affordance in the app.
  *
- * It lives in the corner of the Stats page and nowhere else. Because lib/auth.ts
- * loads Google's script lazily, someone who never opens that page never makes a
- * request to Google either.
+ * It lives in the top nav. Because lib/auth.ts loads Google's script lazily,
+ * someone who never opens the panel never makes a request to Google either.
  *
  * When VITE_SYNC_API is unset (the localhost build) this renders nothing at all.
  */
@@ -63,6 +62,10 @@ export function AccountBadge() {
   }, [open])
 
   if (!auth.configured) return null
+  // Re-read on every render, not just at mount: a session the server ends
+  // (expired, or deleted from another device) clears the token in auth.request,
+  // and the panel then has to offer sign-in again instead of "Sign out".
+  const isIn = signedIn && auth.signedIn()
 
   return (
     <div className="acct" ref={wrap}>
@@ -82,10 +85,10 @@ export function AccountBadge() {
         and email included, sitting inside the signed-in panel. Two component
         types force a real unmount and the iframe goes with it.
       */}
-      {open && !signedIn ? (
+      {open && !isIn ? (
         <SignedOutPanel onSignedIn={() => setSignedIn(true)} />
       ) : null}
-      {open && signedIn ? (
+      {open && isIn ? (
         <SignedInPanel onSignedOut={() => setSignedIn(false)}
                        onClose={() => setOpen(false)} />
       ) : null}

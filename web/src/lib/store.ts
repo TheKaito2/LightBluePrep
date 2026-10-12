@@ -112,9 +112,17 @@ function open(): Promise<IDBDatabase> {
         }
       }
     }
-    request.onsuccess = () => resolve(request.result)
+    request.onsuccess = () => {
+      const db = request.result
+      // Another tab (a newer deploy) wants to upgrade the schema. Holding the
+      // connection open would block it forever, so let go and reopen next call.
+      db.onversionchange = () => { db.close(); handle = null }
+      resolve(db)
+    }
     request.onerror = () => reject(request.error)
   })
+  // A failed open must not be cached, or every later call fails with it.
+  handle.catch(() => { handle = null })
   return handle
 }
 
@@ -139,9 +147,6 @@ export const getAll = <T>(store: string) =>
 
 export const put = <T>(store: string, value: T, key?: IDBValidKey) =>
   run(store, 'readwrite', (s) => s.put(value as unknown as never, key))
-
-export const remove = (store: string, key: IDBValidKey) =>
-  run(store, 'readwrite', (s) => s.delete(key))
 
 /** One transaction for the whole batch: 3,770 separate ones would crawl. */
 export function putMany<T>(store: string, values: T[]): Promise<void> {
@@ -186,9 +191,35 @@ export const loadAnnotations = (question_id: string) =>
 export const saveAnnotations = (question_id: string, items: Annotation[]) =>
   put(STORE_ANNOTATIONS, { question_id, items, updated_at: Date.now() })
 
-/** Write a merged row verbatim, keeping the server's timestamp. Sync only. */
-export const putMark = (row: MarkRecord) => put(STORE_MARKS, row)
-export const putAnnotations = (row: AnnotationRecord) => put(STORE_ANNOTATIONS, row)
+/**
+ * Write a row pulled from the server, unless this device holds a newer edit.
+ *
+ * The server echoes back what it stored, and that echo can be older than an
+ * edit made while the request was in flight: add a highlight during a sync and
+ * the reply carried the version without it. Writing it verbatim undid the
+ * edit. Read and write in one transaction so nothing lands between them.
+ */
+function putIfNewer<T extends { updated_at: number }>(
+  store: string, key: IDBValidKey, row: T,
+): Promise<void> {
+  return open().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite')
+    const objectStore = tx.objectStore(store)
+    const current = objectStore.get(key)
+    current.onsuccess = () => {
+      const mine = current.result as T | undefined
+      if (!mine || mine.updated_at <= row.updated_at) objectStore.put(row as unknown as never)
+    }
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+    tx.onabort = () => reject(tx.error)
+  }))
+}
+
+/** Write a merged row from the server, keeping its timestamp. Sync only. */
+export const putMark = (row: MarkRecord) => putIfNewer(STORE_MARKS, row.question_id, row)
+export const putAnnotations = (row: AnnotationRecord) =>
+  putIfNewer(STORE_ANNOTATIONS, row.question_id, row)
 
 // ------------------------------------------------------------------- outbox
 //
@@ -212,8 +243,9 @@ export const loadAllMistakes = () => getAll<MistakeRecord>(STORE_MISTAKES)
 export const loadMistake = (question_id: string) =>
   get<MistakeRecord>(STORE_MISTAKES, question_id)
 
-/** Write a merged row verbatim, keeping the server's timestamp. Sync only. */
-export const putMistake = (row: MistakeRecord) => put(STORE_MISTAKES, row)
+/** Write a merged row from the server, keeping its timestamp. Sync only. */
+export const putMistake = (row: MistakeRecord) =>
+  putIfNewer(STORE_MISTAKES, row.question_id, row)
 
 /**
  * An empty log deletes the row rather than storing blanks, so "never logged"
@@ -258,20 +290,23 @@ export interface SetRecord {
   seconds: number
   filters: Filters
   items: SetAnswer[]
+  /**
+   * Deleted. Kept as a tombstone rather than removed: sync is last-write-wins,
+   * and a row that is simply gone has nothing to send, so the server and every
+   * other device kept the set, and it came back on the next full pull.
+   */
+  deleted?: boolean
 }
 
+/** Every set, tombstones included. Sync needs those; listings filter them. */
 export const loadSets = () => getAll<SetRecord>(STORE_SETS)
 export const loadSet = (id: string) => get<SetRecord>(STORE_SETS, id)
-export const removeSet = (id: string) => remove(STORE_SETS, id)
-
-/** Write a merged row verbatim, keeping the server's timestamp. Sync only. */
-export async function putSet(row: SetRecord): Promise<void> {
-  const mine = await loadSet(row.id)
-  // Guarded locally too. The server decides between devices, but a pull that
-  // arrives while this tab is mid-set must not undo what it just wrote.
-  if (mine && mine.updated_at > row.updated_at) return
-  await put(STORE_SETS, row)
-}
+/**
+ * Write a merged row from the server, keeping its timestamp. Sync only.
+ * Guarded locally too: the server decides between devices, but a pull that
+ * arrives while this tab is mid-set must not undo what it just wrote.
+ */
+export const putSet = (row: SetRecord) => putIfNewer(STORE_SETS, row.id, row)
 
 /** Write a local change and stamp it, which is what the merge compares. */
 export async function saveSet(row: Omit<SetRecord, 'updated_at'>): Promise<SetRecord> {
@@ -299,22 +334,41 @@ export function parseOutboxKey(key: string): { kind: OutboxKind; id: string } | 
   return { kind, id: key.slice(cut + 1) }
 }
 
-export const enqueue = (kind: OutboxKind, id: string) =>
-  put(STORE_OUTBOX, { key: outboxKey(kind, id) })
+/**
+ * One pending change. `v` changes on every enqueue, which is what tells "the
+ * entry that was sent" apart from "the same thing, edited again since".
+ * Entries written before `v` existed have none and clear as before.
+ */
+export interface OutboxEntry { key: string; v?: number }
 
-export const loadOutbox = () =>
-  getAll<{ key: string }>(STORE_OUTBOX).then((rows) => rows.map((r) => r.key))
+let bump = 0
+/** Distinct on every call, even twice in the same millisecond. */
+const version = () => Date.now() * 1000 + (bump = (bump + 1) % 1000)
+
+export const enqueue = (kind: OutboxKind, id: string) =>
+  put(STORE_OUTBOX, { key: outboxKey(kind, id), v: version() })
+
+export const loadOutbox = () => getAll<OutboxEntry>(STORE_OUTBOX)
 
 /**
- * Clear exactly the keys that were sent, never the whole store: a write that
- * landed while the request was in flight must survive to the next sync.
+ * Clear the entries that were sent, and only if they are unchanged since.
+ *
+ * Keys collapse per item (`mark:<question_id>`), so re-editing something while
+ * its sync was in flight re-queued the SAME key, and clearing by key alone
+ * deleted the new edit's entry along with the old one. It never synced.
  */
-export function clearOutbox(keys: string[]): Promise<void> {
-  if (!keys.length) return Promise.resolve()
+export function clearOutbox(sent: OutboxEntry[]): Promise<void> {
+  if (!sent.length) return Promise.resolve()
   return open().then((db) => new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_OUTBOX, 'readwrite')
     const store = tx.objectStore(STORE_OUTBOX)
-    for (const key of keys) store.delete(key)
+    for (const entry of sent) {
+      const current = store.get(entry.key)
+      current.onsuccess = () => {
+        const row = current.result as OutboxEntry | undefined
+        if (row && row.v === entry.v) store.delete(entry.key)
+      }
+    }
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
     tx.onabort = () => reject(tx.error)

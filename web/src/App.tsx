@@ -110,6 +110,21 @@ export default function App() {
 
   useEffect(() => { activeSetRef.current = activeSet }, [activeSet])
 
+  /**
+   * A set only exists while you are in it.
+   *
+   * It used to outlive the practice screen: back out of a set halfway, then
+   * open plain practice from Home, Review or Stats, and the app still thought
+   * it was in the set. Every question rendered in set mode with no Submit
+   * button, and the answers went nowhere. Its progress is saved as you go, and
+   * Resume reloads it, so dropping it here loses nothing.
+   */
+  useEffect(() => {
+    if (view === 'practice') return
+    activeSetRef.current = null
+    setActiveSet(null)
+  }, [view])
+
   const [showNavigator, setShowNavigator] = useState(false)
   const [showNotes, setShowNotes] = useState(false)
   const [showReference, setShowReference] = useState(false)
@@ -216,6 +231,18 @@ export default function App() {
   }, [filters, order, seed])
 
   useEffect(loadList, [loadList])
+
+  /**
+   * Practise a filter straight from Stats. The list is loaded first and then
+   * shown, rather than switching to practice while `items` still held the
+   * previous list, which flashed an unrelated question for a moment.
+   */
+  const practiceFilters = useCallback((next: Filters) => {
+    setFilters(next)
+    api.questionSet(next).then((d) => {
+      setItems(arrange(d.questions, order, seed)); setIndex(0); setView('practice')
+    }).catch((e: Error) => setError(e.message))
+  }, [order, seed])
 
   // Landing back on Home reloads the list: answers since then change its status
   // marks, and opening one question or a set replaced `items` with just those.
@@ -714,11 +741,7 @@ export default function App() {
         ) : (
           <div className="page">
             <StatsPage taxonomy={taxonomy}
-                       onPractice={(next) => {
-                         setFilters(next)
-                         setIndex(0)
-                         setView('practice')
-                       }} />
+                       onPractice={practiceFilters} />
           </div>
         )}
         <FeedbackHost />
@@ -732,7 +755,13 @@ export default function App() {
       <header className="topbar">
         <div className="topbar-left">
           <div className="section-title">
-            <button className="backbtn" onClick={() => setView('home')} title="Go back">
+            <button className="backbtn" title="Go back"
+                    onClick={() => {
+                      // Bank the time on the question on screen before the set
+                      // is dropped; the interval flush only runs every few seconds.
+                      if (activeSetRef.current) commitElapsed(seconds)
+                      setView('home')
+                    }}>
               <Icon name="chevron-left" size={18} strokeWidth={2.2} />
             </button>
             {/* Wrapped so it can be truncated on a phone. A bare text node in a

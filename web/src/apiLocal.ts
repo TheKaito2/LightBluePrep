@@ -125,6 +125,9 @@ async function boot(): Promise<Cache> {
     cache = { stubs, attempts, flagged, live }
     return cache
   })()
+  // A failed first load (offline on the very first visit) must not be cached:
+  // every later call would get the same rejection until a reload.
+  booting.catch(() => { booting = null })
   return booting
 }
 
@@ -482,7 +485,7 @@ export async function stats(): Promise<Stats> {
  * the Python backend returns them in.
  */
 export async function listSets(active?: boolean, limit = 50): Promise<PracticeSet[]> {
-  let rows = await store.loadSets()
+  let rows = (await store.loadSets()).filter((r) => !r.deleted)
   if (active === true) rows = rows.filter((r) => r.finished_at === null)
   if (active === false) rows = rows.filter((r) => r.finished_at !== null)
   rows.sort((a, b) => (active === true
@@ -494,7 +497,7 @@ export async function listSets(active?: boolean, limit = 50): Promise<PracticeSe
 
 export async function getSet(id: string): Promise<PracticeSet> {
   const row = await store.loadSet(id)
-  if (!row) throw new Error(`unknown set ${id}`)
+  if (!row || row.deleted) throw new Error(`unknown set ${id}`)
   return summarise(row, true)
 }
 
@@ -504,8 +507,19 @@ export async function saveSet(set: SetInput): Promise<PracticeSet> {
   return getSet(set.id)
 }
 
+/**
+ * Delete a set everywhere. Written as a tombstone and synced like any other
+ * change; removing the row outright left the server's copy alive, so the set
+ * stayed on every other device and came back after the next sign-in.
+ */
 export async function deleteSet(id: string): Promise<void> {
-  await store.removeSet(id)
+  const row = await store.loadSet(id)
+  if (!row || row.deleted) return
+  await store.saveSet({
+    id, created_at: row.created_at, finished_at: row.finished_at,
+    seconds: 0, filters: {}, items: [], deleted: true,
+  })
+  sync.track('set', id)
 }
 
 export interface SetInput {

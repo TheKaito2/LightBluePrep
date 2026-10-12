@@ -83,7 +83,8 @@ export function MistakeFields({ mistake, onSave, lead, id = 'mlog-note', rows = 
       </div>
 
       <label className="mlog-label" htmlFor={id}>Notes</label>
-      <textarea id={id} className="mlog-note" rows={rows}
+      {/* 4000 is what the sync Worker keeps; longer would be cut silently. */}
+      <textarea id={id} className="mlog-note" rows={rows} maxLength={4000}
                 placeholder="What you missed, and what to do next time."
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
