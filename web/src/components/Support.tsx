@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from './Icon'
 import { DONATE, DONATE_ALT } from './Github'
+import { useFocusTrap } from '../lib/useFocusTrap'
 
 const EVENT = 'lbp:support'
 /** Path of the PromptPay QR image in public/. Unset hides the option. */
@@ -20,6 +21,8 @@ export function SupportHost() {
   const [open, setOpen] = useState(false)
   const [showQr, setShowQr] = useState(false)
   const close = useRef<HTMLButtonElement>(null)
+  const dialog = useRef<HTMLDivElement>(null)
+  useFocusTrap(dialog, open)
 
   useEffect(() => {
     const onOpen = () => { setOpen(true); setShowQr(false) }
@@ -41,7 +44,7 @@ export function SupportHost() {
   return (
     <>
       <div className="fb-scrim" onClick={() => setOpen(false)} />
-      <div className="fb-dialog sp-dialog" role="dialog" aria-modal="true" aria-labelledby="sp-title">
+      <div ref={dialog} className="fb-dialog sp-dialog" role="dialog" aria-modal="true" aria-labelledby="sp-title">
         <div className="fb-head">
           <h2 id="sp-title" className="fb-title">Support LightBluePrep</h2>
           <button ref={close} className="sheet-x fb-x" onClick={() => setOpen(false)} aria-label="Close">

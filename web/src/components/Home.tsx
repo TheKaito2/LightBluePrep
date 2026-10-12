@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from './Icon'
 import { Mascot } from './Mascot'
 import { FeedbackLink } from './Feedback'
 import { ProgressStrip } from './ProgressStrip'
+import { useFocusTrap } from '../lib/useFocusTrap'
 import { loadProcessTypes, typeCounts, type ProcessTypes } from '../lib/similar'
 import { SPEEDS, setSeconds, formatClock } from '../lib/pacing'
 import { describeSet } from '../lib/setlabel'
@@ -81,6 +82,8 @@ export function Home({
   order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId,
 }: Props) {
   const [showOptions, setShowOptions] = useState(false)
+  const optionsDialog = useRef<HTMLDivElement>(null)
+  useFocusTrap(optionsDialog, showOptions)
   const [query, setQuery] = useState('')
   const [matches, setMatches] = useState<SetItem[] | null>(null)
   const count = items.length
@@ -456,7 +459,7 @@ export function Home({
       {showOptions ? (
         <>
           <div className="fb-scrim" onClick={() => setShowOptions(false)} />
-          <div className="fb-dialog opt-dialog" role="dialog" aria-modal="true" aria-labelledby="opt-title">
+          <div ref={optionsDialog} className="fb-dialog opt-dialog" role="dialog" aria-modal="true" aria-labelledby="opt-title">
             <div className="fb-head">
               <h2 id="opt-title" className="fb-title">Practice options</h2>
               <button className="sheet-x fb-x" onClick={() => setShowOptions(false)} aria-label="Close">

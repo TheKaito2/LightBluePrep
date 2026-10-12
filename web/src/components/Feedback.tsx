@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from './Icon'
 import * as fb from '../lib/feedback'
+import { useFocusTrap } from '../lib/useFocusTrap'
 
 const EVENT = 'lbp:feedback'
 
@@ -39,6 +40,7 @@ export function FeedbackHost() {
   const [phase, setPhase] = useState<Phase>('edit')
   const [error, setError] = useState<string | null>(null)
   const box = useRef<HTMLTextAreaElement>(null)
+  const dialog = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const onOpen = (e: Event) => {
@@ -52,6 +54,7 @@ export function FeedbackHost() {
   }, [])
 
   const isOpen = ctx !== null
+  useFocusTrap(dialog, isOpen)
   useEffect(() => {
     if (!isOpen) return
     // Back to whatever opened the dialog when it closes.
@@ -82,7 +85,7 @@ export function FeedbackHost() {
   return (
     <>
       <div className="fb-scrim" onClick={() => setCtx(null)} />
-      <div className="fb-dialog" role="dialog" aria-modal="true" aria-labelledby="fb-title">
+      <div ref={dialog} className="fb-dialog" role="dialog" aria-modal="true" aria-labelledby="fb-title">
         <div className="fb-head">
           <h2 id="fb-title" className="fb-title">
             {phase === 'sent' ? 'Thanks!' : 'Send feedback'}
