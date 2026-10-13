@@ -230,8 +230,17 @@ export async function seedOutbox(): Promise<void> {
   ])
 }
 
-/** Signing out leaves local data alone; only the queue and cursor go. */
+/**
+ * Signing out leaves local data alone; only the queue and cursor go.
+ *
+ * Callers clear the session token first, so nothing new can start; this then
+ * waits out a sync already in flight. Otherwise its reply landed after the
+ * reset: it rewrote the cursor, turned the badge back to Synced while signed
+ * out, and, before a local delete, wrote rows back into the emptied stores.
+ * run() never rejects, so the wait cannot throw.
+ */
 export async function reset(): Promise<void> {
+  if (inFlight) await inFlight
   const keys = await store.loadOutbox()
   await store.clearOutbox(keys)
   await store.setMeta(CURSOR_KEY, 0)

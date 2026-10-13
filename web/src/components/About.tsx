@@ -81,7 +81,7 @@ export function About() {
           </p>
         ) : null}
         <p className="about-p">
-          To wipe your history, clear this site's data in your browser settings.
+          To wipe your history, open Settings.
           Full policy: <a className="about-link" href="/privacy.html">privacy.html</a>.
         </p>
       </section>

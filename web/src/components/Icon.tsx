@@ -9,8 +9,11 @@ type Name =
   | 'split' | 'expand' | 'shrink' | 'grip-h' | 'dots9' | 'tag' | 'search'
   | 'flame' | 'lock' | 'heart' | 'coffee' | 'trend-up' | 'trend-down' | 'qr'
   | 'book' | 'target' | 'layers' | 'sigma' | 'grid' | 'history' | 'chart' | 'info' | 'compass' | 'play' | 'external' | 'star' | 'ruler'
+  | 'gear'
 
 const PATHS: Record<Name, string> = {
+  // Eight teeth at r 9.4, roots at r 6.9, hole r 3; computed, not traced.
+  gear: 'M18.7 10.2L21.3 10.6L21.3 13.4L18.7 13.8L18 15.4L19.6 17.6L17.6 19.6L15.5 18L13.8 18.7L13.4 21.3L10.6 21.3L10.2 18.7L8.6 18L6.4 19.6L4.4 17.6L6 15.4L5.3 13.8L2.7 13.4L2.7 10.6L5.3 10.2L6 8.5L4.4 6.4L6.4 4.4L8.5 6L10.2 5.3L10.6 2.7L13.4 2.7L13.8 5.3L15.5 6L17.6 4.4L19.6 6.4L18 8.5zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
   'chevron-left': 'M15 18l-6-6 6-6',
   'chevron-right': 'M9 18l6-6-6-6',
   'chevron-down': 'M6 9l6 6 6-6',

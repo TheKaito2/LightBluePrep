@@ -375,6 +375,33 @@ export function clearOutbox(sent: OutboxEntry[]): Promise<void> {
   }))
 }
 
+/** Every store that holds what the person did, as opposed to the bank itself. */
+const USER_STORES = [
+  STORE_ATTEMPTS, STORE_MARKS, STORE_ANNOTATIONS, STORE_MISTAKES, STORE_SETS, STORE_OUTBOX,
+]
+
+/**
+ * Settings' "Delete my data on this device": every answer, mark, highlight,
+ * note, mistake log and practice set, the sync queue, and every meta key except
+ * `keepMeta`. The cached bank (index and question bodies) stays: it is College
+ * Board's, not the user's, and keeping it means the site still works offline.
+ * One transaction, so it is all or nothing.
+ */
+export function clearUserData(keepMeta: string[]): Promise<void> {
+  return open().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction([...USER_STORES, STORE_META], 'readwrite')
+    for (const name of USER_STORES) tx.objectStore(name).clear()
+    const meta = tx.objectStore(STORE_META)
+    const keys = meta.getAllKeys()
+    keys.onsuccess = () => {
+      for (const key of keys.result) if (!keepMeta.includes(String(key))) meta.delete(key)
+    }
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+    tx.onabort = () => reject(tx.error)
+  }))
+}
+
 export const getMeta = <T>(key: string) => get<T>(STORE_META, key)
 export const setMeta = <T>(key: string, value: T) => put(STORE_META, value, key)
 

@@ -547,6 +547,17 @@ button.row-name:hover svg { opacity: 1; }
 .btn.quiet { background: var(--bg); border-color: var(--line-2); color: var(--ink-2); }
 .btn.quiet:hover:not(:disabled) { background: var(--bg-soft); color: var(--ink); }
 .btn:disabled { opacity: .38; cursor: default; }
+
+/* Settings: two cards, one column (About's two-column flow left a blank side).
+   Delete buttons confirm inline rather than in a browser dialog. */
+.about.settings { columns: auto; max-width: 760px; }
+.settings-confirm {
+  padding: 16px 18px; border: 1px solid var(--red); border-radius: var(--rad-md);
+  background: var(--red-soft);
+}
+.settings-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.settings-done { margin: 12px 0 0; font-weight: 650; color: var(--ink); }
+.about .settings-fine { margin-top: 16px; font-size: 14px; color: var(--muted); }
 .submit { margin-top: 26px; }
 
 /* ---------- explanation ---------- */
@@ -2052,6 +2063,35 @@ button.brand {
 .tabs .tab svg { color: var(--n-500); transition: color var(--dur-fast); }
 .tabs .tab:hover { background: var(--n-50); color: var(--n-900); }
 .tabs .tab.on { background: var(--n-900); color: var(--n-0); font-weight: 750; }
+/* The nav row is capped at the page width, and six labelled tabs plus the
+   right-hand controls do not fit in it. So on a desktop Settings is always just
+   its gear, and below about 1,150px every tab drops to its icon and Sync uses
+   its short label. A hidden name stays in the DOM for screen readers and shows
+   as a tooltip (title in App.tsx). The phone bar keeps every label. */
+@media (min-width: 820px) {
+  .tabs .tab { padding: 0 12px; }
+  .tabs .tab.tab-settings { padding: 0 12px; gap: 0; }
+  .tabs .tab.tab-settings span {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+}
+@media (min-width: 820px) and (max-width: 1149px) {
+  .tabs .tab { padding: 0 12px; gap: 0; }
+  .tabs .tab span {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+  .tabs-inner .acct-label { display: none; }
+  .tabs-inner .acct-label-sm { display: inline; }
+  /* Touch and keyboard users get no tooltip, so the tab you are on keeps its
+     name. The GitHub icon steps aside to make room; About links to it. */
+  .tabs .tab.on { gap: 8px; padding: 0 14px; }
+  .tabs .tab.on span {
+    position: static; width: auto; height: auto; overflow: visible; clip-path: none;
+  }
+  .tabs-inner .ghlink { display: none; }
+}
 .tabs .tab.on svg { color: var(--brand-300); }
 .tabs .tab.on::after { display: none; }
 .tabs .tab:focus-visible, button.brand:focus-visible { outline: 3px solid var(--brand-300); outline-offset: 2px; }

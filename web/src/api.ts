@@ -72,3 +72,10 @@ export const deleteSet = impl.deleteSet
  * refresh is `python -m bluebank build`.
  */
 export const refreshIndex = backend === 'local' ? local.refreshIndex : null
+
+/**
+ * Settings' local data summary and delete. Static backend only: on localhost the
+ * history is the SQLite file the Python server owns.
+ */
+export const localDataSummary = backend === 'local' ? local.localDataSummary : null
+export const deleteLocalData = backend === 'local' ? local.deleteLocalData : null

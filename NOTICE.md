@@ -90,5 +90,9 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
 - 2026-10-12: Relabeled the question types for Inferences (now 5) and
   Cross-text Connections (now 4), whose old types overlapped; 178 types in
   all.
+- 2026-10-13: Settings page: shows what this browser has saved and deletes
+  it (cached questions stay), or deletes the synced copy on the server. The
+  nav fits six tabs: Settings is a gear on desktop, and below 1150px every
+  tab is its icon.
 
 The full history of changes is in the git log.

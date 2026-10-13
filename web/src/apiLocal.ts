@@ -167,6 +167,33 @@ export async function reloadProgress(): Promise<void> {
 // sync, and having sync import apiLocal would make the cycle real.
 sync.onRemoteData(reloadProgress)
 
+/** What this browser holds about the person, for Settings to show before deleting. */
+export async function localDataSummary() {
+  const [attempts, marks, annotations, mistakes, sets] = await Promise.all([
+    store.loadAttempts(), store.loadMarks(), store.loadAllAnnotations(),
+    store.loadAllMistakes(), store.loadSets(),
+  ])
+  return {
+    answers: attempts.length,
+    questions: new Set(attempts.map((a) => a.question_id)).size,
+    marked: marks.filter((m) => m.flagged).length,
+    highlights: annotations.reduce((n, a) => n + a.items.length, 0),
+    mistakes: mistakes.filter((m) => !store.isEmptyMistake(m)).length,
+    sets: sets.filter((s) => !s.deleted).length,
+  }
+}
+
+/**
+ * Settings' "Delete my data on this device". Keeps the cached bank and the two
+ * keys that describe it, so the site still loads instantly and offline after,
+ * and usage's note of which milestones this browser already reported (no id,
+ * just [1, 10]), so starting over does not count the same person twice.
+ */
+export async function deleteLocalData(): Promise<void> {
+  await store.clearUserData([INDEX_AGE_KEY, LIVE_KEY, usage.SENT_KEY])
+  await reloadProgress()
+}
+
 /** Force a re-read of the index from College Board, picking up new questions. */
 export async function refreshIndex(): Promise<number> {
   const stubs = await cb.fetchIndex()

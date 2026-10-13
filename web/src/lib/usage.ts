@@ -43,7 +43,7 @@ export function loadBeacon(): void {
 
 /** Different questions answered. 1 means tried it; 10 means uses it. */
 const STEPS = [1, 10]
-const SENT_KEY = 'milestones.sent'
+export const SENT_KEY = 'milestones.sent'
 
 let queue: Promise<void> = Promise.resolve()
 

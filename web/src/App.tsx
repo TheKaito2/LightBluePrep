@@ -3,6 +3,7 @@ import * as api from './api'
 import { Home } from './components/Home'
 import { Stats as StatsPage } from './components/Stats'
 import { About } from './components/About'
+import { Settings } from './components/Settings'
 import { AccountBadge } from './components/Account'
 import { GithubLink } from './components/Github'
 import { SupportHost, SupportLink } from './components/Support'
@@ -58,11 +59,12 @@ const NAV = [
   { key: 'stats', label: 'Stats', icon: 'chart' },
   { key: 'resources', label: 'Resources', icon: 'compass' },
   { key: 'about', label: 'About', icon: 'info' },
+  { key: 'settings', label: 'Settings', icon: 'gear' },
 ] as const
 
 export default function App() {
   const [view, setView] =
-    useState<'home' | 'stats' | 'about' | 'review' | 'practice' | 'results' | 'inbox' | 'resources'>('home')
+    useState<'home' | 'stats' | 'about' | 'review' | 'practice' | 'results' | 'inbox' | 'resources' | 'settings'>('home')
 
   /** Bumped by a sync that pulled rows; drives the taxonomy refetch below. */
   const [dataVersion, setDataVersion] = useState(0)
@@ -715,7 +717,9 @@ export default function App() {
             </button>
             <div className="tablinks">
               {NAV.map((t) => (
-                <button key={t.key} className={view === t.key ? 'tab on' : 'tab'}
+                <button key={t.key}
+                        className={`tab tab-${t.key}${view === t.key ? ' on' : ''}`}
+                        title={t.label}
                         aria-current={view === t.key ? 'page' : undefined}
                         onClick={() => setView(t.key)}>
                   <Icon name={t.icon} size={18} strokeWidth={2} />
@@ -760,6 +764,10 @@ export default function App() {
         ) : view === 'about' ? (
           <div className="page">
             <About />
+          </div>
+        ) : view === 'settings' ? (
+          <div className="page">
+            <Settings />
           </div>
         ) : view === 'results' ? (
           <div className="page">
