@@ -9,7 +9,7 @@ type Name =
   | 'split' | 'expand' | 'shrink' | 'grip-h' | 'dots9' | 'tag' | 'search'
   | 'flame' | 'lock' | 'heart' | 'coffee' | 'trend-up' | 'trend-down' | 'qr'
   | 'book' | 'target' | 'layers' | 'sigma' | 'grid' | 'history' | 'chart' | 'info' | 'compass' | 'play' | 'external' | 'star' | 'ruler'
-  | 'gear'
+  | 'gear' | 'cloud' | 'refresh' | 'clock' | 'download' | 'check-circle' | 'alert'
 
 const PATHS: Record<Name, string> = {
   // Eight teeth at r 9.4, roots at r 6.9, hole r 3; computed, not traced.
@@ -57,6 +57,13 @@ const PATHS: Record<Name, string> = {
   shrink: 'M4 10.5l6.5-6.5M10.5 4v6.5M10.5 10.5H4M20 13.5l-6.5 6.5M13.5 20v-6.5M13.5 13.5H20',
   dots9: 'M6 6h.01M12 6h.01M18 6h.01M6 12h.01M12 12h.01M18 12h.01M6 18h.01M12 18h.01M18 18h.01',
   'grip-h': 'M5 9h14M5 15h14',
+  cloud: 'M7 18.5a4 4 0 01-.6-7.96A6 6 0 0117 10a4.25 4.25 0 010 8.5z',
+  // Feather's refresh-cw scaled to 80% so it sits in the same box as the rest.
+  refresh: 'M20.8 5.6v4.8H16M3.2 18.4v-4.8H8M5.21 9.6a7.2 7.2 0 0111.88-2.69L20.8 10.4M3.2 13.6l3.71 3.49a7.2 7.2 0 0011.88-2.69',
+  clock: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
+  download: 'M12 4v11M7 10l5 5 5-5M4 19.5h16',
+  'check-circle': 'M12 21a9 9 0 100-18 9 9 0 000 18zM8 12.2l2.8 2.8L16 9.5',
+  alert: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7.5V13M12 16.5h.01',
   tag: 'M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0l-6.8-6.8A2 2 0 013.2 12.4V5a2 2 0 012-2h7.4a2 2 0 011.4.6l6.6 6.6a2 2 0 010 2.8zM8 8h.01',
 }
 

@@ -649,8 +649,8 @@ export default function App() {
     function onKey(event: KeyboardEvent) {
       const tag = (event.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
-      // The feedback dialog sits over the question; keys belong to it.
-      if (document.querySelector('.fb-dialog')) return
+      // A dialog (Feedback, Support) sits over the question; keys belong to it.
+      if (document.querySelector('.modal')) return
       if (event.key === 'ArrowRight') go(index + 1)
       if (event.key === 'ArrowLeft') go(index - 1)
       if (event.key === 'Escape') {

@@ -8,8 +8,8 @@ const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), se
  *
  * The dialogs say aria-modal="true", which tells a screen reader the page
  * behind is out of reach, but Tab still walked straight out of them into the
- * page underneath. Focus on open, Escape and focus return stay with each
- * dialog; this only wraps the ends.
+ * page underneath. Focus on open, Escape and focus return live in
+ * components/Modal.tsx; this only wraps the ends.
  */
 export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean): void {
   useEffect(() => {

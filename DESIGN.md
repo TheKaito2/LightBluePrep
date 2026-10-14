@@ -135,9 +135,15 @@ Rules:
 
 **Skeleton** (`.skel`): flat `--surface-sunken`, pulsing opacity 1 to .55 over 1.2s.
 
-**Toasts** (`.toast`): ink, `--rad-md`, 44px, bottom centre above any bar, one at a time.
+**Toasts** (`Toast.tsx`, `useToast()`): ink, `--rad-md`, 44px, bottom centre 16px above any bar, one at a time, `role="status"`. Confirmations clear after 4s; errors stay until dismissed. Optional Undo in `--brand-300`.
 
-**Dialogs** (`.fb-dialog`): `--rad-lg`, `--sh-3` over `--scrim`, padding 20 24 24, `--type-h2` title, 32px quiet close (`.sheet-x`). A bottom sheet on phones. Escape closes; focus returns to the opener.
+**Dialogs** (`Modal.tsx`, `.modal`): every dialog goes through it. `--rad-lg`, `--sh-3` over `--scrim`, width 520 (Options 560). Header padding 20 24 with a `--type-h2` title and a 32px quiet close (`.modal-x`, `aria-label="Close"`); a hairline appears under it once the body scrolls. Body padding 0 24 24, scrolls on its own with `overscroll-behavior: contain`. Footer padding 16 24 over a hairline, primary last. Focus goes to Close (or a field marked `autoFocus`), Tab stays inside, Escape closes, focus returns to the opener. Phones get a bottom sheet: 36x4 `--hair-2` grab handle, top radius 16, `max-height: 88dvh`, stacked full-width footer buttons with the primary first.
+
+**Stat tiles** (`Stat.tsx`): label (`--type-label`), number (`--num-m`, `--num-l` in a band), optional sub and meter. Grouped tiles share one bordered `StatGroup` with hairline dividers.
+
+**Empty states** (`EmptyState.tsx`): centred, 380 wide: Bulb 72px, `--type-h3` title, one `--fg-3` sentence, at most one primary button.
+
+**Destructive actions** (`ConfirmDelete.tsx`): a quiet trash icon button; the first click swaps it for a danger-secondary "Delete?" and a quiet "Keep", with focus on Keep.
 
 **Focus:** one rule, `.shell :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }`. On ink the ring is `--focus-inv`, on the hero `--fg-1`, on a section header white. Text fields use their border and halo instead. No global box-shadow ring.
 

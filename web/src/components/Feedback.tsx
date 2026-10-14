@@ -5,10 +5,9 @@
  * screen can open it without threading props through. Messages go to the
  * Worker anonymously: no name, no email, no account.
  */
-import { useEffect, useRef, useState } from 'react'
-import { Icon } from './Icon'
+import { useCallback, useEffect, useId, useState } from 'react'
+import { Modal } from './Modal'
 import * as fb from '../lib/feedback'
-import { useFocusTrap } from '../lib/useFocusTrap'
 
 const EVENT = 'lbp:feedback'
 
@@ -39,8 +38,8 @@ export function FeedbackHost() {
   const [website, setWebsite] = useState('')
   const [phase, setPhase] = useState<Phase>('edit')
   const [error, setError] = useState<string | null>(null)
-  const box = useRef<HTMLTextAreaElement>(null)
-  const dialog = useRef<HTMLDivElement>(null)
+  const close = useCallback(() => setCtx(null), [])
+  const ids = useId()
 
   useEffect(() => {
     const onOpen = (e: Event) => {
@@ -52,21 +51,6 @@ export function FeedbackHost() {
     window.addEventListener(EVENT, onOpen)
     return () => window.removeEventListener(EVENT, onOpen)
   }, [])
-
-  const isOpen = ctx !== null
-  useFocusTrap(dialog, isOpen)
-  useEffect(() => {
-    if (!isOpen) return
-    // Back to whatever opened the dialog when it closes.
-    const opener = document.activeElement as HTMLElement | null
-    box.current?.focus()
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setCtx(null) }
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      opener?.focus?.()
-    }
-  }, [isOpen])
 
   if (!ctx || !fb.available) return null
 
@@ -82,62 +66,63 @@ export function FeedbackHost() {
     }
   }
 
+  const formId = `${ids}form`
+  const footer = phase === 'sent'
+    // autoFocus: Send was disabled while sending, so focus has dropped to
+    // <body>. The key makes this a new button; autoFocus only acts on mount.
+    ? <button key="close" type="button" className="btn primary" onClick={close} autoFocus>Close</button>
+    : (
+      <button key="send" className="btn primary" type="submit" form={formId}
+              disabled={!message.trim() || phase === 'sending'}>
+        {phase === 'sending' ? 'Sending…' : 'Send'}
+      </button>
+    )
+
   return (
-    <>
-      <div className="fb-scrim" onClick={() => setCtx(null)} />
-      <div ref={dialog} className="fb-dialog" role="dialog" aria-modal="true" aria-labelledby="fb-title">
-        <div className="fb-head">
-          <h2 id="fb-title" className="fb-title">
-            {phase === 'sent' ? 'Thanks!' : 'Send feedback'}
-          </h2>
-          <button className="sheet-x fb-x" onClick={() => setCtx(null)} aria-label="Close">
-            <Icon name="close" size={18} />
-          </button>
+    <Modal title={phase === 'sent' ? 'Thanks!' : 'Send feedback'} onClose={close} footer={footer}>
+      {phase === 'sent' ? (
+        <div role="status">
+          <p className="fb-p">Got it. Every message gets read, and bugs get fixed as fast as I can.</p>
         </div>
-
-        {phase === 'sent' ? (
-          <div className="fb-body">
-            <p className="fb-p">Got it. Every message gets read, and bugs get fixed as fast as I can.</p>
-            <button className="btn primary" onClick={() => setCtx(null)}>Close</button>
+      ) : (
+        <form id={formId} className="fb-form" onSubmit={submit}>
+          <div className="seg fb-kind" role="group" aria-label="Type">
+            {(['bug', 'comment'] as const).map((k) => (
+              <button key={k} type="button" aria-pressed={kind === k}
+                      className={kind === k ? 'seg-b on' : 'seg-b'}
+                      onClick={() => setKind(k)}>
+                {k === 'bug' ? 'Report a bug' : 'Comment or idea'}
+              </button>
+            ))}
           </div>
-        ) : (
-          <form className="fb-body" onSubmit={submit}>
-            <div className="seg fb-kind" role="group" aria-label="Type">
-              {(['bug', 'comment'] as const).map((k) => (
-                <button key={k} type="button" aria-pressed={kind === k}
-                        className={kind === k ? 'seg-b on' : 'seg-b'}
-                        onClick={() => setKind(k)}>
-                  {k === 'bug' ? 'Report a bug' : 'Comment or idea'}
-                </button>
-              ))}
-            </div>
 
+          <div className="fb-field">
+            <label className="fb-label" htmlFor={`${ids}text`}>
+              {kind === 'bug' ? 'What went wrong?' : 'Your idea'}
+            </label>
             {ctx.cb_id ? (
               <p className="fb-attach">About question <code>{ctx.cb_id}</code></p>
             ) : null}
-
-            <textarea ref={box} className="fb-text" rows={5} maxLength={fb.MAX_CHARS}
+            {/* Focus lands in the box rather than on Close: writing is the whole point. */}
+            <textarea id={`${ids}text`} className="fb-text" rows={5} maxLength={fb.MAX_CHARS} autoFocus
                       value={message} onChange={(e) => setMessage(e.target.value)}
+                      aria-describedby={`${ids}note ${ids}count`}
                       placeholder={kind === 'bug'
-                        ? 'What went wrong? e.g. wrong answer key, broken image, button not working…'
+                        ? 'e.g. wrong answer key, broken image, button not working…'
                         : 'What would make LightBluePrep better?'} />
-            {/* Honeypot: hidden from people, filled by bots. */}
-            <input className="fb-hp" tabIndex={-1} autoComplete="off" aria-hidden="true"
-                   value={website} onChange={(e) => setWebsite(e.target.value)} name="fax_ref" />
-
             <div className="fb-foot">
-              <span className="fb-note">
-                Anonymous. No name or email is sent. {message.length}/{fb.MAX_CHARS}
+              <span id={`${ids}note`} className="fb-note">Anonymous. No name or email is sent.</span>
+              <span id={`${ids}count`} className="fb-note fb-count">
+                {message.length}/{fb.MAX_CHARS}<span className="sr-only"> characters</span>
               </span>
-              <button className="btn primary" type="submit"
-                      disabled={!message.trim() || phase === 'sending'}>
-                {phase === 'sending' ? 'Sending…' : 'Send'}
-              </button>
             </div>
-            {error ? <p className="fb-err">{error}</p> : null}
-          </form>
-        )}
-      </div>
-    </>
+          </div>
+          {/* Honeypot: hidden from people, filled by bots. */}
+          <input className="fb-hp" tabIndex={-1} autoComplete="off" aria-hidden="true"
+                 value={website} onChange={(e) => setWebsite(e.target.value)} name="fax_ref" />
+          {error ? <p className="fb-err" role="alert">{error}</p> : null}
+        </form>
+      )}
+    </Modal>
   )
 }

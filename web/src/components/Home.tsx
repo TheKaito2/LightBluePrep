@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon } from './Icon'
 import { Mascot } from './Mascot'
 import { FeedbackLink } from './Feedback'
 import { ProgressStrip } from './ProgressStrip'
-import { useFocusTrap } from '../lib/useFocusTrap'
+import { Modal } from './Modal'
 import { loadProcessTypes, typeCounts, type ProcessTypes } from '../lib/similar'
 import { SPEEDS, setSeconds, formatClock } from '../lib/pacing'
 import {
@@ -86,8 +86,7 @@ export function Home({
   order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId,
 }: Props) {
   const [showOptions, setShowOptions] = useState(false)
-  const optionsDialog = useRef<HTMLDivElement>(null)
-  useFocusTrap(optionsDialog, showOptions)
+  const closeOptions = useCallback(() => setShowOptions(false), [])
   const [query, setQuery] = useState('')
   const [matches, setMatches] = useState<SetItem[] | null>(null)
   const count = items.length
@@ -444,7 +443,8 @@ export function Home({
             {difficultyChips}
             {whichSelect}
           </div>
-          <button className="btn on-ink-secondary sb-opt" onClick={() => setShowOptions(true)} aria-haspopup="dialog">
+          <button className="btn on-ink-secondary sb-opt" onClick={() => setShowOptions(true)}
+                  aria-haspopup="dialog" aria-expanded={showOptions}>
             <Icon name="sliders" size={16} />
             Options{optionCount ? ` · ${optionCount}` : ''}
           </button>
@@ -458,67 +458,59 @@ export function Home({
       </div>
 
       {showOptions ? (
-        <>
-          <div className="fb-scrim" onClick={() => setShowOptions(false)} />
-          <div ref={optionsDialog} className="fb-dialog opt-dialog" role="dialog" aria-modal="true" aria-labelledby="opt-title">
-            <div className="fb-head">
-              <h2 id="opt-title" className="fb-title">Practice options</h2>
-              <button className="sheet-x fb-x" onClick={() => setShowOptions(false)} aria-label="Close">
-                <Icon name="close" size={18} />
-              </button>
+        <Modal title="Practice options" onClose={closeOptions} className="opt-dialog" footer={
+          <button className="btn primary lg sheet-go" onClick={closeOptions}>
+            {loading ? 'Counting…' : `Done · ${plural(count, 'question')}`}
+          </button>
+        }>
+        <div className="opt-body">
+          <div className="opt-row"><span className="side-t">Difficulty</span>{difficultyChips}</div>
+          <div className="opt-row"><span className="side-t">Questions</span>{whichSelect}</div>
+          <div className="opt-row">
+            <span className="side-t">Practice mode</span>
+            <div className="chips">
+              {SIZES.map((n) => (
+                <button key={n} aria-pressed={(value.size ?? 0) === n}
+                        className={(value.size ?? 0) === n ? 'chip on' : 'chip'}
+                        onClick={() => set({ size: n || undefined })}>
+                  {n ? `Set of ${n}` : 'Open'}
+                </button>
+              ))}
             </div>
-            <div className="opt-body">
-              <div className="opt-row"><span className="side-t">Difficulty</span>{difficultyChips}</div>
-              <div className="opt-row"><span className="side-t">Questions</span>{whichSelect}</div>
-              <div className="opt-row">
-                <span className="side-t">Practice mode</span>
-                <div className="chips">
-                  {SIZES.map((n) => (
-                    <button key={n} aria-pressed={(value.size ?? 0) === n}
-                            className={(value.size ?? 0) === n ? 'chip on' : 'chip'}
-                            onClick={() => set({ size: n || undefined })}>
-                      {n ? `Set of ${n}` : 'Open'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {value.size ? (
-                <div className="opt-row">
-                  <span className="side-t">Timer</span>
-                  <div className="chips">
-                    <button aria-pressed={!value.speed} className={!value.speed ? 'chip on' : 'chip'}
-                            onClick={() => set({ speed: undefined })}>Untimed</button>
-                    {SPEEDS.map((x) => (
-                      <button key={x} aria-pressed={value.speed === x}
-                              className={value.speed === x ? 'chip on' : 'chip'}
-                              onClick={() => set({ speed: x })}>{x}× time</button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-              <div className="opt-row">
-                <span className="side-t">Order</span>
-                <div className="chips">
-                  {ORDERS.map((o) => (
-                    <button key={o.key} aria-pressed={order === o.key}
-                            className={order === o.key ? 'chip on' : 'chip'}
-                            onClick={() => onOrder(o.key)}>{o.label}</button>
-                  ))}
-                </div>
-              </div>
-              {totals.live ? (
-                <label className="excl opt-row">
-                  <input type="checkbox" checked={value.excludeLive ?? false}
-                         onChange={(e) => set({ excludeLive: e.target.checked || undefined })} />
-                  Skip questions that appear on official practice tests
-                </label>
-              ) : null}
-            </div>
-            <button className="btn primary lg sheet-go" onClick={() => setShowOptions(false)}>
-              {loading ? 'Counting…' : `Done · ${plural(count, 'question')}`}
-            </button>
           </div>
-        </>
+          {value.size ? (
+            <div className="opt-row">
+              <span className="side-t">Timer</span>
+              <div className="chips">
+                <button aria-pressed={!value.speed} className={!value.speed ? 'chip on' : 'chip'}
+                        onClick={() => set({ speed: undefined })}>Untimed</button>
+                {SPEEDS.map((x) => (
+                  <button key={x} aria-pressed={value.speed === x}
+                          className={value.speed === x ? 'chip on' : 'chip'}
+                          onClick={() => set({ speed: x })}>{x}× time</button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <div className="opt-row">
+            <span className="side-t">Order</span>
+            <div className="chips">
+              {ORDERS.map((o) => (
+                <button key={o.key} aria-pressed={order === o.key}
+                        className={order === o.key ? 'chip on' : 'chip'}
+                        onClick={() => onOrder(o.key)}>{o.label}</button>
+              ))}
+            </div>
+          </div>
+          {totals.live ? (
+            <label className="excl opt-row">
+              <input type="checkbox" checked={value.excludeLive ?? false}
+                     onChange={(e) => set({ excludeLive: e.target.checked || undefined })} />
+              Skip questions that appear on official practice tests
+            </label>
+          ) : null}
+        </div>
+        </Modal>
       ) : null}
     </div>
   )

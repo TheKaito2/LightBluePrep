@@ -105,9 +105,12 @@
 .shell .fb-link { color: var(--fg-3); }
 .shell .fb-link:hover { color: var(--fg-link-hover); }
 .q-report { display: block; margin: 26px 0 0; }
-.fb-kind { margin-bottom: 12px; }
+/* Spec 7.9 body: 20px between fields, labels small 600 in fg-2. */
+.fb-form { display: flex; flex-direction: column; gap: 20px; }
+.fb-field { display: flex; flex-direction: column; gap: 6px; }
+.fb-label { font: var(--type-small); font-weight: 600; color: var(--fg-2); }
 .fb-kind .seg-b { justify-content: center; }
-.fb-attach { margin: 0 0 10px; font: var(--type-small); color: var(--fg-2); }
+.fb-attach { margin: 0; font: var(--type-small); color: var(--fg-2); }
 .fb-attach code { font-family: ui-monospace, "SF Mono", Menlo, monospace; background: var(--surface-subtle); padding: 1px 6px; border-radius: var(--rad-xs); }
 /* Spec 7.8 textarea. 16px, so iOS does not zoom into the field. */
 .fb-text {
@@ -119,13 +122,14 @@
 /* Feedback can also open over practice, outside .shell's field focus rule. */
 .fb-text:focus-visible { outline: none; border-color: var(--brand-700); box-shadow: var(--focus-ring); }
 .fb-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
-.fb-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
-.fb-note { font-size: 12px; color: var(--fg-3); }
-.fb-err { margin: 10px 0 0; font: var(--type-small); color: var(--bad-700); }
-.fb-p { margin: 0 0 16px; font: var(--type-body); color: var(--fg-2); }
+.fb-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.fb-note { font: var(--type-small); color: var(--fg-3); }
+.fb-count { flex: none; font-variant-numeric: tabular-nums; }
+.fb-err { margin: 0; font: var(--type-small); color: var(--bad-700); }
+.fb-p { margin: 0; font: var(--type-body); color: var(--fg-2); }
 
 /* ---- support popup ---- */
-.sp-lead { margin: 10px 0 14px; font: var(--type-body); }
+.sp-lead { margin: 0 0 16px; }
 .sp-options { display: flex; flex-direction: column; gap: 8px; }
 .sp-opt {
   display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px;

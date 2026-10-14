@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { ToastProvider } from './components/Toast'
 // Before the stylesheets so the faces are declared by the time anything uses them.
 import './fonts.css'
 // Design tokens first: every stylesheet below reads them.
@@ -22,7 +23,9 @@ import { loadBeacon } from './lib/usage'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ToastProvider>
+      <App />
+    </ToastProvider>
   </StrictMode>,
 )
 loadBeacon()

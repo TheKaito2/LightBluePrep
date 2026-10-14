@@ -448,6 +448,25 @@ button.brand {
   background: var(--sec-500, var(--brand-600)); transition: width var(--dur-data) var(--ease-out);
 }
 
+/* Stat tiles (spec 7.7, components/Stat.tsx): label, number, sub, meter. A
+   group is one bordered box split by hairlines, never separate cards. */
+.stat { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.stat-l { font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3); }
+.stat-n {
+  font: 800 var(--num-m)/1 var(--display); letter-spacing: var(--tr-num-m); color: var(--fg-1);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.stat-n.l { font-size: var(--num-l); letter-spacing: var(--tr-num-l); }
+.stat-n small { margin-left: 4px; font: 600 14px/1 var(--sans); letter-spacing: 0; color: var(--fg-3); }
+.stat-sub { font: var(--type-small); color: var(--fg-3); }
+.stat .meter { margin-top: 6px; }
+.stat-group { display: flex; border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface); }
+.stat-group > .stat { flex: 1; padding: var(--sp-4) var(--sp-5); }
+.stat-group > .stat + .stat { border-left: 1px solid var(--hair-1); }
+@media (max-width: 819px) {
+  .stat-group > .stat { padding: var(--sp-3); }
+}
+
 /* Section labels: sentence case, not the all-caps tracked micro-label look,
    which is kept for eyebrows and stat labels only (--type-label). */
 .label {
@@ -462,8 +481,11 @@ button.brand {
    One at a time, bottom centre, on ink; clears the phone tab bar. */
 .toast {
   position: fixed; z-index: 90; left: 50%; bottom: 24px; transform: translateX(-50%);
-  display: flex; align-items: center; gap: 10px; min-height: 44px; max-width: min(420px, calc(100vw - 32px));
-  padding: 0 16px; border-radius: var(--rad-md); background: var(--surface-ink); color: var(--fg-inv-1);
+  display: flex; align-items: center; gap: 10px; min-height: 44px;
+  /* max-content: left 50% alone would cap the width at half the viewport and
+     wrap short messages on a phone. */
+  width: max-content; max-width: min(420px, calc(100vw - 32px));
+  padding: 8px 16px; border-radius: var(--rad-md); background: var(--surface-ink); color: var(--fg-inv-1);
   font: var(--type-ui); box-shadow: var(--sh-2); animation: toast-in var(--dur-2) var(--ease-out);
 }
 .toast svg { flex: none; width: 16px; height: 16px; }
@@ -473,39 +495,97 @@ button.brand {
   margin-left: 4px; padding: 4px 6px; border: 0; border-radius: var(--rad-xs); background: none; cursor: pointer;
   font: 600 14px/20px var(--sans); color: var(--brand-300);
 }
+.toast-x {
+  display: inline-flex; margin-right: -8px; padding: 6px; border: 0; border-radius: var(--rad-xs);
+  background: none; color: var(--fg-inv-2); cursor: pointer;
+}
+.toast-x:hover { color: var(--fg-inv-1); }
+:is(.toast-undo, .toast-x):focus-visible { outline: 2px solid var(--focus-inv); outline-offset: 1px; }
+/* 16px above Home's start bar (12 + 48 + 12) when it is on screen. */
+body:has(.startbar2) .toast { bottom: calc(72px + 16px); }
 @media (max-width: 819px) {
   .toast { bottom: calc(64px + 16px + env(safe-area-inset-bottom)); }
+  body:has(.startbar2) .toast { bottom: calc(64px + 64px + 16px + env(safe-area-inset-bottom)); }
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 
-/* ============================================================ dialogs
-   One shell for every dialog: Options, Support, Feedback. Their contents live
-   with their own pages. */
-.fb-scrim { position: fixed; inset: 0; z-index: 80; background: var(--scrim); animation: fade-in var(--dur-2) linear; }
-.fb-dialog {
-  position: fixed; z-index: 81; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow-y: auto;
-  background: var(--surface); border-radius: var(--rad-lg); box-shadow: var(--sh-3); padding: 20px 24px 24px;
+/* ============================================================ empty states (spec 7.12)
+   components/EmptyState.tsx: Bulb, title, one sentence, one primary action. */
+.empty {
+  display: flex; flex-direction: column; align-items: center; gap: var(--sp-2);
+  max-width: 380px; margin: 0 auto; padding: var(--sp-8) 0; text-align: center;
 }
-.fb-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.fb-title { margin: 0; font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-1); }
-.fb-x { display: inline-flex; }
-.fb-body { margin-top: 14px; }
-/* The close button: a 32px quiet icon button. */
-.sheet-x {
-  flex: none; display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center;
+.empty .bulb { margin-bottom: var(--sp-2); }
+.empty-t { margin: 0; font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
+.empty-p { margin: 0; font: var(--type-body); color: var(--fg-3); }
+.empty .btn { margin-top: var(--sp-3); }
+
+/* ============================================================ confirm delete
+   components/ConfirmDelete.tsx: a quiet trash icon button, then an inline
+   Delete? / Keep pair in the same spot. */
+.shell .btn.icon { width: 40px; padding: 0; }
+.shell .btn.icon:is(.sm, .small) { width: 32px; }
+.cdel { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.shell .cdel-trash { width: 36px; min-height: 36px; }
+.shell .btn.quiet.cdel-trash:hover:not(:disabled) { color: var(--bad-700); }
+
+/* ============================================================ dialogs (spec 7.9)
+   components/Modal.tsx: Options, Support, Feedback. Header and footer stay put
+   while the body scrolls; the body contains its own scroll so it never drags
+   the page behind. Not scoped to .shell: Feedback also opens over practice. */
+.modal-scrim { position: fixed; inset: 0; z-index: 80; background: var(--scrim); animation: fade-in var(--dur-2) linear; }
+.modal {
+  position: fixed; z-index: 81; inset: 0; margin: auto; height: fit-content;
+  display: flex; flex-direction: column;
+  width: min(520px, calc(100vw - 32px));
+  /* 100vh first for browsers without dvh; dvh is the viewport you can see. */
+  max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px);
+  background: var(--surface); border-radius: var(--rad-lg); box-shadow: var(--sh-3);
+  animation: modal-in var(--dur-2) var(--ease-out);
+}
+.modal-head {
+  flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 20px 24px; border-bottom: 1px solid transparent;
+  transition: border-color var(--dur-fast) var(--ease-std);
+}
+/* The divider shows only once the body has scrolled under the header. */
+.modal-head.scrolled { border-bottom-color: var(--hair-1); }
+.modal-title { margin: 0; font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-1); }
+/* The close button: a 32px quiet icon button, nudged so the X lines up with the body's edge. */
+.modal-x {
+  flex: none; display: inline-flex; width: 32px; height: 32px; margin-right: -6px; align-items: center; justify-content: center;
   border: 0; border-radius: var(--rad-sm); background: none; color: var(--fg-2); cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease-std);
+  transition: background-color var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
 }
-.sheet-x:hover { background: var(--surface-subtle); color: var(--fg-1); }
+.modal-x:hover { background: var(--surface-subtle); color: var(--fg-1); }
+.modal-x:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 24px 24px; }
+.modal-foot {
+  flex: none; display: flex; justify-content: flex-end; gap: 8px;
+  padding: 16px 24px; border-top: 1px solid var(--hair-1);
+}
 @media (max-width: 819px) {
-  .fb-dialog {
-    top: auto; bottom: 0; left: 0; transform: none; width: 100%; max-height: 88dvh;
-    border-radius: var(--rad-lg) var(--rad-lg) 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  /* A bottom sheet with a grab handle. The handle is a cue only; the sheet
+     closes from the X, the scrim or Escape. */
+  .modal {
+    inset: auto 0 0; margin: 0; width: 100%;
+    max-height: 88vh; max-height: 88dvh;
+    border-radius: var(--rad-lg) var(--rad-lg) 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
     animation: sheet-up var(--dur-slow) var(--ease-out);
   }
+  .modal::before {
+    content: ""; position: absolute; top: 8px; left: 50%; width: 36px; height: 4px; margin-left: -18px;
+    border-radius: var(--rad-pill); background: var(--hair-2);
+  }
+  .modal-head { padding-top: 24px; }
+  .modal-body { padding-bottom: 20px; }
+  /* Full-width actions, primary first: it is the last child, so reverse. */
+  .modal-foot { flex-direction: column-reverse; padding-bottom: 20px; }
+  .modal-foot > * { width: 100%; }
 }
-@keyframes sheet-up { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+@keyframes modal-in { from { opacity: 0; transform: scale(.98); } }
+@keyframes sheet-up { from { transform: translateY(100%); } }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 /* ============================================================ focus
