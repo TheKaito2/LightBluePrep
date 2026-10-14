@@ -6,8 +6,9 @@
    own their colour through .sec-RW (pink) / .sec-MATH (light blue). The shared
    primitives (buttons, chips, segmented control, select, section panel) are in
    shell.css. */
+/* scroll-padding: Tab never parks a focused row under the start bar (H-44). */
 .home {
-  flex: 1; min-height: 0; overflow-y: auto;
+  flex: 1; min-height: 0; overflow-y: auto; scroll-padding-bottom: 96px;
   display: flex; flex-direction: column;
   background: var(--surface);
 }
@@ -316,43 +317,87 @@
 .skel-row:nth-child(4) { width: 64%; }
 @keyframes skel-pulse { from { opacity: 1; } to { opacity: .55; } }
 
-/* ---- sticky start bar: ink, with the brand primary ---- */
+/* ---- sticky start bar (spec 8.1): ink, 72px, the brand primary ----
+   Summary left (title, then the count); difficulty chips, Options and Start
+   right. The status select lives only in Options now. */
 .startbar2 {
   position: sticky; bottom: 0; z-index: 20; flex: none; margin-top: auto;
   background: var(--surface-ink); color: var(--fg-inv-1);
   box-shadow: var(--sh-bar);
 }
-.startbar2-in { max-width: 1160px; margin: 0 auto; padding: 12px var(--sp-8); display: flex; align-items: center; gap: var(--sp-3); }
-.sb-sum { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
-.sb-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.sb-sum strong {
-  display: flex; align-items: center; gap: 8px; min-width: 0;
-  font: var(--type-h3); letter-spacing: var(--tr-h3);
+.startbar2-in {
+  box-sizing: border-box; max-width: 1160px; min-height: 72px; margin: 0 auto; padding: 12px var(--sp-8);
+  display: flex; align-items: center; gap: var(--sp-3);
 }
-.sb-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-sum { display: flex; flex-direction: column; gap: 2px; min-width: 0; margin-right: auto; }
+.sb-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* The name alone truncates; the dots and the clear button stay whole (H-41). */
+.sb-name {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-inv-1);
+}
+.sb-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sec-500); flex: none; }
+.sb-dot + .sb-dot { margin-left: -4px; }
 .sb-clear {
-  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0;
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; margin: -4px 0; padding: 0;
   border: 0; border-radius: var(--rad-sm); background: none; color: var(--fg-inv-2); cursor: pointer;
   transition: background-color var(--dur-fast), color var(--dur-fast);
 }
 .sb-clear:hover { background: rgba(255, 255, 255, .12); color: var(--fg-inv-1); }
-.sb-sum span { font: var(--type-small); color: var(--fg-inv-3); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sb-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--sec-500); flex: none; }
-.sb-ctl { align-items: center; gap: var(--sp-2); }
-.startbar2 .sel option { color: var(--fg-1); }
-.sb-opt, .sb-go { flex: none; }
+.sb-meta {
+  margin: 0; font: var(--type-small); color: var(--fg-inv-3); font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Filters that match nothing: say so, and offer the way out (H-42). */
+.sb-none { color: var(--fg-inv-2); }
+.sb-none-short { display: none; }
+.sb-reset {
+  padding: 0; border: 0; background: none; cursor: pointer;
+  font: 600 13px/18px var(--sans); color: var(--brand-300); text-decoration: underline; text-underline-offset: 2px;
+}
+.sb-reset:hover { color: var(--fg-inv-1); }
+.sb-diff, .sb-opt, .sb-go { flex: none; }
+.shell .sb-opt { position: relative; }
+/* Options' count of settings changed out of sight: a white pill on the ink. */
+.opt-n {
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--rad-pill);
+  background: var(--fg-inv-1); color: var(--fg-1); font: 600 12px/18px var(--sans); text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.opt-n.narrow { display: none; }
+/* Below 1150px, and on a short landscape phone, the chips go: Options has them,
+   and its badge starts counting difficulty (H-46). */
+@media (max-width: 1149px), (orientation: landscape) and (max-height: 500px) {
+  .sb-diff, .opt-n.wide { display: none; }
+  .opt-n.narrow { display: inline-block; }
+}
+@media (max-width: 1149px) {
+  .startbar2-in { min-height: 64px; padding-block: 8px; }
+}
+/* Zoomed in or a short window, a pinned bar would take most of the screen
+   (H-44): let it sit at the end of the page instead. */
+@media (max-height: 520px) {
+  .startbar2 { position: static; }
+}
 
-/* ---- options dialog (the shared Modal) ---- */
+/* ---- options dialog (the shared Modal, spec 7.9) ---- */
 @media (min-width: 820px) { .opt-dialog { width: min(560px, calc(100vw - 32px)); } }
 .opt-body { display: flex; flex-direction: column; gap: var(--sp-5); }
-.opt-row { display: flex; flex-direction: column; gap: 2px; }
-.opt-row .side-t { margin-bottom: 6px; }
-.opt-row .sel { align-self: flex-start; }
-/* The checkbox row carries .opt-row too, whose column direction put the box on
-   its own line above the words. A label sits beside its box, always. */
-.excl { cursor: pointer; font: var(--type-small); color: var(--fg-2); }
-.excl.opt-row { flex-direction: row; align-items: flex-start; gap: 10px; }
-.sheet-go { width: 100%; }
+.field { min-width: 0; margin: 0; padding: 0; border: 0; }
+.field > legend.side-t, .field > label.side-t { display: block; padding: 0; margin-bottom: var(--sp-2); }
+.field-hint { margin: 6px 0 0; font: var(--type-small); color: var(--fg-3); }
+.field-line { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); }
+/* Tracks fill the row (beside Reshuffle on Order), so the dialog has one right edge. */
+.opt-dialog .seg { flex: 1 1 auto; flex-wrap: wrap; }
+.opt-dialog .seg-b { flex: 1 1 auto; padding: 0 10px; }
+.opt-dialog .field:disabled .seg-b { color: var(--fg-4); cursor: default; }
+.opt-dialog .field:disabled .seg-b.on { box-shadow: none; }
+.opt-dialog .sel { min-width: 240px; }
+.opt-reshuffle { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; }
+/* The label sits beside its box, always (it once wrapped under it). */
+.excl { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font: var(--type-ui); color: var(--fg-1); }
+.shell .excl input[type=checkbox] { margin-top: 1px; }
+.excl-hint { margin-left: 28px; }
 
 @media (max-width: 819px) {
   .hwrap { padding: var(--sp-6) var(--sp-4) var(--sp-6); }
@@ -377,7 +422,6 @@
   .scard-stats > .stat { padding: 0 10px; }
   .scard-stats .stat-l { letter-spacing: .03em; }
   .scard-note { margin-top: 6px; }
-  .sb-long { display: none; }
   .hwrap:has(> .qsets) { padding-top: var(--sp-4); }
   .qsets { margin-bottom: var(--sp-10); }
   .topics-head { flex-direction: column; align-items: stretch; margin-bottom: var(--sp-4); }
@@ -389,9 +433,19 @@
   .dcard-t { flex-basis: calc(100% - 30px); }
   .dcard-stat { margin-left: 30px; }
   .dmeter { margin: 0 var(--sp-3); }
-  .startbar2-in { padding: 8px 12px; gap: var(--sp-2); }
-  /* Options and Start share the one row here, so they share a height. */
-  .shell .startbar2 .sb-opt { min-height: 48px; }
+  /* 64px: the title alone, Options as a 40px icon button, Start at md (H-45). */
+  .startbar2-in { min-height: 64px; padding: 8px 12px; gap: var(--sp-2); }
+  .sb-meta:not(.sb-none) { display: none; }
+  .sb-none-long { display: none; }
+  .sb-none-short { display: inline; }
+  .shell .sb-opt { width: 40px; padding: 0; }
+  .sb-opt-t { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .sb-opt .opt-n { position: absolute; top: -6px; right: -6px; }
+  .shell .btn.sb-go { min-height: 40px; padding: 0 14px; font-size: 14px; line-height: 20px; }
+  /* Bigger targets in the sheet (H-40). */
+  .opt-dialog .seg-b { height: 44px; }
+  .opt-dialog .chip { height: 40px; }
+  .opt-dialog .sel { width: 100%; height: 48px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .skel { animation: none; opacity: .8; }

@@ -135,10 +135,10 @@ export function andMore(names: readonly string[]): string {
 }
 
 const STATUS_NOTE: Record<Status, string> = {
-  wrong: 'missed only',
+  wrong: 'incorrect only',
   unseen: 'not answered yet',
   flagged: 'marked only',
-  correct: 'right only',
+  correct: 'correct only',
 }
 
 /**

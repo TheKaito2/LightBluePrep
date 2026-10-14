@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { RichText } from './RichText'
 import { Explanation } from './Explanation'
 import { BookmarkFilled, Icon, SplitHandle } from './Icon'
@@ -56,6 +56,8 @@ interface Props {
   /** Why you missed it. Asked inline, and only after a wrong answer. */
   mistake: Mistake | null
   onSaveMistake: (tags: MistakeTag[], note: string | null) => void
+  /** The one-time first-question tip, shown just above the choices. */
+  coach?: ReactNode
 }
 
 interface PendingSelection {
@@ -73,7 +75,7 @@ export function QuestionView(props: Props) {
     question, number, annotations, result, seconds, response, flagged,
     crossOutMode, crossOut, onRespond, onSubmit, onToggleFlag,
     onToggleCrossOutMode, onToggleCrossOut, onAddAnnotation, onRemoveAnnotation,
-    deferred, mistake, onSaveMistake,
+    deferred, mistake, onSaveMistake, coach,
   } = props
 
   const [pending, setPending] = useState<PendingSelection | null>(null)
@@ -196,6 +198,8 @@ export function QuestionView(props: Props) {
       <RichText className="stem" html={question.stem_html} field="stem"
                 annotations={annotations} onSelect={handleSelect}
                 onAnnotationClick={onRemoveAnnotation} />
+
+      {coach}
 
       {question.type === 'mcq' && question.options ? (
         <ul className="choices">

@@ -5,9 +5,11 @@ import { Footer } from './Footer'
 import { ProgressStrip } from './ProgressStrip'
 import { Modal } from './Modal'
 import { EmptyState } from './EmptyState'
+import { Segmented } from './Segmented'
 import { ResumeLabel, SetCard } from './SetCard'
 import { loadProcessTypes, typeCounts, type ProcessTypes } from '../lib/similar'
-import { SPEEDS, setSeconds, formatClock } from '../lib/pacing'
+import { setSeconds, formatClock } from '../lib/pacing'
+import { SIZES } from '../lib/prefs'
 import {
   DIFFICULTIES, DIFFICULTY_NAME, SECTIONS, SECTION_NAME, SECTION_SHORT, andMore, byDomain, bySkill, describeSet, fmt, plural,
 } from '../lib/labels'
@@ -60,20 +62,29 @@ interface Props {
 /** Which questions inside the chosen topics. One choice, mapped onto `statuses`. */
 const WHICH: { key: Status | 'all'; label: string }[] = [
   { key: 'all', label: 'All questions' },
-  { key: 'unseen', label: 'Not tried yet' },
-  { key: 'wrong', label: 'Ones I got wrong' },
+  { key: 'unseen', label: 'Not answered yet' },
+  { key: 'wrong', label: 'Incorrect' },
   { key: 'flagged', label: 'Marked for review' },
-  { key: 'correct', label: 'Ones I got right' },
+  { key: 'correct', label: 'Correct' },
 ]
 
-const ORDERS: { key: Order; label: string }[] = [
-  { key: 'mixed', label: 'Mixed' },
-  { key: 'topic', label: 'By topic' },
-  { key: 'random', label: 'Random' },
+/** 0 is "no limit": practise the whole pool, open-ended. */
+const LENGTHS = SIZES.map((n) => ({ value: n, label: n ? String(n) : 'No limit' }))
+
+/** Test pace first, then easier, with the harder drill last. 0 is untimed. */
+const TIMERS = [
+  { value: 0, label: 'Untimed' },
+  { value: 1, label: '1× (test pace)' },
+  { value: 1.25, label: '1.25×' },
+  { value: 1.5, label: '1.5×' },
+  { value: 0.75, label: '0.75× speed drill' },
 ]
 
-/** 0 is "no set": practise the whole pool, open-ended. */
-const SIZES = [0, 10, 20, 30, 50]
+/** Random is a reshuffle of Shuffled, not a third order: it shows as Shuffled. */
+const ORDERS = [
+  { value: 'shuffled', label: 'Shuffled' },
+  { value: 'topic', label: 'By topic' },
+] as const
 
 interface SkillRow { code: string; name: string; n: number; seen: number; correct: number }
 interface DomainRow {
@@ -91,7 +102,7 @@ const SLOW_MS = 8000
 
 /** The word after a filtered count on a skill row ("87 hard"). */
 const STATUS_WORD: Record<Status, string> = {
-  unseen: 'not tried', wrong: 'incorrect', flagged: 'marked', correct: 'correct',
+  unseen: 'not answered', wrong: 'incorrect', flagged: 'marked', correct: 'correct',
 }
 
 /**
@@ -109,6 +120,8 @@ export function Home({
   order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId, onQuickStart, onScoreCheck,
 }: Props) {
   const [showOptions, setShowOptions] = useState(false)
+  /** Reshuffle was pressed while Options is open: say so, since the list it changed is behind the dialog. */
+  const [reshuffled, setReshuffled] = useState(false)
   const [allSets, setAllSets] = useState(false)
   /** The first load has run past SLOW_MS. */
   const [slow, setSlow] = useState(false)
@@ -118,7 +131,7 @@ export function Home({
     const t = window.setTimeout(() => setSlow(true), SLOW_MS)
     return () => { window.clearTimeout(t); setSlow(false) }
   }, [waiting])
-  const closeOptions = useCallback(() => setShowOptions(false), [])
+  const closeOptions = useCallback(() => { setShowOptions(false); setReshuffled(false) }, [])
   const [query, setQuery] = useState('')
   /** Hits for the needle they were found for, so a stale list never answers a newer query. */
   const [found, setFound] = useState<{ needle: string; list: SetItem[] } | null>(null)
@@ -257,15 +270,6 @@ export function Home({
     return { done, firstNew }
   }, [items])
 
-  const plannedSeconds = useMemo(() => {
-    if (!value.size || !value.speed) return 0
-    const n = Math.min(value.size, count)
-    const mix: Section[] = value.section
-      ? Array.from({ length: n }, () => value.section as Section)
-      : Array.from({ length: n }, (_, i) => (i % 2 ? 'MATH' : 'RW'))
-    return setSeconds(mix, value.speed)
-  }, [value.size, value.speed, value.section, count])
-
   function set(patch: Partial<Filters>) { onChange({ ...value, ...patch }) }
 
   function toggle<T>(list: T[] | undefined, item: T): T[] | undefined {
@@ -307,11 +311,25 @@ export function Home({
   }
 
   const which: Status | 'all' = value.statuses?.length === 1 ? value.statuses[0] : 'all'
-  const optionCount = (value.size ? 1 : 0) + (value.excludeLive ? 1 : 0) + (order !== 'mixed' ? 1 : 0)
-    + (value.difficulties?.length ? 1 : 0) + (which !== 'all' ? 1 : 0)
+  // The badge counts only what the bar does not show (H-35). Below 1150px the
+  // bar drops its difficulty chips, so there the badge counts difficulty too.
+  const hiddenCount = (value.size ? 1 : 0) + (value.size && value.speed ? 1 : 0) + (order === 'topic' ? 1 : 0)
+    + (value.excludeLive ? 1 : 0) + (which !== 'all' ? 1 : 0)
+  const narrowCount = hiddenCount + (value.difficulties?.length ? 1 : 0)
 
   const pickedSections = value.section ? [value.section]
     : [...new Set(domains.filter((d) => d.skills.some((s) => ticked.has(s.code))).map((d) => d.section))]
+
+  /** The set clock, for the Start label. One picked section times every question at its pace (H-43). */
+  const n = Math.min(value.size ?? 0, count)
+  const plannedSeconds = value.size && value.speed
+    ? setSeconds(Array.from({ length: n }, (_, i): Section =>
+      pickedSections.length === 1 ? pickedSections[0] : i % 2 ? 'MATH' : 'RW'), value.speed)
+    : 0
+  /** One wording for the bar and the dialog footer. */
+  const startLabel = !count && !loading ? 'Start' : !value.size ? 'Start · no limit'
+    : value.speed ? `Start ${fmt(n)} · ${formatClock(plannedSeconds)}`
+      : `Start ${plural(n, 'question')}`
   // A skill narrowed to types reads as those types.
   const pickedNames = domains.flatMap((d) => d.skills.filter((s) => ticked.has(s.code)).flatMap((s) => {
     const refs = value.types?.filter((r) => r.startsWith(`${s.code}.`)) ?? []
@@ -362,6 +380,11 @@ export function Home({
     onOpen(pool.firstNew < 0 ? 0 : pool.firstNew)
   }
 
+  /** Back to every question; the session length and timer are not filters, so they stay. */
+  function resetFilters() {
+    onChange({ size: value.size, speed: value.speed })
+  }
+
   const tabs: { key: Section | undefined; label: string; short: string; n: number }[] = [
     { key: undefined, label: 'All', short: 'All', n: totals.all },
     { key: 'RW', label: SECTION_NAME.RW, short: SECTION_SHORT.RW, n: totals.RW },
@@ -370,20 +393,19 @@ export function Home({
 
   const difficultyChips = (
     <div className="chips" role="group" aria-label="Difficulty">
+      <button type="button" aria-pressed={!value.difficulties?.length}
+              className={value.difficulties?.length ? 'chip' : 'chip on'}
+              onClick={() => set({ difficulties: undefined })}>
+        Any
+      </button>
       {DIFFICULTIES.map((d) => (
-        <button key={d} aria-pressed={value.difficulties?.includes(d) ?? false}
+        <button key={d} type="button" aria-pressed={value.difficulties?.includes(d) ?? false}
                 className={value.difficulties?.includes(d) ? `chip on d-${d}` : `chip d-${d}`}
                 onClick={() => set({ difficulties: toggle(value.difficulties, d) })}>
           {DIFFICULTY_NAME[d]}
         </button>
       ))}
     </div>
-  )
-  const whichSelect = (
-    <select className="sel" aria-label="Which questions" value={which}
-            onChange={(e) => set({ statuses: e.target.value === 'all' ? undefined : [e.target.value as Status] })}>
-      {WHICH.map((w) => <option key={w.key} value={w.key}>{w.label}</option>)}
-    </select>
   )
 
   return (
@@ -643,10 +665,8 @@ export function Home({
         <div className="startbar2-in">
           <div className="sb-sum">
             <div className="sb-line">
-              <strong>
-                {pickedSections.map((s) => <i key={s} className={`sb-dot sec-${s}`} aria-hidden="true" />)}
-                <span className="sb-name">{summary}</span>
-              </strong>
+              {pickedSections.map((s) => <i key={s} className={`sb-dot sec-${s}`} aria-hidden="true" />)}
+              <strong className="sb-name">{summary}</strong>
               {ticked.size ? (
                 <button type="button" className="sb-clear" aria-label="Clear topics" title="Clear topics"
                         onClick={() => commit(new Set())}>
@@ -654,80 +674,81 @@ export function Home({
                 </button>
               ) : null}
             </div>
-            <span>
-              {loading ? 'Counting…' : plural(count, 'question')}
-              {!loading && pool.done ? <span className="sb-long"> · {fmt(pool.done)} answered</span> : ''}
-            </span>
+            {!loading && !count ? (
+              <span className="sb-meta sb-none" role="status">
+                <span className="sb-none-long">No questions match</span><span className="sb-none-short">No match</span>
+                {' · '}
+                <button type="button" className="sb-reset" onClick={resetFilters}>Reset filters</button>
+              </span>
+            ) : (
+              <span className="sb-meta">
+                {loading ? 'Counting…' : plural(count, 'question')}
+                {!loading && pool.done ? ` · ${fmt(pool.done)} answered` : ''}
+              </span>
+            )}
           </div>
-          <div className="sb-ctl desk-only">
-            {difficultyChips}
-            {whichSelect}
-          </div>
+          <div className="sb-diff">{difficultyChips}</div>
           <button className="btn on-ink-secondary sb-opt" onClick={() => setShowOptions(true)}
                   aria-haspopup="dialog" aria-expanded={showOptions}>
             <Icon name="sliders" size={16} />
-            Options{optionCount ? ` · ${optionCount}` : ''}
+            <span className="sb-opt-t">Options</span>
+            {hiddenCount ? <span className="opt-n wide">{hiddenCount}<span className="sr-only"> changed</span></span> : null}
+            {narrowCount ? <span className="opt-n narrow">{narrowCount}<span className="sr-only"> changed</span></span> : null}
           </button>
-          <button className="btn primary lg sb-go" disabled={!count || loading} onClick={start}>
-            {value.size
-              ? `Start ${Math.min(value.size, count)}${value.speed ? ` · ${formatClock(plannedSeconds)}` : ''}`
-              : pool.done && pool.firstNew > 0 ? 'Continue' : 'Start'}
+          <button className="btn on-ink lg sb-go" disabled={!count || loading} onClick={start}>
+            {startLabel}
             <Icon name="arrow-right" size={16} strokeWidth={2.2} />
           </button>
         </div>
       </div>
 
       {showOptions ? (
-        <Modal title="Practice options" onClose={closeOptions} className="opt-dialog" footer={
-          <button className="btn primary lg sheet-go" onClick={closeOptions}>
-            {loading ? 'Counting…' : `Done · ${plural(count, 'question')}`}
+        <Modal title="Practice options" onClose={closeOptions} className="opt-dialog" footer={<>
+          <button type="button" className="btn quiet lg" onClick={closeOptions}>Done</button>
+          <button type="button" className="btn primary lg" disabled={!count || loading}
+                  onClick={() => { closeOptions(); start() }}>
+            {loading ? 'Counting…' : startLabel}
+            <Icon name="arrow-right" size={16} strokeWidth={2.2} />
           </button>
-        }>
+        </>}>
         <div className="opt-body">
-          <div className="opt-row"><span className="side-t">Difficulty</span>{difficultyChips}</div>
-          <div className="opt-row"><span className="side-t">Questions</span>{whichSelect}</div>
-          <div className="opt-row">
-            <span className="side-t">Practice mode</span>
-            <div className="chips">
-              {SIZES.map((n) => (
-                <button key={n} aria-pressed={(value.size ?? 0) === n}
-                        className={(value.size ?? 0) === n ? 'chip on' : 'chip'}
-                        onClick={() => set({ size: n || undefined })}>
-                  {n ? `Set of ${n}` : 'Open'}
-                </button>
-              ))}
-            </div>
+          <fieldset className="field">
+            <legend className="side-t">Difficulty</legend>
+            {difficultyChips}
+            <p className="field-hint">None selected means all</p>
+          </fieldset>
+          <div className="field">
+            <label className="side-t" htmlFor="opt-show">Show</label>
+            <select id="opt-show" className="sel" value={which}
+                    onChange={(e) => set({ statuses: e.target.value === 'all' ? undefined : [e.target.value as Status] })}>
+              {WHICH.map((w) => <option key={w.key} value={w.key}>{w.label}</option>)}
+            </select>
           </div>
-          {value.size ? (
-            <div className="opt-row">
-              <span className="side-t">Timer</span>
-              <div className="chips">
-                <button aria-pressed={!value.speed} className={!value.speed ? 'chip on' : 'chip'}
-                        onClick={() => set({ speed: undefined })}>Untimed</button>
-                {SPEEDS.map((x) => (
-                  <button key={x} aria-pressed={value.speed === x}
-                          className={value.speed === x ? 'chip on' : 'chip'}
-                          onClick={() => set({ speed: x })}>{x}× time</button>
-                ))}
-              </div>
-            </div>
-          ) : null}
-          <div className="opt-row">
-            <span className="side-t">Order</span>
-            <div className="chips">
-              {ORDERS.map((o) => (
-                <button key={o.key} aria-pressed={order === o.key}
-                        className={order === o.key ? 'chip on' : 'chip'}
-                        onClick={() => onOrder(o.key)}>{o.label}</button>
-              ))}
-            </div>
-          </div>
+          <Segmented legend="Session length" options={LENGTHS} value={value.size ?? 0}
+                     onChange={(n) => set({ size: n || undefined })}
+                     hint="Sets are graded at the end, like Bluebook." />
+          <Segmented legend="Order" options={ORDERS} value={order === 'topic' ? 'topic' : 'shuffled'}
+                     onChange={(o) => onOrder(o === 'topic' ? 'topic' : 'mixed')}
+                     hint={<span aria-live="polite">{reshuffled ? 'New order, kept the same every visit' : 'Same order every visit'}</span>}
+                     aside={
+                       <button type="button" className="link opt-reshuffle"
+                               onClick={() => { onOrder('random'); setReshuffled(true) }}>
+                         <Icon name="refresh" size={14} strokeWidth={2.2} />Reshuffle
+                       </button>
+                     } />
+          {/* Always drawn, so picking a length does not make the dialog jump (H-39). */}
+          <Segmented legend="Timer" options={TIMERS} value={value.size ? value.speed ?? 0 : 0}
+                     onChange={(x) => set({ speed: x || undefined })} disabled={!value.size}
+                     hint={value.size ? undefined : 'Pick a session length to time it'} />
           {totals.live ? (
-            <label className="excl opt-row">
-              <input type="checkbox" checked={value.excludeLive ?? false}
-                     onChange={(e) => set({ excludeLive: e.target.checked || undefined })} />
-              Skip questions that appear on official practice tests
-            </label>
+            <div className="field">
+              <label className="excl">
+                <input type="checkbox" checked={value.excludeLive ?? false} aria-describedby="opt-live-h"
+                       onChange={(e) => set({ excludeLive: e.target.checked || undefined })} />
+                Skip questions that appear on official practice tests
+              </label>
+              <p className="field-hint excl-hint" id="opt-live-h">Keeps the official practice tests fresh for later.</p>
+            </div>
           ) : null}
         </div>
         </Modal>

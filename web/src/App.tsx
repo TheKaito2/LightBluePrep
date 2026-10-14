@@ -27,6 +27,8 @@ import { ErrorBanner } from './components/ErrorBanner'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { sample, sampleBalanced } from './lib/draw'
 import { arrange, type Order } from './lib/order'
+import { loadFilters, loadOrder, saveFilters, saveOrder } from './lib/prefs'
+import { COACH_KEY, getMeta, setMeta } from './lib/store'
 import type { HistoryRow } from './lib/progress'
 import { setSeconds, formatClock } from './lib/pacing'
 import { useQuestionTimer } from './lib/useTimer'
@@ -65,6 +67,13 @@ const NAV = [
   { key: 'about', label: 'About', icon: 'info' },
 ] as const
 
+/** Links into the app that open practice; they win over Home's stored picks. */
+const DEEP_LINK_KEYS = ['q', 'skill', 'type']
+const hasDeepLink = () => DEEP_LINK_KEYS.some((k) => new URLSearchParams(window.location.search).has(k))
+
+/** Session length for someone with no answers yet: a short set with an end, not all 3,767 (H-31). */
+const FIRST_SIZE = 10
+
 /** index.html's own title, which Home goes back to. */
 const HOME_TITLE = document.title
 
@@ -79,9 +88,7 @@ function skipTo(id: string) {
 export default function App() {
   // A deep link (?q, ?skill, ?type) wins over the hash: it opens practice
   // from Home below, so Back from it lands on Home.
-  const [view, setView] = useState<View>(() => (
-    ['q', 'skill', 'type'].some((k) => new URLSearchParams(window.location.search).has(k))
-      ? 'home' : parseHash(window.location.hash)))
+  const [view, setView] = useState<View>(() => (hasDeepLink() ? 'home' : parseHash(window.location.hash)))
   const viewRef = useRef(view)
   useEffect(() => { viewRef.current = view }, [view])
 
@@ -107,7 +114,12 @@ export default function App() {
   const [taxonomyLoading, setTaxonomyLoading] = useState(true)
   const [stats, setStats] = useState<Stats | null>(null)
   const [attemptLog, setAttemptLog] = useState<HistoryRow[]>([])
-  const [filters, setFilters] = useState<Filters>({})
+  // Home's picks survive a reload (H-32). Read once, before the first render.
+  const [storedFilters] = useState(loadFilters)
+  const [filters, setFilters] = useState<Filters>(() => storedFilters ?? {})
+  useEffect(() => saveFilters(filters), [filters])
+  /** Nothing stored and no link: the first-visit default may still apply once stats say there is no history. */
+  const firstVisit = useRef(storedFilters === null && !hasDeepLink())
   const [items, setItems] = useState<SetItem[]>([])
   const [index, setIndex] = useState(0)
   const [listLoading, setListLoading] = useState(true)
@@ -205,7 +217,15 @@ export default function App() {
     let stale = false
     setTaxonomyLoading(true)
     api.taxonomy()
-      .then((d) => { if (!stale) { setTaxonomy(d.taxonomy); setStats(d.stats) } })
+      .then((d) => {
+        if (stale) return
+        setTaxonomy(d.taxonomy); setStats(d.stats)
+        if (firstVisit.current && !d.stats.attempts) {
+          // Unless a length was already picked in the moment before this landed.
+          setFilters((f) => ('size' in f ? f : { ...f, size: FIRST_SIZE }))
+        }
+        firstVisit.current = false
+      })
       .catch((e: Error) => !stale && fail(e, reload))
       .finally(() => { if (!stale) setTaxonomyLoading(false) })
     // Streaks and the score estimate on Home read every attempt.
@@ -278,9 +298,11 @@ export default function App() {
   // A pull from another device changes the same numbers an answer does.
   useEffect(() => sync.subscribe(() => setDataVersion(sync.getDataVersion())), [])
 
-  /** Home list order; `seed` changes each time Random is picked, so it reshuffles. */
-  const [order, setOrder] = useState<Order>('mixed')
-  const [seed, setSeed] = useState('')
+  /** Home list order; `seed` changes each time Reshuffle is pressed. Both kept across reloads. */
+  const [storedOrder] = useState(loadOrder)
+  const [order, setOrder] = useState<Order>(storedOrder.order)
+  const [seed, setSeed] = useState(storedOrder.seed)
+  useEffect(() => saveOrder({ order, seed }), [order, seed])
 
   // Named so the Retry it hands the banner can call it again.
   const loadList = useCallback(function load() {
@@ -349,7 +371,7 @@ export default function App() {
     if (!q && !skill && !type) return
     // A URL object, like the #inbox handler: "//?q=" must not throw.
     const url = new URL(window.location.href)
-    for (const key of ['q', 'skill', 'type']) url.searchParams.delete(key)
+    for (const key of DEEP_LINK_KEYS) url.searchParams.delete(key)
     url.hash = ''
     history.replaceState({ view: 'home' }, '', url)
     if (q) {
@@ -373,6 +395,25 @@ export default function App() {
     if (!mounted.current) { mounted.current = true; return }
     if (view === 'home') return loadList()
   }, [view, dataVersion])
+
+  /**
+   * The question the one-time tip is showing on, if any (H-31): only the very
+   * first question someone sees, judged by having no answers and no note that
+   * it was shown. Checked once per page load.
+   */
+  const [coachOn, setCoachOn] = useState<string | null>(null)
+  const coachChecked = useRef(false)
+  useEffect(() => {
+    if (!practising || !question || !stats || coachChecked.current) return
+    coachChecked.current = true
+    if (stats.attempts) return
+    const id = question.id
+    getMeta<boolean>(COACH_KEY).then((shown) => {
+      if (shown) return
+      setCoachOn(id)
+      return setMeta(COACH_KEY, true)
+    }).catch(() => { /* no storage: skip the tip rather than show it every visit */ })
+  }, [practising, question, stats])
 
   useEffect(() => {
     if (!practising || !current) { setQuestion(null); return }
@@ -1077,6 +1118,20 @@ export default function App() {
               crossOutMode={crossOutMode}
               crossOut={crossOut}
               deferred={Boolean(activeSet)}
+              coach={coachOn === question.id && !result ? (
+                <div className="coach" role="note">
+                  <Icon name="info" size={18} />
+                  <p>
+                    {question.type === 'mcq' ? 'Pick an answer' : 'Enter your answer'}
+                    {/* A set has no Submit: answers are held and graded at the end. */}
+                    {activeSet ? ', then Next. The set is graded at the end, with every explanation.'
+                      : ", then Submit. You'll see the explanation right away."}
+                  </p>
+                  <button type="button" className="coach-x" aria-label="Dismiss tip" onClick={() => setCoachOn(null)}>
+                    <Icon name="close" size={16} />
+                  </button>
+                </div>
+              ) : null}
               onRespond={(value) => {
                 setResponse(value)
                 if (activeSet) holdAnswer(value, seconds)

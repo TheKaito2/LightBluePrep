@@ -33,7 +33,7 @@ describe('describeSet', () => {
 
   it('appends difficulty, status and pace', () => {
     expect(describeSet(set({ section: 'RW', difficulties: ['H'], statuses: ['wrong'], speed: 1.5 }, 1200)))
-      .toBe('1,200 · Reading and Writing · Hard · missed only · 1.5× time')
+      .toBe('1,200 · Reading and Writing · Hard · incorrect only · 1.5× time')
     expect(describeSet(set({ statuses: ['unseen'], types: ['WIC.a'] })))
       .toBe('10 · All topics · 1 question type · not answered yet')
   })

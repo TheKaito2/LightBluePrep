@@ -406,6 +406,13 @@ export const getMeta = <T>(key: string) => get<T>(STORE_META, key)
 export const setMeta = <T>(key: string, value: T) => put(STORE_META, value, key)
 
 /**
+ * Meta key: the first-question tip on the practice screen has been shown.
+ * Written when it shows, not when it is closed, so it is shown once ever.
+ * Deleting your data clears it with the rest, which is a fresh start.
+ */
+export const COACH_KEY = 'coach-tip-shown'
+
+/**
  * Ask the browser not to evict the bank under storage pressure.
  *
  * Without this a full cache is disposable data and can vanish, costing a

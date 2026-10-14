@@ -2,12 +2,13 @@
  * How the home page's question list is ordered. The practice screen walks the
  * same list, so this is also the order Back and Next follow.
  *
- *  - mixed: the bank's stable shuffle (what the server sends), so "question 40"
- *    means the same question every visit.
- *  - topic: grouped by section, domain and skill in College Board's order
- *    (lib/labels.ts), then easy to hard.
- *  - random: a fresh shuffle each time you pick it, but fixed by `seed`, so
- *    coming back from a question does not reshuffle the list under you.
+ *  - mixed: Options' "Shuffled". The bank's stable shuffle (what the server
+ *    sends), so "question 40" means the same question every visit.
+ *  - topic: "By topic". Grouped by section, domain and skill in College
+ *    Board's order (lib/labels.ts), then easy to hard.
+ *  - random: what "Reshuffle" picks. Still "Shuffled" to the student, just a
+ *    new shuffle, fixed by `seed` (which Home stores), so coming back from a
+ *    question or reloading does not reshuffle the list under you.
  */
 import { byShuffleKey, shuffleKey } from './shuffle'
 import { byDomain, bySkill } from './labels'

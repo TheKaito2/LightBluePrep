@@ -292,6 +292,23 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
 .mlog-practice .mlog-lead { font-family: var(--display); font-weight: 750; font-size: var(--fs-lg); color: var(--n-900); }
 .mlog-practice .mlog-label { margin-top: var(--sp-3); }
 
+/* ---- practice: the one-time first-question tip, above the choices ----
+   Quiet on purpose: Bluebook has no such note, so it borrows the Directions
+   panel's soft fill and goes away for good once it has been seen. */
+.coach {
+  display: flex; align-items: flex-start; gap: 10px; margin-top: 18px; padding: 10px 8px 10px 14px;
+  border: 1px solid var(--accent-soft-2); border-radius: var(--r-md); background: var(--accent-soft);
+  font: 400 14px/20px var(--sans); color: var(--ink-2);
+}
+.coach > svg { flex: none; margin-top: 1px; color: var(--accent); }
+.coach p { flex: 1; margin: 0; }
+.coach-x {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+  margin: -4px 0; padding: 0; border: 0; border-radius: var(--r-sm); background: none; color: var(--ink-2); cursor: pointer;
+}
+.coach-x:hover { background: var(--accent-soft-2); }
+.coach-x:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 /* ---- practice: Info popover (ID, difficulty, band) ---- */
 .qinfo { position: relative; }
 .qinfo-pop {
