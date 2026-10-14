@@ -24,6 +24,7 @@
 import * as http from './apiHttp'
 import * as local from './apiLocal'
 import { filterByTypes, loadProcessTypes } from './lib/similar'
+import { skillDisplayName } from './lib/labels'
 import type { Filters } from './types'
 
 export type BackendName = 'http' | 'local'
@@ -38,17 +39,33 @@ export const backend: BackendName = choose()
 
 const impl = backend === 'local' ? local : http
 
-export const taxonomy = impl.taxonomy
+/**
+ * Skill names leave here in the app's own spelling (lib/labels.ts), whichever
+ * backend or cached copy they came from, so no page has to remember to tidy
+ * College Board's mixed casing.
+ */
+function named<T extends { skill: string; skill_name: string }>(row: T): T {
+  return { ...row, skill_name: skillDisplayName(row.skill, row.skill_name) }
+}
+
+export async function taxonomy() {
+  const d = await impl.taxonomy()
+  return { ...d, taxonomy: d.taxonomy.map(named) }
+}
 /** Both backends filter the rest; process types are applied here, once. */
 export async function questionSet(filters: Filters) {
   const result = await impl.questionSet(filters)
-  if (!filters.types?.length) return result
+  const all = result.questions.map(named)
+  if (!filters.types?.length) return { count: result.count, questions: all }
   const pt = await loadProcessTypes()
-  if (!pt) return result
-  const questions = filterByTypes(result.questions, filters.types, pt)
+  if (!pt) return { count: result.count, questions: all }
+  const questions = filterByTypes(all, filters.types, pt)
   return { count: questions.length, questions }
 }
-export const question = impl.question
+export async function question(id: string) {
+  const d = await impl.question(id)
+  return { ...d, question: named(d.question) }
+}
 export const answer = impl.answer
 export const flag = impl.flag
 export const saveAnnotations = impl.saveAnnotations
@@ -56,7 +73,10 @@ export const explain = impl.explain
 export const attemptsFor = impl.attemptsFor
 export const loggedIds = impl.loggedIds
 export const saveMistake = impl.saveMistake
-export const reviewed = impl.reviewed
+export async function reviewed() {
+  const d = await impl.reviewed()
+  return { ...d, questions: d.questions.map(named) }
+}
 export const stats = impl.stats
 export const history = impl.history
 

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { RichText } from './RichText'
+import { duration } from '../lib/pacing'
+import { VERDICT } from '../lib/labels'
 import type { GradeResult, Question } from '../types'
 
 interface Props {
@@ -28,9 +30,9 @@ export function Explanation({ result, question, seconds, startOpen = false, unan
     return (
       <div className="explain-bar">
         <span className={result.correct ? 'verdict ok' : 'verdict no'}>
-          {result.correct ? 'Correct' : 'Incorrect'}
+          {result.correct ? VERDICT.correct : VERDICT.incorrect}
         </span>
-        <span className="verdict-time">{seconds}s</span>
+        <span className="verdict-time">{duration(seconds)}</span>
         <button className="btn primary" onClick={() => setOpen(true)}>
           Explain answer choices
         </button>
@@ -41,11 +43,11 @@ export function Explanation({ result, question, seconds, startOpen = false, unan
   return (
     <div className="explain">
       <div className="explain-head">
-        {unanswered ? <span className="verdict-time">Not answered yet</span> : (<>
+        {unanswered ? <span className="verdict-time">{VERDICT.unanswered}</span> : (<>
           <span className={result.correct ? 'verdict ok' : 'verdict no'}>
-            {result.correct ? 'Correct' : 'Incorrect'}
+            {result.correct ? VERDICT.correct : VERDICT.incorrect}
           </span>
-          <span className="verdict-time">{seconds}s on this question</span>
+          <span className="verdict-time">{duration(seconds)} on this question</span>
         </>)}
         <button className="btn ghost" onClick={() => setOpen(false)}>Hide</button>
       </div>

@@ -22,34 +22,23 @@ import { Icon } from './Icon'
 import { PageHead } from './PageHead'
 import { Mascot } from './Mascot'
 import { TAG_LABEL } from './MistakeFields'
-import { describeSet } from '../lib/setlabel'
+import { DIFFICULTIES, DIFFICULTY_NAME, SECTION_NAME, VERDICT, describeSet, fmt, plural } from '../lib/labels'
 import { loadProcessTypes, typeOf, type ProcessTypes } from '../lib/similar'
-import { duration, formatClock } from '../lib/pacing'
+import { duration } from '../lib/pacing'
+import { graded } from '../lib/score'
 import { MISTAKE_TAGS, type MistakeTag, type PracticeSet, type Section, type SetItem } from '../types'
-
-const SECTION_LABEL: Record<Section, string> = {
-  RW: 'Reading and Writing', MATH: 'Math',
-}
-
-const DIFFICULTY: Record<string, string> = { E: 'Easy', M: 'Medium', H: 'Hard' }
-/** Easy first, hard last. */
-const DIFFICULTY_RANK: Record<string, number> = { E: 0, M: 1, H: 2 }
 
 /**
  * Right first time, right eventually, and wrong are three different results.
  * The navigator grid has always drawn them as green / amber / red; this matches
  * it so the two views cannot disagree.
- *
- * "Retried" rather than "Correct after retry": the badge is a fixed-width pill
- * in a row, and the longer phrase wrapped to three lines. The amber already
- * says it was eventually right, and the row shows the attempt count beside it.
  */
 function verdict(item: SetItem): { cls: string; label: string } {
   // Marked but never answered: only the Marked filter brings these in.
-  if (item.answered_at === null) return { cls: 'skip', label: 'Not answered' }
-  if (item.last_correct !== 1) return { cls: 'wrong', label: 'Incorrect' }
-  if (item.attempt_count > 1) return { cls: 'retry', label: 'Retried' }
-  return { cls: 'right', label: 'Correct' }
+  if (item.answered_at === null) return { cls: 'skip', label: VERDICT.unanswered }
+  if (item.last_correct !== 1) return { cls: 'wrong', label: VERDICT.incorrect }
+  if (item.attempt_count > 1) return { cls: 'retry', label: VERDICT.retry }
+  return { cls: 'right', label: VERDICT.correct }
 }
 
 /** Day headings, so a long history reads as sittings rather than one wall. */
@@ -132,7 +121,7 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
       <h2 className="review-sectionhead">Practice sets</h2>
       <ul className="setlist">
         {sets.map((s) => {
-          const pct = s.total ? Math.round((s.correct / s.total) * 100) : 0
+          const g = graded(s.total, s.correct)
           return (
             <li key={s.id} className="setcard">
               <button className="setcard-main" onClick={() => onOpenSet(s.id)}>
@@ -142,11 +131,11 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
                     {new Date((s.finished_at ?? s.created_at) * 1000)
                       .toLocaleDateString(undefined,
                         { month: 'short', day: 'numeric', year: 'numeric' })}
-                    {s.seconds ? ` · ${formatClock(s.seconds)}` : ''}
+                    {s.seconds ? ` · ${duration(s.seconds)}` : ''}
                   </span>
                 </span>
-                <span className={`setcard-score ${pct >= 90 ? 'good' : pct >= 70 ? 'mid' : 'poor'}`}>
-                  {s.correct}<span className="dim">/{s.total}</span>
+                <span className={`setcard-score ${g?.grade ?? ''}`}>
+                  {fmt(s.correct)}<span className="dim">/{fmt(s.total)}</span>
                 </span>
               </button>
               <span className="setcard-side">
@@ -229,7 +218,7 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
   for (const group of sections) {
     for (const day of group.days) {
       day.rows.sort((a, b) => (
-        (DIFFICULTY_RANK[a.difficulty] ?? 9) - (DIFFICULTY_RANK[b.difficulty] ?? 9)
+        DIFFICULTIES.indexOf(a.difficulty) - DIFFICULTIES.indexOf(b.difficulty)
         || (b.answered_at ?? 0) - (a.answered_at ?? 0)))
     }
   }
@@ -241,9 +230,9 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
     <>
     {head(
       <div className="htiles">
-        <div className="htile"><span className="htile-n">{answered.length.toLocaleString()}</span><span className="htile-l">answered</span></div>
+        <div className="htile"><span className="htile-n">{fmt(answered.length)}</span><span className="htile-l">answered</span></div>
         <div className="htile"><span className="htile-n">{answered.length ? Math.round((correct / answered.length) * 100) : 0}<small>%</small></span><span className="htile-l">correct</span></div>
-        <div className="htile"><span className="htile-n">{duration(Math.round(total))}</span><span className="htile-l">spent</span></div>
+        <div className="htile"><span className="htile-n">{duration(total)}</span><span className="htile-l">spent</span></div>
       </div>,
     )}
     <div className="review">
@@ -254,7 +243,7 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
             <button key={r.key} className={r.tag ? 'redo-tile is-tag' : 'redo-tile'}
                     disabled={!r.rows.length}
                     onClick={() => onPracticeMany(r.rows.map((i) => i.id), `Review: ${r.label}`)}>
-              <span className="redo-n">{r.rows.length}</span>
+              <span className="redo-n">{fmt(r.rows.length)}</span>
               <span className="redo-l">{r.label}</span>
               <Icon name="arrow-right" size={18} strokeWidth={2.4} />
             </button>
@@ -298,20 +287,17 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
               <Icon name={group.section === 'RW' ? 'book' : 'sigma'} size={24} strokeWidth={2} />
             </span>
             <div className="spanel-txt">
-              <h2 className="spanel-t">{SECTION_LABEL[group.section]}</h2>
+              <h2 className="spanel-t">{SECTION_NAME[group.section]}</h2>
               <p className="spanel-sub">
-                {(() => {
-                  const n = group.days.reduce((sum, d) => sum + d.rows.length, 0)
-                  return `${n} question${n === 1 ? '' : 's'}`
-                })()}
+                {plural(group.days.reduce((sum, d) => sum + d.rows.length, 0), 'question')}
               </p>
             </div>
             {/* Every row in this section under the current filter, in one go. */}
             <button className="spanel-redo"
                     onClick={() => onPracticeMany(
                       group.days.flatMap((d) => d.rows.map((r) => r.id)),
-                      `Review: ${SECTION_LABEL[group.section]} · ${filterLabel}`)}>
-              Redo {group.days.reduce((sum, d) => sum + d.rows.length, 0)}
+                      `Review: ${SECTION_NAME[group.section]} · ${filterLabel}`)}>
+              Redo {fmt(group.days.reduce((sum, d) => sum + d.rows.length, 0))}
               <Icon name="arrow-right" size={15} strokeWidth={2.4} />
             </button>
           </header>
@@ -336,7 +322,7 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
                         <span className="review-meta">
                           {item.domain_name}
                           {pt && typeOf(item.cb_id, pt) ? ` · ${typeOf(item.cb_id, pt)!.label}` : ''}
-                          {' · '}{DIFFICULTY[item.difficulty] ?? item.difficulty}
+                          {' · '}{DIFFICULTY_NAME[item.difficulty] ?? item.difficulty}
                         </span>
                       </span>
                       <span className="review-nums">

@@ -172,6 +172,13 @@ export interface Filters {
    * lands in the set's stored `filters` and the history can say how it was run.
    */
   speed?: number
+  /**
+   * Display names of `skills`, in the same order, written once when a set is
+   * created so its name survives a skill this build has no label for. Not a
+   * filter either; it rides in `filters` because every store (IndexedDB, the
+   * local server, the sync Worker) already keeps that as opaque JSON.
+   */
+  skill_names?: string[]
 }
 
 /** One question's outcome inside a finished set. */

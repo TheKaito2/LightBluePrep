@@ -33,7 +33,6 @@
 .review-badge.wrong { background: var(--red-soft); color: var(--red); }
 .review-badge.skip { background: var(--n-100); color: var(--n-700); }
 .review-tags { margin: var(--sp-2) 0 var(--sp-4); }
-.review-badge.blank { background: var(--yellow-soft); color: var(--amber-ink); }
 
 .review-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .review-skill {

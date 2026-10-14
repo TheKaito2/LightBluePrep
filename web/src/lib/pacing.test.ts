@@ -7,7 +7,7 @@
  * anything looking broken.
  */
 import { describe, expect, it } from 'vitest'
-import { MODULE, SECONDS_PER_QUESTION, formatClock, setSeconds } from './pacing'
+import { MODULE, SECONDS_PER_QUESTION, duration, formatClock, setSeconds } from './pacing'
 import type { Section } from '../types'
 
 const many = (section: Section, n: number): Section[] =>
@@ -67,5 +67,26 @@ describe('formatClock', () => {
   it('never shows a negative clock', () => {
     // The countdown can overshoot zero by a tick between renders.
     expect(formatClock(-5)).toBe('0:00')
+  })
+})
+
+describe('duration', () => {
+  it('spells out time spent, to the minute past the hour', () => {
+    expect(duration(4)).toBe('4s')
+    expect(duration(45)).toBe('45s')
+    expect(duration(60)).toBe('1m')
+    expect(duration(105)).toBe('1m 45s')
+    expect(duration(120)).toBe('2m')
+    expect(duration(3599)).toBe('59m 59s')
+    expect(duration(3600)).toBe('1h')
+    // 87m 58s, which used to wrap on phone.
+    expect(duration(5278)).toBe('1h 28m')
+    expect(duration(7170)).toBe('2h')
+  })
+
+  it('rounds fractions and marks a missing time', () => {
+    expect(duration(44.6)).toBe('45s')
+    expect(duration(null)).toBe('—')
+    expect(duration(undefined)).toBe('—')
   })
 })

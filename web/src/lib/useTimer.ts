@@ -55,10 +55,3 @@ export function useQuestionTimer(key: string | null, running: boolean) {
 
   return Math.round(seconds)
 }
-
-export function formatClock(totalSeconds: number): string {
-  const s = Math.max(0, Math.round(totalSeconds))
-  const minutes = Math.floor(s / 60)
-  const seconds = s % 60
-  return `${minutes}:${String(seconds).padStart(2, '0')}`
-}

@@ -6,11 +6,14 @@ import { ProgressStrip } from './ProgressStrip'
 import { useFocusTrap } from '../lib/useFocusTrap'
 import { loadProcessTypes, typeCounts, type ProcessTypes } from '../lib/similar'
 import { SPEEDS, setSeconds, formatClock } from '../lib/pacing'
-import { describeSet } from '../lib/setlabel'
+import {
+  DIFFICULTIES, DIFFICULTY_NAME, SECTIONS, SECTION_NAME, SECTION_SHORT, andMore, byDomain, bySkill, describeSet, fmt, plural,
+} from '../lib/labels'
+import { graded } from '../lib/score'
 import type { Order } from '../lib/order'
 import type { HistoryRow } from '../lib/progress'
 import type {
-  Difficulty, Filters, PracticeSet, Section, SetItem, Stats, Status, TaxonomyRow,
+  Filters, PracticeSet, Section, SetItem, Stats, Status, TaxonomyRow,
 } from '../types'
 
 interface Props {
@@ -37,21 +40,10 @@ interface Props {
   onOpenId: (id: string) => void
 }
 
-const SECTIONS: { key: Section; label: string }[] = [
-  { key: 'RW', label: 'Reading and Writing' },
-  { key: 'MATH', label: 'Math' },
-]
-
-const DIFFICULTIES: { key: Difficulty; label: string }[] = [
-  { key: 'E', label: 'Easy' },
-  { key: 'M', label: 'Medium' },
-  { key: 'H', label: 'Hard' },
-]
-
 /** Which questions inside the chosen topics. One choice, mapped onto `statuses`. */
 const WHICH: { key: Status | 'all'; label: string }[] = [
   { key: 'all', label: 'All questions' },
-  { key: 'unseen', label: 'Not done yet' },
+  { key: 'unseen', label: 'Not tried yet' },
   { key: 'wrong', label: 'Ones I got wrong' },
   { key: 'flagged', label: 'Marked for review' },
   { key: 'correct', label: 'Ones I got right' },
@@ -75,7 +67,19 @@ interface DomainRow {
 const SECTION_ICON = { RW: 'book', MATH: 'sigma' } as const
 
 const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0)
-const accClass = (p: number) => (p >= 70 ? 'good' : p >= 50 ? 'mid' : 'poor')
+
+/**
+ * Accuracy pill: "new" before any answer, a neutral count until there are
+ * enough answers to judge, then the graded percentage.
+ */
+function Acc({ seen, correct, none }: { seen: number; correct: number; none?: string }) {
+  if (!seen) return none ? <span className="acc none">{none}</span> : null
+  const g = graded(seen, correct)
+  if (!g) {
+    return <span className="acc none" title="Too few answers to judge">{fmt(correct)} of {fmt(seen)}</span>
+  }
+  return <span className={`acc ${g.grade}`} title={`${fmt(correct)} of ${fmt(seen)} correct`}>{g.pct}%</span>
+}
 
 export function Home({
   taxonomy, stats, history, value, items, loading, onChange, onOpen, onStart,
@@ -116,10 +120,9 @@ export function Home({
       s.n += row.n; s.seen += row.seen; s.correct += row.correct
       map.set(row.domain, d)
     }
-    const rank: Record<Section, number> = { RW: 0, MATH: 1 }
     const out = [...map.values()].sort(
-      (a, b) => rank[a.section] - rank[b.section] || a.name.localeCompare(b.name))
-    for (const d of out) d.skills.sort((a, b) => a.name.localeCompare(b.name))
+      (a, b) => SECTIONS.indexOf(a.section) - SECTIONS.indexOf(b.section) || byDomain(a, b))
+    for (const d of out) d.skills.sort(bySkill)
     return out
   }, [taxonomy, value.section])
 
@@ -205,28 +208,27 @@ export function Home({
     const refs = value.types?.filter((r) => r.startsWith(`${s.code}.`)) ?? []
     return refs.length && pt ? refs.map((r) => pt.types[s.code]?.[r.slice(s.code.length + 1)]?.label ?? s.name) : [s.name]
   }))
-  const summary = pickedNames.length
-    ? pickedNames.length === 1 ? pickedNames[0] : `${pickedNames[0]} + ${pickedNames.length - 1} more`
-    : value.section ? `All ${value.section === 'RW' ? 'Reading and Writing' : 'Math'}` : 'All topics'
+  const summary = pickedNames.length ? andMore(pickedNames)
+    : value.section ? `All ${SECTION_NAME[value.section]}` : 'All topics'
 
   function start() {
     if (value.size) { onStart(); return }
     onOpen(pool.firstNew < 0 ? 0 : pool.firstNew)
   }
 
-  const tabs: { key: Section | undefined; label: string; n: number }[] = [
-    { key: undefined, label: 'All', n: totals.all },
-    { key: 'RW', label: 'Reading & Writing', n: totals.RW },
-    { key: 'MATH', label: 'Math', n: totals.MATH },
+  const tabs: { key: Section | undefined; label: string; short: string; n: number }[] = [
+    { key: undefined, label: 'All', short: 'All', n: totals.all },
+    { key: 'RW', label: SECTION_NAME.RW, short: SECTION_SHORT.RW, n: totals.RW },
+    { key: 'MATH', label: SECTION_NAME.MATH, short: SECTION_SHORT.MATH, n: totals.MATH },
   ]
 
   const difficultyChips = (
     <div className="chips" role="group" aria-label="Difficulty">
       {DIFFICULTIES.map((d) => (
-        <button key={d.key} aria-pressed={value.difficulties?.includes(d.key) ?? false}
-                className={value.difficulties?.includes(d.key) ? `chip on d-${d.key}` : `chip d-${d.key}`}
-                onClick={() => set({ difficulties: toggle(value.difficulties, d.key) })}>
-          {d.label}
+        <button key={d} aria-pressed={value.difficulties?.includes(d) ?? false}
+                className={value.difficulties?.includes(d) ? `chip on d-${d}` : `chip d-${d}`}
+                onClick={() => set({ difficulties: toggle(value.difficulties, d) })}>
+          {DIFFICULTY_NAME[d]}
         </button>
       ))}
     </div>
@@ -245,7 +247,7 @@ export function Home({
           <div className="hero2-copy">
             <Mascot className="hero2-bulb" size={104} />
             <span className="eyebrow">
-              {totals.all ? `${totals.all.toLocaleString()} official questions` : 'Official questions'} · always free
+              {totals.all ? `${fmt(totals.all)} official questions` : 'Official questions'} · always free
             </span>
             <h1 className="hero2-t">Pick a topic.<br /><span className="hero2-hl">Start drilling.</span></h1>
             <p className="hero2-sub">
@@ -265,9 +267,7 @@ export function Home({
                   <button key={q.id} className="idhit" onClick={() => onOpenId(q.id)}>
                     <code className="qid">{q.cb_id}</code>
                     <span className="idhit-s">{q.skill_name}</span>
-                    <span className={`lvl d-${q.difficulty}`}>
-                      {DIFFICULTIES.find((d) => d.key === q.difficulty)?.label}
-                    </span>
+                    <span className={`lvl d-${q.difficulty}`}>{DIFFICULTY_NAME[q.difficulty]}</span>
                     <Icon name="arrow-right" size={15} />
                   </button>
                 )) : <p className="idnone">No question with ID “{query.trim()}”.</p>}
@@ -289,7 +289,7 @@ export function Home({
                   <button className="setcard-main" onClick={() => onResume(s.id)}>
                     <span className="setcard-text">
                       <span className="setcard-t">{describeSet(s)}</span>
-                      <span className="setcard-b">{s.answered} of {s.total} answered</span>
+                      <span className="setcard-b">{fmt(s.answered)} of {fmt(s.total)} answered</span>
                       <span className="meter"><span className="meter-fill"
                         style={{ width: `${Math.max((s.answered / Math.max(s.total, 1)) * 100, 0.4)}%` }} /></span>
                     </span>
@@ -315,7 +315,7 @@ export function Home({
                       className={`seg-b${t.key ? ` sec-${t.key}` : ''}${value.section === t.key ? ' on' : ''}`}
                       onClick={() => onChange({ ...value, section: t.key, domains: undefined, skills: undefined, types: undefined })}>
                 {t.key ? <Icon name={SECTION_ICON[t.key]} size={15} strokeWidth={2} /> : null}
-                {t.label}
+                <span className="long">{t.label}</span><span className="short">{t.short}</span>
               </button>
             ))}
           </div>
@@ -333,94 +333,95 @@ export function Home({
           </div>
         ) : null}
 
-        {domains.length ? SECTIONS.filter((s) => !value.section || s.key === value.section).map((sec) => (
-          <section key={sec.key} className={`spanel sec-${sec.key}`} aria-label={sec.label}>
-            <header className="spanel-h">
-              <span className="spanel-ico"><Icon name={SECTION_ICON[sec.key]} size={24} strokeWidth={2} /></span>
-              <div className="spanel-txt">
-                <h3 className="spanel-t">{sec.label}</h3>
-                <p className="spanel-sub">
-                  {secStats[sec.key].n.toLocaleString()} questions · {secStats[sec.key].seen.toLocaleString()} done
-                  {secStats[sec.key].seen ? ` · ${pct(secStats[sec.key].correct, secStats[sec.key].seen)}% correct` : ''}
-                </p>
+        {domains.length ? SECTIONS.filter((s) => !value.section || s === value.section).map((sec) => {
+          const ss = secStats[sec]
+          const g = graded(ss.seen, ss.correct)
+          return (
+            <section key={sec} className={`spanel sec-${sec}`} aria-label={SECTION_NAME[sec]}>
+              <header className="spanel-h">
+                <span className="spanel-ico"><Icon name={SECTION_ICON[sec]} size={24} strokeWidth={2} /></span>
+                <div className="spanel-txt">
+                  <h3 className="spanel-t">{SECTION_NAME[sec]}</h3>
+                  <p className="spanel-sub">
+                    <span>{plural(ss.n, 'question')}</span> · <span>{fmt(ss.seen)} answered</span>
+                    {ss.seen ? <> · <span>{g ? `${g.pct}%` : `${fmt(ss.correct)} of ${fmt(ss.seen)}`} correct</span></> : null}
+                  </p>
+                </div>
+                <span className="spanel-pct" aria-label="Section answered">
+                  {pct(ss.seen, ss.n)}<small>%</small>
+                </span>
+              </header>
+              <div className="dgrid">
+                {domains.filter((d) => d.section === sec).map((d) => {
+                  const on = d.skills.filter((s) => ticked.has(s.code)).length
+                  const state = on === 0 ? 'off' : on === d.skills.length ? 'on' : 'mixed'
+                  return (
+                    <article key={d.code} className={`dcard is-${state}`}>
+                      <button className="dcard-h" onClick={() => tickDomain(d)}
+                              role="checkbox" aria-checked={state === 'mixed' ? 'mixed' : state === 'on'}>
+                        <span className={`box is-${state}`}><Icon name="check" size={12} strokeWidth={3} /></span>
+                        <span className="dcard-t">{d.name}</span>
+                        <span className="dcard-stat">
+                          {fmt(d.seen)}/{fmt(d.n)}
+                          <Acc seen={d.seen} correct={d.correct} />
+                        </span>
+                      </button>
+                      <span className="dmeter"><span style={{ transform: `scaleX(${d.n ? d.seen / d.n : 0})` }} /></span>
+                      <ul className="sklist">
+                        {d.skills.map((s) => {
+                          const sOn = ticked.has(s.code)
+                          return (
+                            <li key={s.code}>
+                              <button className={sOn ? 'skrow on' : 'skrow'} role="checkbox" aria-checked={sOn}
+                                      onClick={() => tickSkill(s.code)}>
+                                <span className={`box sm is-${sOn ? 'on' : 'off'}`}>
+                                  <Icon name="check" size={10} strokeWidth={3.2} />
+                                </span>
+                                <span className="skrow-name">{s.name}</span>
+                                <span className="skrow-n">{fmt(s.seen)}/{fmt(s.n)}</span>
+                                <Acc seen={s.seen} correct={s.correct} none="new" />
+                                <span className="skbar"><span style={{ transform: `scaleX(${s.n ? s.seen / s.n : 0})` }} /></span>
+                              </button>
+                              {sOn && pt?.types[s.code] ? (() => {
+                                const types = Object.entries(pt.types[s.code])
+                                const picked = types.filter(([key]) => value.types?.includes(`${s.code}.${key}`)).length
+                                return (
+                                  <div className="sktypes">
+                                    <span className="sktypes-cap">
+                                      {picked ? `${picked} of ${types.length} types` : 'All types · tap to narrow'}
+                                    </span>
+                                    <ul className="sktypes-list" aria-label={`${s.name}: question types`}>
+                                      {types.map(([key, t]) => {
+                                        const ref = `${s.code}.${key}`
+                                        const tOn = value.types?.includes(ref) ?? false
+                                        return (
+                                          <li key={key}>
+                                            <button className={tOn ? 'sktype on' : 'sktype'} role="checkbox" aria-checked={tOn}
+                                                    title={t.how} onClick={() => set({ types: toggle(value.types, ref) })}>
+                                              <span className={`box xs is-${tOn ? 'on' : 'off'}`}>
+                                                <Icon name="check" size={9} strokeWidth={3.4} />
+                                              </span>
+                                              <span className="sktype-name">{t.label}</span>
+                                              <span className="sktype-n">{ptCounts?.get(ref) ?? 0}</span>
+                                            </button>
+                                          </li>
+                                        )
+                                      })}
+                                    </ul>
+                                  </div>
+                                )
+                              })() : null}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </article>
+                  )
+                })}
               </div>
-              <span className="spanel-pct" aria-label="Section covered">
-                {pct(secStats[sec.key].seen, secStats[sec.key].n)}<small>%</small>
-              </span>
-            </header>
-            <div className="dgrid">
-              {domains.filter((d) => d.section === sec.key).map((d) => {
-                const on = d.skills.filter((s) => ticked.has(s.code)).length
-                const state = on === 0 ? 'off' : on === d.skills.length ? 'on' : 'mixed'
-                const acc = pct(d.correct, d.seen)
-                return (
-                  <article key={d.code} className={`dcard is-${state}`}>
-                    <button className="dcard-h" onClick={() => tickDomain(d)}
-                            role="checkbox" aria-checked={state === 'mixed' ? 'mixed' : state === 'on'}>
-                      <span className={`box is-${state}`}><Icon name="check" size={12} strokeWidth={3} /></span>
-                      <span className="dcard-t">{d.name}</span>
-                      <span className="dcard-stat">
-                        {d.seen}/{d.n}
-                        {d.seen ? <span className={`acc ${accClass(acc)}`}>{acc}%</span> : null}
-                      </span>
-                    </button>
-                    <span className="dmeter"><span style={{ transform: `scaleX(${d.n ? d.seen / d.n : 0})` }} /></span>
-                    <ul className="sklist">
-                      {d.skills.map((s) => {
-                        const sOn = ticked.has(s.code)
-                        const sAcc = pct(s.correct, s.seen)
-                        return (
-                          <li key={s.code}>
-                            <button className={sOn ? 'skrow on' : 'skrow'} role="checkbox" aria-checked={sOn}
-                                    onClick={() => tickSkill(s.code)}>
-                              <span className={`box sm is-${sOn ? 'on' : 'off'}`}>
-                                <Icon name="check" size={10} strokeWidth={3.2} />
-                              </span>
-                              <span className="skrow-name">{s.name}</span>
-                              <span className="skrow-n">{s.seen}/{s.n}</span>
-                              {s.seen ? <span className={`acc ${accClass(sAcc)}`}>{sAcc}%</span>
-                                : <span className="acc none">new</span>}
-                              <span className="skbar"><span style={{ transform: `scaleX(${s.n ? s.seen / s.n : 0})` }} /></span>
-                            </button>
-                            {sOn && pt?.types[s.code] ? (() => {
-                              const types = Object.entries(pt.types[s.code])
-                              const picked = types.filter(([key]) => value.types?.includes(`${s.code}.${key}`)).length
-                              return (
-                                <div className="sktypes">
-                                  <span className="sktypes-cap">
-                                    {picked ? `${picked} of ${types.length} types` : 'All types · tap to narrow'}
-                                  </span>
-                                  <ul className="sktypes-list" aria-label={`${s.name}: question types`}>
-                                    {types.map(([key, t]) => {
-                                      const ref = `${s.code}.${key}`
-                                      const tOn = value.types?.includes(ref) ?? false
-                                      return (
-                                        <li key={key}>
-                                          <button className={tOn ? 'sktype on' : 'sktype'} role="checkbox" aria-checked={tOn}
-                                                  title={t.how} onClick={() => set({ types: toggle(value.types, ref) })}>
-                                            <span className={`box xs is-${tOn ? 'on' : 'off'}`}>
-                                              <Icon name="check" size={9} strokeWidth={3.4} />
-                                            </span>
-                                            <span className="sktype-name">{t.label}</span>
-                                            <span className="sktype-n">{ptCounts?.get(ref) ?? 0}</span>
-                                          </button>
-                                        </li>
-                                      )
-                                    })}
-                                  </ul>
-                                </div>
-                              )
-                            })() : null}
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </article>
-                )
-              })}
-            </div>
-          </section>
-        )) : null}
+            </section>
+          )
+        }) : null}
 
         <div className="hfoot">
           <FeedbackLink label="Found a bug? Send feedback" ctx={{ context: 'home' }} />
@@ -435,8 +436,8 @@ export function Home({
               {summary}
             </strong>
             <span>
-              {loading ? 'Counting…' : `${count.toLocaleString()} question${count === 1 ? '' : 's'}`}
-              {!loading && pool.done ? ` · ${pool.done.toLocaleString()} done` : ''}
+              {loading ? 'Counting…' : plural(count, 'question')}
+              {!loading && pool.done ? <span className="sb-long"> · {fmt(pool.done)} answered</span> : ''}
             </span>
           </div>
           <div className="sb-ctl desk-only">
@@ -490,7 +491,7 @@ export function Home({
                     {SPEEDS.map((x) => (
                       <button key={x} aria-pressed={value.speed === x}
                               className={value.speed === x ? 'chip on' : 'chip'}
-                              onClick={() => set({ speed: x })}>{x}x time</button>
+                              onClick={() => set({ speed: x })}>{x}× time</button>
                     ))}
                   </div>
                 </div>
@@ -514,7 +515,7 @@ export function Home({
               ) : null}
             </div>
             <button className="btn primary sheet-go" onClick={() => setShowOptions(false)}>
-              {loading ? 'Counting…' : `Done · ${count.toLocaleString()} questions`}
+              {loading ? 'Counting…' : `Done · ${plural(count, 'question')}`}
             </button>
           </div>
         </>

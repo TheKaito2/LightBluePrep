@@ -9,7 +9,9 @@ import { useEffect, useState } from 'react'
 import * as api from '../api'
 import { Icon } from './Icon'
 import { QuestionDetail } from './QuestionDetail'
-import { formatClock } from '../lib/pacing'
+import { duration } from '../lib/pacing'
+import { DIFFICULTY_NAME, VERDICT, fmt } from '../lib/labels'
+import { graded } from '../lib/score'
 import type { PracticeSet, SetItem } from '../types'
 
 interface Props {
@@ -20,12 +22,6 @@ interface Props {
   onRedo: (set: PracticeSet) => void
   onDelete: (id: string) => void
   onDone: () => void
-}
-
-function verdict(pct: number): string {
-  if (pct >= 90) return 'good'
-  if (pct >= 70) return 'mid'
-  return 'poor'
 }
 
 export function SetResults({ set, onPractice, onPracticeMany, onRedo, onDelete, onDone }: Props) {
@@ -54,6 +50,7 @@ export function SetResults({ set, onPractice, onPracticeMany, onRedo, onDelete, 
 
   const items = set.items ?? []
   const pct = items.length ? Math.round((set.correct / items.length) * 100) : 0
+  const g = graded(items.length, set.correct)
   const missed = items.filter((i) => !i.correct)
 
   return (
@@ -65,14 +62,14 @@ export function SetResults({ set, onPractice, onPracticeMany, onRedo, onDelete, 
 
       <header className="setdone">
         <p className="setdone-label">Set complete</p>
-        <p className={`setdone-score ${verdict(pct)}`}>
-          {set.correct}<span className="dim"> / {items.length}</span>
+        <p className={`setdone-score ${g?.grade ?? ''}`}>
+          {fmt(set.correct)}<span className="dim"> / {fmt(items.length)}</span>
         </p>
         <p className="setdone-sub">
           {pct}% correct
-          {set.seconds ? ` · ${formatClock(set.seconds)} spent` : ''}
+          {set.seconds ? ` · ${duration(set.seconds)} spent` : ''}
           {set.answered < items.length
-            ? ` · ${items.length - set.answered} left unanswered`
+            ? ` · ${fmt(items.length - set.answered)} ${VERDICT.unanswered.toLowerCase()}`
             : ''}
         </p>
         <div className="setdone-acts">
@@ -102,10 +99,10 @@ export function SetResults({ set, onPractice, onPracticeMany, onRedo, onDelete, 
       <ul className="review-list">
         {items.map((item, i) => {
           const q = meta.get(item.question_id)
-          const state = item.response === null ? 'blank' : item.correct ? 'ok' : 'no'
-          // The stylesheet colours .right / .wrong / .blank. This used to pass
-          // .ok / .no, which match nothing, so every badge rendered grey.
-          const mark = state === 'ok' ? 'right' : state === 'no' ? 'wrong' : 'blank'
+          // Same badge classes and words as the Review page. Unanswered is
+          // neutral: amber there means right on a retry.
+          const [mark, label] = item.response === null ? ['skip', VERDICT.unanswered]
+            : item.correct ? ['right', VERDICT.correct] : ['wrong', VERDICT.incorrect]
           const isOpen = open === item.question_id
           return (
             <li key={item.question_id}
@@ -114,20 +111,18 @@ export function SetResults({ set, onPractice, onPracticeMany, onRedo, onDelete, 
                       aria-expanded={isOpen}
                       onClick={() => setOpen(isOpen ? null : item.question_id)}>
                 <span className="q-num">{i + 1}</span>
-                <span className={`review-badge ${mark}`}>
-                  {state === 'blank' ? 'Blank' : state === 'ok' ? 'Correct' : 'Wrong'}
-                </span>
+                <span className={`review-badge ${mark}`}>{label}</span>
                 <span className="review-main">
                   <span className="review-skill">
                     {q?.skill_name ?? 'Question no longer in the bank'}
                   </span>
                   <span className="review-meta">
-                    {q ? `${q.domain_name} · ${q.difficulty}` : item.question_id}
+                    {q ? `${q.domain_name} · ${DIFFICULTY_NAME[q.difficulty]}` : item.question_id}
                   </span>
                 </span>
                 <span className="review-nums">
                   <span className="review-time">
-                    {item.seconds ? formatClock(item.seconds) : '—'}
+                    {item.seconds ? duration(item.seconds) : '—'}
                   </span>
                 </span>
                 <Icon name={isOpen ? 'chevron-up' : 'chevron-down'}

@@ -113,7 +113,8 @@
 .secscores { display: flex; flex-direction: column; gap: 10px; }
 .secscore { display: grid; grid-template-columns: 136px minmax(0, 1fr) 56px; align-items: center; gap: var(--sp-3); }
 .secscore-l { font-size: var(--fs-sm); font-weight: var(--fw-semi); color: var(--sec-700); }
-.secscore-l .short { display: none; }
+/* A label with a long and a short spelling; the short one shows where space runs out. */
+.short { display: none; }
 .secscore-bar { height: 10px; border-radius: var(--rad-pill); background: var(--sec-100); overflow: hidden; }
 .secscore-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--sec-500); transform-origin: left center; transition: transform .6s var(--ease-out); }
 .secscore-n { text-align: right; font-family: var(--display); font-size: 20px; font-weight: 800; color: var(--sec-700); font-variant-numeric: tabular-nums; }
@@ -163,6 +164,8 @@
 .spanel-txt { flex: 1; min-width: 0; }
 .spanel-t { margin: 0; font-family: var(--display); font-size: 36px; font-weight: 800; letter-spacing: -.04em; line-height: 1; color: var(--sec-700); }
 .spanel-sub { margin: 6px 0 0; font-size: var(--fs-sm); color: var(--n-700); }
+/* Wraps between phrases, never inside one. */
+.spanel-sub > span { white-space: nowrap; }
 .spanel-pct {
   font-family: var(--display); font-size: 52px; font-weight: 800; letter-spacing: -.05em; line-height: 1;
   color: var(--sec-600); font-variant-numeric: tabular-nums;
@@ -204,7 +207,7 @@
 .skrow.on .skbar > span { background: var(--sec-500); }
 /* Accuracy: text tokens only, never a series colour. */
 .acc {
-  min-width: 46px; text-align: right; padding: 2px 8px; border-radius: var(--rad-pill);
+  min-width: 46px; text-align: right; padding: 2px 8px; border-radius: var(--rad-pill); white-space: nowrap;
   font-size: var(--fs-2xs); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums;
 }
 .acc.good { color: var(--green); background: var(--green-soft); }
@@ -322,8 +325,8 @@
   .secscore { grid-template-columns: auto 1fr; gap: 4px; }
   .secscore-bar { display: none; }
   .secscore-l { font-size: var(--fs-2xs); }
-  .secscore-l .long { display: none; }
-  .secscore-l .short { display: inline; }
+  .secscore-l .long, .pcard-l .long, .sb-long { display: none; }
+  .secscore-l .short, .pcard-l .short { display: inline; }
   .secscore-n { font-size: 13px; }
   .secscore-lock { font-size: var(--fs-2xs); }
   .topics-t { font-size: 38px; }
@@ -420,3 +423,7 @@
 .sktype-n { font-size: var(--fs-2xs); color: var(--n-500); font-variant-numeric: tabular-nums; }
 .sktype:focus-visible { outline: 2px solid var(--sec-500); outline-offset: 1px; }
 .box.xs { width: 15px; height: 15px; border-radius: 5px; border-width: 1.5px; }
+@media (max-width: 380px) {
+  .sectabs .long { display: none; }
+  .sectabs .short { display: inline; }
+}

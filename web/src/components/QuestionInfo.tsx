@@ -5,9 +5,8 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from './Icon'
+import { DIFFICULTY_NAME } from '../lib/labels'
 import type { Question } from '../types'
-
-const DIFFICULTY_LABEL: Record<string, string> = { E: 'Easy', M: 'Medium', H: 'Hard' }
 
 export function QuestionInfo({ question }: { question: Question }) {
   const [open, setOpen] = useState(false)
@@ -48,7 +47,7 @@ export function QuestionInfo({ question }: { question: Question }) {
           <div className="qinfo-row">
             <span className="qinfo-k">Difficulty</span>
             <span className={`q-diff d-${question.difficulty}`}>
-              {DIFFICULTY_LABEL[question.difficulty] ?? question.difficulty}
+              {DIFFICULTY_NAME[question.difficulty] ?? question.difficulty}
             </span>
           </div>
           {question.band ? (

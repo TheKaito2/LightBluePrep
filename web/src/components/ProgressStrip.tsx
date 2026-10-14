@@ -5,6 +5,7 @@
  */
 import { Icon } from './Icon'
 import { score, streak, UNLOCK_AFTER, type HistoryRow } from '../lib/progress'
+import { SECTION_NAME, SECTION_SHORT, fmt, noun } from '../lib/labels'
 import type { Section } from '../types'
 
 const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
@@ -36,13 +37,13 @@ function Sparkline({ values }: { values: number[] }) {
 }
 
 /** One section's estimate as a bar on the 200-800 scale, or how far to unlock. */
-function SectionScore({ section, label, short, value, counted }: {
-  section: Section; label: string; short: string; value: number | null; counted: number
+function SectionScore({ section, value, counted }: {
+  section: Section; value: number | null; counted: number
 }) {
   const fill = value === null ? 0 : (value - 200) / 600
   return (
     <div className={`secscore sec-${section}`}>
-      <span className="secscore-l"><span className="long">{label}</span><span className="short">{short}</span></span>
+      <span className="secscore-l"><span className="long">{SECTION_NAME[section]}</span><span className="short">{SECTION_SHORT[section]}</span></span>
       <span className="secscore-bar"><span style={{ transform: `scaleX(${fill})` }} /></span>
       {value !== null ? (
         <span className="secscore-n">{value}</span>
@@ -86,8 +87,8 @@ export function ProgressStrip({ history, covered, total, accuracy }: Props) {
           {trend.length > 1 ? <Sparkline values={trend} /> : null}
         </div>
         <div className="secscores">
-          <SectionScore section="RW" label="Reading & Writing" short="R&W" value={sc.rw} counted={sc.counted.RW} />
-          <SectionScore section="MATH" label="Math" short="Math" value={sc.math} counted={sc.counted.MATH} />
+          <SectionScore section="RW" value={sc.rw} counted={sc.counted.RW} />
+          <SectionScore section="MATH" value={sc.math} counted={sc.counted.MATH} />
         </div>
         <span className="pcard-sub pcard-note">
           {sc.total === null
@@ -105,7 +106,7 @@ export function ProgressStrip({ history, covered, total, accuracy }: Props) {
           <span className="pcard-l">Streak</span>
         </div>
         <div className="pcard-big">
-          {st.current}<span className="pcard-unit">day{st.current === 1 ? '' : 's'}</span>
+          {fmt(st.current)}<span className="pcard-unit">{noun(st.current, 'day')}</span>
         </div>
         <div className="days" aria-label="Last seven days">
           {st.last7.map((on, i) => {
@@ -120,7 +121,7 @@ export function ProgressStrip({ history, covered, total, accuracy }: Props) {
         </div>
         <span className="pcard-sub">
           {st.today
-            ? `${st.today} answered today`
+            ? `${fmt(st.today)} answered today`
             : st.atRisk ? 'Answer one today to keep it going' : 'Answer a question to start one'}
           {st.best > 1 ? ` · best ${st.best}` : ''}
         </span>
@@ -129,10 +130,10 @@ export function ProgressStrip({ history, covered, total, accuracy }: Props) {
       <div className="pcard pcard-cover">
         <div className="pcard-top">
           <span className="pcard-ico ico-cover"><Icon name="layers" size={16} strokeWidth={2} /></span>
-          <span className="pcard-l">Bank covered</span>
+          <span className="pcard-l"><span className="long">Bank progress</span><span className="short">Progress</span></span>
         </div>
         <div className="pcard-big">
-          {covered.toLocaleString()}<span className="pcard-unit">/ {total.toLocaleString()}</span>
+          {fmt(covered)}<span className="pcard-unit">/ {fmt(total)}</span>
         </div>
         <span className="meter cover-meter"><span className="meter-fill"
           style={{ width: `${Math.max(total ? (covered / total) * 100 : 0, 0.4)}%` }} /></span>

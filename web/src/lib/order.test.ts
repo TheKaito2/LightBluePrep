@@ -25,6 +25,17 @@ describe('arrange', () => {
     expect(ids).toEqual(['b', 'd', 'c', 'a'])
   })
 
+  it('follows College Board order for real codes, not the alphabet', () => {
+    const real = [
+      { ...item('m1', 'MATH', 'P', 'P.A.', 'E'), domain_name: 'Advanced Math' },
+      { ...item('m2', 'MATH', 'H', 'H.B.', 'E'), domain_name: 'Algebra' },
+      { ...item('r1', 'RW', 'CAS', 'CTC', 'E'), domain_name: 'Craft and Structure' },
+      { ...item('r2', 'RW', 'CAS', 'WIC', 'E'), domain_name: 'Craft and Structure' },
+      { ...item('r3', 'RW', 'INI', 'CID', 'E'), domain_name: 'Information and Ideas' },
+    ]
+    expect(arrange(real, 'topic').map((q) => q.id)).toEqual(['r3', 'r2', 'r1', 'm2', 'm1'])
+  })
+
   it('random is stable for one seed and differs across seeds', () => {
     const one = arrange(pool, 'random', 's1').map((q) => q.id)
     expect(arrange(pool, 'random', 's1').map((q) => q.id)).toEqual(one)

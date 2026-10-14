@@ -47,16 +47,22 @@ export function setSeconds(sections: Section[], speed: number): number {
 }
 
 /**
- * "1m 20s", because 80s is harder to read at a glance.
+ * Time spent: "45s", "1m 20s", "2m", "1h 28m". The one format for every
+ * time-spent label, because 80s is harder to read at a glance and "87m 58s"
+ * wrapped on phone.
  *
- * The spelled-out form the review screens use. `formatClock` is the running
- * clock, which has to stay a fixed shape while it ticks; this one is read once,
- * sitting still, so it can spend the extra characters.
+ * `formatClock` is the running clock, which has to stay a fixed shape while it
+ * ticks; this one is read once, sitting still, so it can spend the characters.
+ * Past an hour the seconds are noise, so it rounds to the minute.
  */
 export function duration(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined) return '—'
-  if (seconds < 60) return `${seconds}s`
-  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
+  const s = Math.max(0, Math.round(seconds))
+  if (s < 60) return `${s}s`
+  if (s < 3600) return s % 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s / 60}m`
+  const minutes = Math.round(s / 60)
+  const m = minutes % 60
+  return `${Math.floor(minutes / 60)}h${m ? ` ${m}m` : ''}`
 }
 
 /** `m:ss`, or `h:mm:ss` once a set is long enough to need it. */

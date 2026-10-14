@@ -13,6 +13,7 @@ import * as api from '../api'
 import * as auth from '../lib/auth'
 import * as sync from '../lib/sync'
 import { PageHead } from './PageHead'
+import { plural } from '../lib/labels'
 
 type Summary = Awaited<ReturnType<NonNullable<typeof api.localDataSummary>>>
 type Action = 'local' | 'both' | 'cloud'
@@ -21,10 +22,6 @@ const DONE: Record<Action, string> = {
   local: 'Deleted from this device.',
   both: 'Deleted from this device and from our server. You are signed out.',
   cloud: 'Deleted from our server. You are signed out.',
-}
-
-function plural(n: number, one: string, many = `${one}s`): string {
-  return `${n.toLocaleString()} ${n === 1 ? one : many}`
 }
 
 function describe(s: Summary): string {

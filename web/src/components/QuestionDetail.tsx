@@ -20,6 +20,7 @@ import { loadProcessTypes, similarTo, typeOf, type ProcessType } from '../lib/si
 import { RichText } from './RichText'
 import { Icon } from './Icon'
 import { duration } from '../lib/pacing'
+import { VERDICT, plural } from '../lib/labels'
 import type {
   Annotation, Attempt, GradeResult, Mistake, MistakeTag, Question,
 } from '../types'
@@ -179,8 +180,8 @@ export function QuestionDetail({
               <tr key={a.id ?? i}>
                 <td>{i + 1}</td>
                 <td>{clock(a.answered_at)}</td>
-                <td className="review-ans">{a.response || 'blank'}</td>
-                <td className={a.correct ? 'ok' : 'no'}>{a.correct ? 'Correct' : 'Incorrect'}</td>
+                <td className="review-ans">{a.response || VERDICT.unanswered}</td>
+                <td className={a.correct ? 'ok' : 'no'}>{a.correct ? VERDICT.correct : VERDICT.incorrect}</td>
                 <td>{duration(a.seconds)}</td>
               </tr>
             ))}
@@ -239,8 +240,7 @@ export function QuestionDetail({
 
       {data.annotations.length ? (
         <p className="review-anns">
-          {data.annotations.length} highlight{data.annotations.length === 1 ? '' : 's'} saved
-          on this question.
+          {plural(data.annotations.length, 'highlight')} saved on this question.
         </p>
       ) : null}
 

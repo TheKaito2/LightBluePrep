@@ -1,4 +1,5 @@
 import { Icon } from './Icon'
+import { DIFFICULTY_NAME, VERDICT, plural } from '../lib/labels'
 import type { SetItem } from '../types'
 
 interface Props {
@@ -51,7 +52,7 @@ export function Navigator({
         </div>
 
         <div className="nav-legend">
-          <span><i className="key key-unanswered" /> Unanswered</span>
+          <span><i className="key key-unanswered" /> {VERDICT.unanswered}</span>
           {/* A set is graded when it ends, so mid-set there is nothing to say
               about right or wrong. */}
           {states ? (
@@ -59,8 +60,8 @@ export function Navigator({
           ) : (
             <>
               <span><i className="key key-first" /> Correct first try</span>
-              <span><i className="key key-retry" /> Correct after retry</span>
-              <span><i className="key key-wrong" /> Incorrect</span>
+              <span><i className="key key-retry" /> {VERDICT.retry}</span>
+              <span><i className="key key-wrong" /> {VERDICT.incorrect}</span>
             </>
           )}
           <span><i className="key key-marked" /> Marked</span>
@@ -74,7 +75,7 @@ export function Navigator({
                 + (index === current ? ' is-current' : '')
                 + (item.flagged ? ' is-flagged' : '')}
               onClick={() => { onGo(index); onClose() }}
-              title={`${item.skill_name} · ${item.difficulty}`}
+              title={`${item.skill_name} · ${DIFFICULTY_NAME[item.difficulty]}`}
             >
               {index + 1}
             </button>
@@ -88,7 +89,7 @@ export function Navigator({
               Go to Review Page
             </button>
           ) : null}
-          <span>{items.length.toLocaleString()} questions in this set</span>
+          <span>{plural(items.length, 'question')} in this set</span>
         </div>
       </div>
     </>

@@ -13,6 +13,7 @@
  */
 import { Icon } from './Icon'
 import { cellState, type CellState } from './Navigator'
+import { DIFFICULTY_NAME, VERDICT, fmt, plural } from '../lib/labels'
 import type { SetItem } from '../types'
 
 interface Props {
@@ -52,13 +53,13 @@ export function SetReview({
       <div className="setreview-body">
         <h1 className="setreview-h">Check Your Work</h1>
         <p className="setreview-sub">
-          {title} · {items.length} questions
-          {unanswered ? ` · ${unanswered} unanswered` : ''}
-          {marked ? ` · ${marked} marked` : ''}
+          {title} · {plural(items.length, 'question')}
+          {unanswered ? ` · ${fmt(unanswered)} unanswered` : ''}
+          {marked ? ` · ${fmt(marked)} marked` : ''}
         </p>
 
         <div className="nav-legend setreview-legend">
-          <span><i className="key key-unanswered" /> Unanswered</span>
+          <span><i className="key key-unanswered" /> {VERDICT.unanswered}</span>
           <span><i className="key key-answered" /> Answered</span>
           <span><i className="key key-marked" /> Marked</span>
         </div>
@@ -71,7 +72,7 @@ export function SetReview({
                 + (i === current ? ' is-current' : '')
                 + (item.flagged ? ' is-flagged' : '')}
               onClick={() => { onGo(i); onClose() }}
-              title={`${item.skill_name} · ${item.difficulty}`}
+              title={`${item.skill_name} · ${DIFFICULTY_NAME[item.difficulty]}`}
             >
               {i + 1}
             </button>

@@ -25,15 +25,14 @@ import { Resources } from './components/Resources'
 import { sample } from './lib/draw'
 import { arrange, type Order } from './lib/order'
 import type { HistoryRow } from './lib/progress'
-import { setSeconds, formatClock as formatCountdown } from './lib/pacing'
-import { formatClock, useQuestionTimer } from './lib/useTimer'
+import { setSeconds, formatClock } from './lib/pacing'
+import { useQuestionTimer } from './lib/useTimer'
+import { SECTION_NAME } from './lib/labels'
 import * as sync from './lib/sync'
 import type {
   Annotation, Filters, GradeResult, Mistake, PracticeSet, Question, SetAnswer,
   SetItem, Stats, TaxonomyRow,
 } from './types'
-
-const SECTION_LABEL = { RW: 'Reading and Writing', MATH: 'Math' } as const
 
 /**
  * How often a running set banks the time spent on the current question. This
@@ -149,7 +148,7 @@ export default function App() {
    * a sync pulls something new.
    *
    * This used to run once on mount. Answering a question updates the stores but
-   * nothing told React, so "Bank covered", the per-card progress and the whole
+   * nothing told React, so "Bank progress", the per-card progress and the whole
    * Stats page kept showing the numbers from page load until you reloaded.
    * Practice is excluded because the numbers are not on screen there and the
    * set list would refetch under you mid-question.
@@ -337,12 +336,16 @@ export default function App() {
     if (!filters.size) { setIndex(0); setView('practice'); return }
     try {
       const chosen = sample(items, filters.size)
+      // Names go in with the set so it can still say what it covers if a later
+      // build no longer knows one of these skill codes.
+      const skill_names = filters.skills?.map((code) =>
+        taxonomy.find((r) => r.skill === code)?.skill_name ?? code)
       const created = await api.saveSet({
         id: crypto.randomUUID(),
         created_at: Math.floor(Date.now() / 1000),
         finished_at: null,
         seconds: 0,
-        filters,
+        filters: skill_names ? { ...filters, skill_names } : filters,
         items: chosen.map((q) => ({
           question_id: q.id, response: null, correct: 0, seconds: 0,
         })),
@@ -352,7 +355,7 @@ export default function App() {
       setIndex(0)
       setView('practice')
     } catch (e) { setError((e as Error).message) }
-  }, [filters, items])
+  }, [filters, items, taxonomy])
 
   /** Put a set's frozen questions back on screen, at the first unanswered one. */
   const openSet = useCallback(async (id: string) => {
@@ -693,7 +696,7 @@ export default function App() {
     // page happened to be showing.
     if (listTitle && !activeSet) return listTitle
     const f = activeSet?.filters ?? filters
-    const lead = f.section ? SECTION_LABEL[f.section] : 'All questions'
+    const lead = f.section ? SECTION_NAME[f.section] : 'All questions'
     if (f.skills?.length === 1 && question?.skill_name) {
       return `${lead}: ${question.skill_name}`
     }
@@ -830,8 +833,7 @@ export default function App() {
             + (remaining !== null && remaining <= 60 ? ' is-low' : '')
           }>
             {!showTimer ? '···'
-              : remaining !== null ? formatCountdown(remaining)
-                : formatClock(seconds)}
+              : formatClock(remaining ?? seconds)}
           </div>
           <button className="hide-btn" onClick={() => setShowTimer((v) => !v)}>
             {showTimer ? 'Hide' : 'Show'}
@@ -981,7 +983,7 @@ export default function App() {
         <SetReview items={items} current={index} title={setTitle}
                    states={setStates}
                    remaining={remaining}
-                   clock={remaining === null ? null : formatCountdown(remaining)}
+                   clock={remaining === null ? null : formatClock(remaining)}
                    onGo={go}
                    onClose={() => setShowSetReview(false)}
                    onFinish={finishSet} />
