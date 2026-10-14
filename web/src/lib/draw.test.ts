@@ -6,7 +6,7 @@
  * draw. The rest is bounds.
  */
 import { describe, expect, it } from 'vitest'
-import { sample } from './draw'
+import { sample, sampleBalanced } from './draw'
 
 const pool = Array.from({ length: 50 }, (_, i) => `q${i}`)
 
@@ -61,5 +61,30 @@ describe('sample', () => {
   it('uses the random source it is handed', () => {
     // Always picking index 0 of what is left walks the pool in order.
     expect(sample(pool, 3, () => 0)).toEqual(['q0', 'q1', 'q2'])
+  })
+})
+
+describe('sampleBalanced', () => {
+  const mixed = [
+    ...Array.from({ length: 30 }, (_, i) => ({ id: `r${i}`, section: 'RW' as const })),
+    ...Array.from({ length: 30 }, (_, i) => ({ id: `m${i}`, section: 'MATH' as const })),
+  ]
+  const bySection = (q: { section: 'RW' | 'MATH' }) => q.section
+
+  it('takes exactly the count asked of each group, in the order given', () => {
+    for (let run = 0; run < 20; run++) {
+      const drawn = sampleBalanced(mixed, bySection, { RW: 10, MATH: 10 })
+      expect(drawn).toHaveLength(20)
+      expect(drawn.slice(0, 10).every((q) => q.section === 'RW')).toBe(true)
+      expect(drawn.slice(10).every((q) => q.section === 'MATH')).toBe(true)
+      expect(new Set(drawn.map((q) => q.id)).size).toBe(20)
+    }
+  })
+
+  it('caps a group at what it holds instead of borrowing from another', () => {
+    const fewMath = mixed.filter((q) => q.section === 'RW' || q.id === 'm0' || q.id === 'm1')
+    const drawn = sampleBalanced(fewMath, bySection, { RW: 10, MATH: 10 })
+    expect(drawn.filter((q) => q.section === 'RW')).toHaveLength(10)
+    expect(drawn.filter((q) => q.section === 'MATH').map((q) => q.id).sort()).toEqual(['m0', 'm1'])
   })
 })

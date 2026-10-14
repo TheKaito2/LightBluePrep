@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatHash, parseHash, titleFor, urlFor, type View } from './route'
+import { formatHash, idNeedle, parseHash, titleFor, urlFor, type View } from './route'
 
 const ROUTED: View[] = ['review', 'stats', 'resources', 'about', 'settings', 'inbox']
 
@@ -69,5 +69,20 @@ describe('titleFor', () => {
       .toBe(`Question 1 of ${(3767).toLocaleString()} · All questions · LightBluePrep`)
     expect(titleFor('practice', HOME, { index: 0, count: 0, set: 'Math' }))
       .toBe('Practice · LightBluePrep')
+  })
+})
+
+describe('idNeedle', () => {
+  it('trims and lowercases a typed ID', () => {
+    expect(idNeedle('  D72B325E ')).toBe('d72b325e')
+  })
+
+  it('pulls q out of a pasted share link', () => {
+    expect(idNeedle('https://lightblueprep.pages.dev/?q=D72B325E')).toBe('d72b325e')
+    expect(idNeedle('lightblueprep.pages.dev/?skill=WIC&q=d72b325e#top')).toBe('d72b325e')
+  })
+
+  it('survives a malformed escape', () => {
+    expect(idNeedle('/?q=%E0%A4%A')).toBe('%e0%a4%a')
   })
 })

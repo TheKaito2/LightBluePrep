@@ -179,6 +179,11 @@ export interface Filters {
    * local server, the sync Worker) already keeps that as opaque JSON.
    */
   skill_names?: string[]
+  /**
+   * A name that replaces the topic in the set's label ("Score check"). Not a
+   * filter; it rides along in `filters` like `skill_names`.
+   */
+  title?: string
 }
 
 /** One question's outcome inside a finished set. */

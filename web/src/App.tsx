@@ -25,7 +25,7 @@ import { Inbox } from './components/Inbox'
 import { Resources } from './components/Resources'
 import { ErrorBanner } from './components/ErrorBanner'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { sample } from './lib/draw'
+import { sample, sampleBalanced } from './lib/draw'
 import { arrange, type Order } from './lib/order'
 import type { HistoryRow } from './lib/progress'
 import { setSeconds, formatClock } from './lib/pacing'
@@ -381,27 +381,21 @@ export default function App() {
   }, [view, dataVersion, refreshActiveSets])
 
   /**
-   * Turn the loaded pool into a set: draw `size` at random, freeze them, and
-   * start working through them.
+   * Freeze drawn questions into a new set and start working through them.
+   * `built` is stored as the set's filters, which is what names it later.
    *
    * The draw happens here rather than in a backend because both backends hand
    * the whole pool over anyway, and doing it once on the client is what keeps
    * the two identical.
    */
-  const startSet = useCallback(async () => {
-    if (!filters.size) { setIndex(0); navigate('practice'); return }
+  const beginSet = useCallback(async (chosen: SetItem[], built: Filters) => {
     try {
-      const chosen = sample(items, filters.size)
-      // Names go in with the set so it can still say what it covers if a later
-      // build no longer knows one of these skill codes.
-      const skill_names = filters.skills?.map((code) =>
-        taxonomy.find((r) => r.skill === code)?.skill_name ?? code)
       const created = await api.saveSet({
         id: crypto.randomUUID(),
         created_at: Math.floor(Date.now() / 1000),
         finished_at: null,
         seconds: 0,
-        filters: skill_names ? { ...filters, skill_names } : filters,
+        filters: built,
         items: chosen.map((q) => ({
           question_id: q.id, response: null, correct: 0, seconds: 0,
         })),
@@ -411,7 +405,36 @@ export default function App() {
       setIndex(0)
       navigate('practice')
     } catch (e) { fail(e) }
-  }, [filters, items, taxonomy, fail, navigate])
+  }, [fail, navigate])
+
+  const startSet = useCallback(async () => {
+    if (!filters.size) { setIndex(0); navigate('practice'); return }
+    // Names go in with the set so it can still say what it covers if a later
+    // build no longer knows one of these skill codes.
+    const skill_names = filters.skills?.map((code) =>
+      taxonomy.find((r) => r.skill === code)?.skill_name ?? code)
+    await beginSet(sample(items, filters.size), skill_names ? { ...filters, skill_names } : filters)
+  }, [filters, items, taxonomy, beginSet, navigate])
+
+  /** The hero's one-tap start: 10 questions from the whole bank, whatever the topic picker says. */
+  const quickSet = useCallback(() => {
+    api.questionSet({})
+      .then((d) => beginSet(sample(d.questions, 10), { size: 10 }))
+      .catch((e: Error) => fail(e))
+  }, [beginSet, fail])
+
+  /**
+   * The locked score card's button: 10 Reading and Writing then 10 Math, so
+   * finishing it unlocks both sections. Drawn from questions not tried yet,
+   * because only a first try counts toward the estimate.
+   */
+  const scoreCheck = useCallback(() => {
+    api.questionSet({})
+      .then((d) => beginSet(
+        sampleBalanced(d.questions.filter((q) => !q.answered_at), (q) => q.section, { RW: 10, MATH: 10 }),
+        { size: 20, title: 'Score check' }))
+      .catch((e: Error) => fail(e))
+  }, [beginSet, fail])
 
   /** Put a set's frozen questions back on screen, at the first unanswered one. */
   const openSet = useCallback(async (id: string) => {
@@ -766,6 +789,7 @@ export default function App() {
     // page happened to be showing.
     if (listTitle && !activeSet) return listTitle
     const f = activeSet?.filters ?? filters
+    if (f.title) return f.title
     const lead = f.section ? SECTION_NAME[f.section] : 'All questions'
     if (f.skills?.length === 1 && question?.skill_name) {
       return `${lead}: ${question.skill_name}`
@@ -834,7 +858,9 @@ export default function App() {
               activeSets={activeSets}
               onResume={openSet}
               onAbandon={abandonSet}
-              onStart={startSet} />
+              onStart={startSet}
+              onQuickStart={quickSet}
+              onScoreCheck={scoreCheck} />
       ),
       resources: () => <Resources />,
       inbox: () => <Inbox />,

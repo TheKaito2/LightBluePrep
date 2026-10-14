@@ -37,6 +37,11 @@ describe('describeSet', () => {
     expect(describeSet(set({ statuses: ['unseen'], types: ['WIC.a'] })))
       .toBe('10 · All topics · 1 question type · not answered yet')
   })
+
+  it('lets a set name itself, and can leave the count off', () => {
+    expect(describeSet(set({ size: 20, title: 'Score check' }, 20))).toBe('20 · Score check')
+    expect(describeSet(set({ section: 'MATH' }), false)).toBe('Math')
+  })
 })
 
 describe('plural', () => {

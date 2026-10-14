@@ -217,7 +217,10 @@
    and the inbox; grey on Settings; the set's section colour on Results. The
    copy column is pinned to the top and the band has a floor, so the eyebrow
    and title land at the same y on every tab whatever the strip beside them. */
-.phead { flex: none; background: var(--surface-ink); color: var(--fg-inv-1); }
+/* clip, not hidden: a band must never become a sideways scroll box. hidden
+   is the fallback for browsers without clip. */
+.phead { flex: none; overflow: hidden; background: var(--surface-ink); color: var(--fg-inv-1); }
+@supports (overflow: clip) { .phead { overflow: clip visible; } }
 .phead.tone-grey { background: var(--surface-sunken); color: var(--fg-1); }
 /* A mixed set has no section scope, so --sec-700 falls back to ink. */
 .phead.tone-section { background: var(--sec-700, var(--surface-ink)); }

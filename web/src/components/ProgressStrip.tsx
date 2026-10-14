@@ -1,146 +1,149 @@
 /**
- * Progress at the top of Home: the estimated score (wide, left) beside the
- * streak and bank coverage (stacked, right). Numbers come from
- * lib/progress.ts; this only draws them.
+ * The score card on the Home hero (spec 8.1): the estimated score with its
+ * trend and section rows, or, before there is an estimate, what unlocks it;
+ * then streak, coverage and accuracy in one hairline-divided footer. Numbers
+ * come from lib/progress.ts; this only draws them.
  */
 import { Icon } from './Icon'
+import { Stat } from './Stat'
 import { score, streak, UNLOCK_AFTER, type HistoryRow } from '../lib/progress'
-import { SECTION_NAME, SECTION_SHORT, fmt, noun } from '../lib/labels'
+import { SECTIONS, SECTION_NAME, SECTION_SHORT, fmt, noun } from '../lib/labels'
+import { graded } from '../lib/score'
 import type { Section } from '../types'
 
-const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+/** Two letters, so Tuesday and Thursday (and the weekend) stop sharing one. */
+const DAY_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 interface Props {
   history: HistoryRow[]
   covered: number
   total: number
-  accuracy: number | null
+  /** Every answer and every correct one, for the accuracy cell. */
+  attempts: number
+  correct: number
+  /** Start the balanced 20-question set that unlocks the estimate. */
+  onScoreCheck: () => void
 }
 
-/** Tiny line chart of the total over time. Inline SVG, no chart library. */
+/** Tiny line chart of the total over time. Inline SVG, stroke only. */
 function Sparkline({ values }: { values: number[] }) {
-  if (values.length < 2) return null
-  const w = 240, h = 52, pad = 4
+  const w = 120, h = 40, pad = 4
   const lo = Math.min(...values), hi = Math.max(...values)
   const span = Math.max(hi - lo, 40)
   const x = (i: number) => pad + (i * (w - 2 * pad)) / (values.length - 1)
   const y = (v: number) => h - pad - ((v - lo) / span) * (h - 2 * pad)
   const d = values.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')
-  const area = `${d} L${x(values.length - 1).toFixed(1)},${h} L${x(0).toFixed(1)},${h} Z`
   return (
-    <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
-      <path d={area} className="spark-area" />
+    <svg className="spark" viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
       <path d={d} className="spark-line" />
-      <circle cx={x(values.length - 1)} cy={y(values[values.length - 1])} r="3.2" className="spark-dot" />
+      <circle cx={x(values.length - 1)} cy={y(values[values.length - 1])} r="3" className="spark-dot" />
     </svg>
   )
 }
 
-/** One section's estimate as a bar on the 200-800 scale, or how far to unlock. */
-function SectionScore({ section, value, counted }: {
+/** One section row: its score on the 200-800 scale, or how far it is from unlocking. */
+function SectionRow({ section, value, counted }: {
   section: Section; value: number | null; counted: number
 }) {
-  const fill = value === null ? 0 : (value - 200) / 600
+  const fill = value === null ? Math.min(counted, UNLOCK_AFTER) / UNLOCK_AFTER : (value - 200) / 600
   return (
     <div className={`secscore sec-${section}`}>
-      <span className="secscore-l"><span className="long">{SECTION_NAME[section]}</span><span className="short">{SECTION_SHORT[section]}</span></span>
+      <span className="secscore-l">
+        <span className="long">{SECTION_NAME[section]}</span><span className="short">{SECTION_SHORT[section]}</span>
+      </span>
       <span className="secscore-bar"><span style={{ transform: `scaleX(${fill})` }} /></span>
-      {value !== null ? (
-        <span className="secscore-n">{value}</span>
-      ) : (
-        <span className="secscore-lock">
-          <Icon name="lock" size={13} strokeWidth={2} />
-          {Math.max(0, UNLOCK_AFTER - counted)} to go
-        </span>
-      )}
+      {value !== null
+        ? <span className="secscore-n">{value}</span>
+        : <span className="secscore-count">{Math.min(counted, UNLOCK_AFTER)} of {UNLOCK_AFTER} answered</span>}
     </div>
   )
 }
 
-export function ProgressStrip({ history, covered, total, accuracy }: Props) {
+export function ProgressStrip({ history, covered, total, attempts, correct, onScoreCheck }: Props) {
   const now = new Date()
   // A few thousand rows at most: cheap enough to recompute every render.
   const st = streak(history, now)
   const sc = score(history, now)
   const trend = sc.series.filter((p) => p.total !== null).map((p) => p.total as number).slice(-30)
+  const acc = graded(attempts, correct)
 
   return (
-    <section className="pstrip" aria-label="Your progress">
-      <div className="pcard pcard-score">
-        <div className="pcard-top">
-          <span className="pcard-ico ico-score"><Icon name="target" size={16} strokeWidth={2} /></span>
-          <span className="pcard-l"
-                title="Practice estimate from your first try at each question, weighted by difficulty. Not an official SAT score.">
-            Estimated score
-          </span>
-          {sc.delta7 ? (
-            <span className={sc.delta7 > 0 ? 'delta up' : 'delta down'}>
-              <Icon name={sc.delta7 > 0 ? 'trend-up' : 'trend-down'} size={14} strokeWidth={2.2} />
-              {sc.delta7 > 0 ? '+' : '−'}{Math.abs(sc.delta7)} this week
-            </span>
-          ) : null}
-        </div>
-        <div className="pcard-mid">
-          <div className={sc.total !== null ? 'pcard-big' : 'pcard-big pcard-locked'}>
-            {sc.total ?? '—'}<span className="pcard-unit">/ 1600</span>
-          </div>
-          {trend.length > 1 ? <Sparkline values={trend} /> : null}
-        </div>
-        <div className="secscores">
-          <SectionScore section="RW" value={sc.rw} counted={sc.counted.RW} />
-          <SectionScore section="MATH" value={sc.math} counted={sc.counted.MATH} />
-        </div>
-        <span className="pcard-sub pcard-note">
-          {sc.total === null
-            ? `Unlocks after ${UNLOCK_AFTER} questions in each section.`
-            : trend.length > 1 ? 'Practice estimate, not an official score.'
-              : 'Your trend line starts after a second day of practice.'}
-        </span>
-      </div>
-
-      <div className="pcard pcard-streak">
-        <div className="pcard-top">
-          <span className={st.current ? 'pcard-ico ico-streak on' : 'pcard-ico ico-streak'}>
-            <Icon name="flame" size={16} strokeWidth={2} />
-          </span>
-          <span className="pcard-l">Streak</span>
-        </div>
-        <div className="pcard-big">
-          {fmt(st.current)}<span className="pcard-unit">{noun(st.current, 'day')}</span>
-        </div>
-        <div className="days" aria-label="Last seven days">
-          {st.last7.map((on, i) => {
-            const d = new Date(now); d.setDate(d.getDate() - (6 - i))
-            return (
-              <span key={i} className={on ? 'day on' : i === 6 ? 'day today' : 'day'}
-                    title={d.toLocaleDateString(undefined, { weekday: 'long' })}>
-                {DAY_LETTERS[d.getDay()]}
+    <div className="scard-wrap">
+      <section className="scard" aria-label="Your progress">
+        {sc.total !== null ? (
+          <>
+            <div className="scard-top">
+              <span className="scard-l"
+                    title="From your first try at each question, weighted by difficulty.">
+                Estimated score
               </span>
-            )
-          })}
+              {sc.delta7 ? (
+                <span className={sc.delta7 > 0 ? 'delta up' : 'delta down'}>
+                  <Icon name={sc.delta7 > 0 ? 'trend-up' : 'trend-down'} size={14} strokeWidth={2.2} />
+                  {sc.delta7 > 0 ? '+' : '−'}{Math.abs(sc.delta7)} this week
+                </span>
+              ) : null}
+            </div>
+            <div className="scard-mid">
+              <span className="scard-big">{sc.total}<small>/ 1600</small></span>
+              {trend.length > 1 ? <Sparkline values={trend} /> : null}
+            </div>
+          </>
+        ) : (
+          <div className="scard-lock">
+            <span className="scard-lock-ico"><Icon name="lock" size={18} strokeWidth={2} /></span>
+            <div>
+              <h2 className="scard-lock-t">Unlock your score estimate</h2>
+              <p className="scard-lock-sub">Answer {UNLOCK_AFTER} questions in each section.</p>
+            </div>
+          </div>
+        )}
+        <div className="secscores">
+          {SECTIONS.map((s) => (
+            <SectionRow key={s} section={s} value={s === 'RW' ? sc.rw : sc.math} counted={sc.counted[s]} />
+          ))}
         </div>
-        <span className="pcard-sub">
-          {st.today
-            ? `${fmt(st.today)} answered today`
-            : st.atRisk ? 'Answer one today to keep it going' : 'Answer a question to start one'}
-          {st.best > 1 ? ` · best ${st.best}` : ''}
-        </span>
-      </div>
+        {sc.total === null ? (
+          <button className="btn primary scard-go" onClick={onScoreCheck}>
+            Get your score: 20 questions
+            <Icon name="arrow-right" size={16} strokeWidth={2.2} />
+          </button>
+        ) : null}
 
-      <div className="pcard pcard-cover">
-        <div className="pcard-top">
-          <span className="pcard-ico ico-cover"><Icon name="layers" size={16} strokeWidth={2} /></span>
-          <span className="pcard-l"><span className="long">Bank progress</span><span className="short">Progress</span></span>
+        <div className="scard-stats">
+          {/* Built by hand rather than with <Stat>: the day dots are a list, and a
+              list cannot sit in Stat's inline sub line. */}
+          <div className={`stat st-streak${st.atRisk ? ' at-risk' : ''}${st.current ? '' : ' none'}`}>
+            <span className="stat-l">Streak</span>
+            <span className="stat-n">
+              <Icon name="flame" size={20} strokeWidth={2.2} />{fmt(st.current)}<small>{noun(st.current, 'day')}</small>
+            </span>
+            <ul className="days" aria-label="Last seven days">
+              {st.last7.map((on, i) => {
+                const d = new Date(now); d.setDate(d.getDate() - (6 - i))
+                const day = d.toLocaleDateString('en', { weekday: 'long' })
+                const today = i === 6
+                return (
+                  <li key={i} className={on ? 'day on' : today ? 'day today' : 'day'}>
+                    <span aria-hidden="true">{DAY_SHORT[d.getDay()]}</span>
+                    <span className="sr-only">
+                      {today ? `Today, ${day}` : day}: {on ? 'practised' : today ? 'not yet' : 'missed'}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+            {st.atRisk ? (
+              <span className="stat-sub streak-risk">Keep your {st.current}-day streak: answer 1 today</span>
+            ) : null}
+          </div>
+          <Stat label="Covered" value={fmt(covered)} sub={`of ${fmt(total)}`}
+                meter={total ? covered / total : 0} />
+          <Stat label="Accuracy" value={acc ? acc.pct : undefined} unit={acc ? '%' : undefined}
+                sub={acc ? undefined : 'After 5 answers'} />
         </div>
-        <div className="pcard-big">
-          {fmt(covered)}<span className="pcard-unit">/ {fmt(total)}</span>
-        </div>
-        <span className="meter cover-meter">{covered > 0 && total ? <span className="meter-fill"
-          style={{ width: `${(covered / total) * 100}%` }} /> : null}</span>
-        <span className="pcard-sub">
-          {accuracy !== null ? `${Math.round(accuracy * 100)}% correct` : 'Nothing answered yet'}
-        </span>
-      </div>
-    </section>
+      </section>
+      <p className="scard-note">Practice estimate, not an official score.</p>
+    </div>
   )
 }

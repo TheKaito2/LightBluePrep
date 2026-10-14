@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from './Icon'
 import { Mascot } from './Mascot'
 import { Footer } from './Footer'
@@ -10,6 +10,7 @@ import {
   DIFFICULTIES, DIFFICULTY_NAME, SECTIONS, SECTION_NAME, SECTION_SHORT, andMore, byDomain, bySkill, describeSet, fmt, plural,
 } from '../lib/labels'
 import { graded } from '../lib/score'
+import { idNeedle } from '../lib/route'
 import type { Order } from '../lib/order'
 import type { HistoryRow } from '../lib/progress'
 import type {
@@ -29,6 +30,10 @@ interface Props {
   onOpen: (index: number) => void
   /** Draw and start a fixed-size set from the pool. */
   onStart: () => void
+  /** Start 10 questions from the whole bank, ignoring the topic picker. */
+  onQuickStart: () => void
+  /** Start the balanced 20-question set that unlocks the score estimate. */
+  onScoreCheck: () => void
   order: Order
   onOrder: (next: Order) => void
   activeSets: PracticeSet[]
@@ -83,14 +88,20 @@ function Acc({ seen, correct, none }: { seen: number; correct: number; none?: st
 
 export function Home({
   taxonomy, stats, history, value, items, loading, onChange, onOpen, onStart,
-  order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId,
+  order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId, onQuickStart, onScoreCheck,
 }: Props) {
   const [showOptions, setShowOptions] = useState(false)
   const closeOptions = useCallback(() => setShowOptions(false), [])
   const [query, setQuery] = useState('')
-  const [matches, setMatches] = useState<SetItem[] | null>(null)
+  /** Hits for the needle they were found for, so a stale list never answers a newer query. */
+  const [found, setFound] = useState<{ needle: string; list: SetItem[] } | null>(null)
+  /** The hit Arrow keys have moved to, -1 for none. */
+  const [active, setActive] = useState(-1)
+  const [idOpen, setIdOpen] = useState(false)
+  const idInput = useRef<HTMLInputElement>(null)
   const count = items.length
-  const needle = query.trim().toLowerCase()
+  const needle = idNeedle(query)
+  const matches = needle.length >= 3 && found?.needle === needle ? found.list : null
 
   /** Process types, shown under a ticked skill to narrow it further. */
   const [pt, setPt] = useState<ProcessTypes | null>(null)
@@ -99,11 +110,56 @@ export function Home({
 
   // ID search: look across the whole bank once the ID is long enough to mean something.
   useEffect(() => {
+    setActive(-1)
     if (needle.length < 3) return
     let stale = false
-    findIds(needle).then((m) => { if (!stale) setMatches(m) }).catch(() => {})
+    findIds(needle).then((list) => { if (!stale) setFound({ needle, list }) }).catch(() => {})
     return () => { stale = true }
   }, [needle, findIds])
+
+  // "/" jumps to the ID search from anywhere on Home that is not a field.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return
+      const t = e.target as HTMLElement | null
+      if (t?.closest('input, textarea, select, [contenteditable="true"]') || document.querySelector('.modal')) return
+      e.preventDefault()
+      idInput.current?.focus()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
+  const shownHits = matches?.slice(0, 5) ?? []
+
+  function submitId() {
+    if (!matches?.length) return
+    if (active >= 0 && shownHits[active]) { onOpenId(shownHits[active].id); return }
+    // findIds puts an exact match first.
+    if (matches.length === 1 || matches[0].cb_id?.toLowerCase() === needle) { onOpenId(matches[0].id); return }
+    setActive(0)
+  }
+
+  function idKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Escape') { setIdOpen(false); setActive(-1); return }
+    if (!shownHits.length || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return
+    e.preventDefault()
+    setIdOpen(true)
+    const n = shownHits.length
+    setActive((a) => (e.key === 'ArrowDown' ? (a + 1) % n : (a <= 0 ? n - 1 : a - 1)))
+  }
+
+  function chooseTopics() {
+    const head = document.getElementById('topics-title')
+    if (!head) return
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    head.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' })
+    head.focus({ preventScroll: true })
+  }
+
+  // The set touched most recently is the one the student means by "carry on".
+  const resumable = activeSets.reduce<PracticeSet | null>(
+    (best, s) => (!best || s.updated_at > best.updated_at ? s : best), null)
 
   const domains = useMemo(() => {
     const map = new Map<string, DomainRow>()
@@ -244,37 +300,77 @@ export function Home({
       <section className="hero2" aria-label="Overview">
         <div className="hero2-in">
           <div className="hero2-copy">
-            <Mascot className="hero2-bulb" size={104} />
-            <span className="eyebrow">
-              {totals.all ? `${fmt(totals.all)} official questions` : 'Official questions'} · always free
+            <Mascot className="hero2-bulb" mood="cheer" size={88} />
+            <span className="hero2-eyebrow">
+              {totals.all ? `${fmt(totals.all)} official questions` : 'Official questions'} · Always free
             </span>
             <h1 className="hero2-t" tabIndex={-1}>Pick a topic.<br /><span className="hero2-hl">Start drilling.</span></h1>
             <p className="hero2-sub">
-              Every College Board practice question, sorted by skill. Your progress saves as you go.
+              <span className="desk">Every official College Board practice question, sorted by skill. No account, no ads.</span>
+              <span className="phone">Official College Board questions. Free, no account.</span>
             </p>
-            <form className="qsearch" role="search"
-                  onSubmit={(e) => { e.preventDefault(); if (matches?.length === 1) onOpenId(matches[0].id) }}>
-              <Icon name="search" size={18} strokeWidth={2} />
-              <input type="search" value={query} placeholder="Find a question by ID"
-                     aria-label="Find a question by its College Board ID"
-                     autoCapitalize="off" autoCorrect="off" spellCheck={false}
-                     onChange={(e) => setQuery(e.target.value)} />
-            </form>
-            {matches && needle.length >= 3 ? (
-              <div className="idres" aria-live="polite">
-                {matches.length ? matches.slice(0, 5).map((q) => (
-                  <button key={q.id} className="idhit" onClick={() => onOpenId(q.id)}>
-                    <code className="qid">{q.cb_id}</code>
-                    <span className="idhit-s">{q.skill_name}</span>
-                    <span className={`lvl d-${q.difficulty}`}>{DIFFICULTY_NAME[q.difficulty]}</span>
-                    <Icon name="arrow-right" size={15} />
-                  </button>
-                )) : <p className="idnone">No question with ID “{query.trim()}”.</p>}
+            <div className="hero2-go">
+              {resumable ? (
+                <button className="btn primary lg hero2-main" onClick={() => onResume(resumable.id)}>
+                  <span className="hero2-main-t">Resume · {describeSet(resumable, false)}</span>
+                  <span className="hero2-main-n">({fmt(resumable.answered)}/{fmt(resumable.total)})</span>
+                  <Icon name="arrow-right" size={16} strokeWidth={2.2} />
+                </button>
+              ) : (
+                <button className="btn primary lg hero2-main" onClick={onQuickStart} disabled={!totals.all}>
+                  <span className="desk">Start a 10-question set</span><span className="phone">Start 10 questions</span>
+                  <Icon name="arrow-right" size={16} strokeWidth={2.2} />
+                </button>
+              )}
+              <button className="btn lg" onClick={chooseTopics}>
+                <span className="desk">Choose topics</span><span className="phone">Topics</span>
+              </button>
+            </div>
+            <form className="qsearch-f" role="search" onSubmit={(e) => { e.preventDefault(); submitId() }}>
+              <label className="qsearch-l" htmlFor="qsearch">Have a question ID from a video?</label>
+              <div className="qsearch">
+                <Icon name="search" size={18} strokeWidth={2} />
+                <input ref={idInput} id="qsearch" type="search" value={query}
+                       placeholder="Question ID, e.g. d72b325e"
+                       role="combobox" aria-autocomplete="list" aria-controls="idres"
+                       aria-expanded={idOpen && shownHits.length > 0}
+                       aria-activedescendant={idOpen && active >= 0 ? `idhit-${active}` : undefined}
+                       autoCapitalize="off" autoCorrect="off" spellCheck={false} autoComplete="off"
+                       onChange={(e) => { setQuery(e.target.value); setIdOpen(true) }}
+                       onFocus={() => setIdOpen(true)} onBlur={() => setIdOpen(false)}
+                       onKeyDown={idKey} />
+                <kbd className="qsearch-kbd" aria-hidden="true">/</kbd>
               </div>
-            ) : null}
+              {idOpen && matches ? (
+                <div className="idres">
+                  {shownHits.length ? (
+                    <ul id="idres" role="listbox" aria-label="Questions with this ID">
+                      {shownHits.map((q, i) => (
+                        // The input keeps focus (aria-activedescendant), so a press
+                        // must not blur it before the click lands.
+                        <li key={q.id} id={`idhit-${i}`} role="option" aria-selected={i === active}
+                            className={i === active ? 'idhit on' : 'idhit'}
+                            onMouseDown={(e) => e.preventDefault()} onClick={() => onOpenId(q.id)}>
+                          <code className="qid">{q.cb_id}</code>
+                          <span className="idhit-s">{q.skill_name}</span>
+                          <span className={`lvl d-${q.difficulty}`}>{DIFFICULTY_NAME[q.difficulty]}</span>
+                          <Icon name="arrow-right" size={15} />
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <p className="idnote" aria-live="polite">
+                    {!matches.length
+                      ? <>No question with ID “{needle}”. IDs are 8 characters, shown under Info on any question.</>
+                      : matches.length > 5 ? `and ${fmt(matches.length - 5)} more, keep typing` : null}
+                  </p>
+                </div>
+              ) : null}
+            </form>
           </div>
           <ProgressStrip history={history} covered={totals.seen} total={totals.all}
-                         accuracy={stats?.accuracy ?? null} />
+                         attempts={stats?.attempts ?? 0} correct={stats?.correct ?? 0}
+                         onScoreCheck={onScoreCheck} />
         </div>
       </section>
 
@@ -307,7 +403,7 @@ export function Home({
 
         <div className="topics-head">
           <div className="topics-row">
-            <h2 className="h1-section">Topics</h2>
+            <h2 className="h1-section" id="topics-title" tabIndex={-1}>Topics</h2>
             {/* The static skill pages are the only indexable content; link them. */}
             <a className="link" href="/skills/">Browse by skill</a>
           </div>

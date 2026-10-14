@@ -178,9 +178,10 @@ function topic(f: Filters): string {
  * so a set from a month ago never shows a label that no longer means what it
  * says.
  */
-export function describeSet(set: PracticeSet): string {
+export function describeSet(set: PracticeSet, withCount = true): string {
   const f = set.filters ?? {}
-  const parts = [fmt(set.total), topic(f)]
+  const parts = [f.title || topic(f)]
+  if (withCount) parts.unshift(fmt(set.total))
   if (f.difficulties?.length) {
     parts.push(f.difficulties.map((d) => DIFFICULTY_NAME[d]).join(' and '))
   }

@@ -21,7 +21,8 @@ interface Props {
 }
 
 export function Stat({ label, value, unit, sub, meter, size = 'm', className }: Props) {
-  const pct = meter === undefined ? 0 : Math.round(Math.min(1, Math.max(0, meter)) * 100)
+  // Not rounded: 10 of 3,767 is 0.3%, and rounding it to 0 would hide the fill.
+  const pct = meter === undefined ? 0 : Math.min(1, Math.max(0, meter)) * 100
   return (
     <div className={className ? `stat ${className}` : 'stat'}>
       <span className="stat-l">{label}</span>

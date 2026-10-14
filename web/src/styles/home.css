@@ -20,54 +20,87 @@
 }
 .link:hover { color: var(--fg-link-hover); text-decoration: underline; }
 
-/* ---- hero band ---- */
+/* ---- hero band (spec 8.1) ----
+   Light brand fill, one Bulb, a real primary action and one score card.
+   overflow: clip stops anything wide from making the band a scroll box (a
+   focused input used to scroll it 14px sideways on phones) while letting the
+   ID results hang below it. Behind @supports, since minifiers drop a plain
+   hidden-then-clip pair down to the last one. */
 .hero2 {
-  position: relative; overflow: hidden; flex: none;
+  position: relative; overflow: hidden; flex: none; z-index: 2;
   background: var(--surface-hero); border-bottom: 1px solid var(--brand-200);
 }
 .hero2-in {
-  position: relative; max-width: 1160px; margin: 0 auto; padding: 56px var(--sp-8) 48px;
-  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 48px; align-items: center;
+  max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8);
+  display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--sp-12); align-items: center;
 }
+.hero2-copy { position: relative; min-width: 0; }
 /* Small text on the light-blue hero is brand-800: brand-700 is under 4.5:1 there. */
-.eyebrow {
+.hero2-eyebrow {
   display: block; font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--brand-800);
 }
-.hero2-t {
-  margin: 18px 0 0; font: var(--type-display); letter-spacing: var(--tr-display); color: var(--fg-1);
-}
+.hero2-t { margin: var(--sp-2) 0 0; font: var(--type-display); letter-spacing: var(--tr-display); color: var(--fg-1); }
+.hero2-t:focus { outline: none; }
+/* brand-700 is 3.84:1 on brand-100: allowed only because this is 40px and up. */
 .hero2-hl { color: var(--brand-700); }
-.hero2-sub { margin: 18px 0 0; max-width: 44ch; font: var(--type-lead); color: var(--fg-2); }
-.hero2-copy { position: relative; }
-.hero2-bulb { position: absolute; top: 34px; right: 0; transform: rotate(6deg); }
+@supports (overflow: clip) { .hero2 { overflow: clip visible; } }
+/* Level with the headline, clear of its longest line. */
+.hero2-bulb { position: absolute; top: 20px; right: 0; }
+.hero2-sub { margin: var(--sp-3) 0 0; max-width: 44ch; font: var(--type-lead); color: var(--fg-2); }
+.hero2 .phone { display: none; }
+.hero2-go { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-5); }
+.shell .hero2-main { min-width: 0; max-width: 100%; }
+.shell .hero2-main .hero2-main-n { margin-left: -4px; }
+.hero2-main-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hero2-main-n { flex: none; font-variant-numeric: tabular-nums; }
+/* Focus ring on the light-blue band: ink, since brand-700 is too close to it. */
+.shell .hero2 :focus-visible { outline-color: var(--fg-1); }
 
-/* ---- ID search ---- */
+/* ---- ID search (spec 7.8): a real input, results as a popover ---- */
+.qsearch-f { position: relative; max-width: 440px; margin-top: var(--sp-4); }
+.qsearch-l { display: block; margin-bottom: 6px; font: 600 13px/18px var(--sans); color: var(--fg-2); }
 .qsearch {
-  display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 var(--sp-4);
-  margin-top: 26px; max-width: 440px; border: 1px solid var(--hair-ctl); border-radius: var(--rad-md);
+  display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 var(--sp-3) 0 var(--sp-4);
+  border: 1px solid var(--hair-ctl); border-radius: var(--rad-md);
   background: var(--surface); color: var(--fg-3); box-shadow: var(--sh-2);
   transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
 }
 .qsearch:focus-within { border-color: var(--brand-700); box-shadow: var(--focus-ring), var(--sh-2); }
+/* Monospace throughout, placeholder included, so the field keeps one face as you type. */
 .qsearch input {
   flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; border-radius: 0; outline: 0; background: none;
-  font-size: 16px; color: var(--fg-1); font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font: 400 16px/22px ui-monospace, "SF Mono", Menlo, monospace; color: var(--fg-1);
 }
-.qsearch input:focus-visible { outline: none; box-shadow: none; }
-.qsearch input::placeholder { font-family: var(--sans); color: var(--fg-3); }
-.idres { margin-top: var(--sp-3); max-width: 440px; display: flex; flex-direction: column; gap: 6px; }
+.shell .qsearch input:focus-visible { outline: none; box-shadow: none; }
+.qsearch input::placeholder { color: var(--fg-3); opacity: 1; }
+.qsearch input::-webkit-search-cancel-button { cursor: pointer; }
+.qsearch-kbd {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px;
+  border: 1px solid var(--hair-1); border-radius: var(--rad-xs); background: var(--surface-subtle);
+  font: 400 12px/1 ui-monospace, "SF Mono", Menlo, monospace; color: var(--fg-3);
+}
+.qsearch:focus-within .qsearch-kbd { display: none; }
+.idres {
+  position: absolute; z-index: 30; top: calc(100% + 8px); left: 0; right: 0;
+  padding: 6px; border-radius: var(--rad-md); background: var(--surface); box-shadow: var(--sh-2);
+}
+.idres ul { list-style: none; margin: 0; padding: 0; }
 .idhit {
-  display: flex; align-items: center; gap: 10px; padding: 11px var(--sp-4); border: 0;
-  border-radius: var(--rad-md); background: var(--surface); font: inherit; color: var(--fg-1); text-align: left;
-  cursor: pointer; box-shadow: var(--sh-2); transition: background-color var(--dur-fast);
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px;
+  border-radius: var(--rad-sm); color: var(--fg-1); cursor: pointer;
+  transition: background-color var(--dur-fast);
 }
-.idhit:hover { background: var(--surface-subtle); }
+.idhit:hover, .idhit.on { background: var(--surface-subtle); }
+.idhit.on { box-shadow: inset 2px 0 0 var(--brand-700); }
+.idhit .qid { margin-left: 0; }
 .idhit-s {
-  flex: 1; min-width: 0; font: var(--type-h3); letter-spacing: var(--tr-h3);
+  flex: 1; min-width: 0; font: 500 14px/20px var(--sans);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .idhit > svg { color: var(--fg-3); flex: none; }
-.idnone { margin: 0; padding: 10px var(--sp-4); border-radius: var(--rad-md); background: rgba(255, 255, 255, .8); font: var(--type-small); color: var(--fg-2); }
+.idnote { margin: 0; padding: 8px 10px; font: var(--type-small); color: var(--fg-3); }
+.idnote:empty { display: none; }
+.idres ul + .idnote { border-top: 1px solid var(--hair-1); margin-top: 6px; }
 /* Difficulty as a status badge (spec 7.5). */
 .lvl {
   flex: none; display: inline-flex; align-items: center; height: 22px; padding: 0 8px;
@@ -77,71 +110,105 @@
 .lvl.d-M { color: var(--warn-700); background: var(--warn-50); }
 .lvl.d-H { color: var(--bad-700); background: var(--bad-50); }
 
-/* ---- progress tiles (right side of the hero) ---- */
-.pstrip { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "score score" "streak cover"; gap: var(--sp-3); }
-.pcard {
-  display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; padding: var(--sp-5);
-  border-radius: var(--rad-lg); background: var(--surface); box-shadow: var(--sh-2);
+/* ---- score card (right side of the hero) ---- */
+.scard {
+  display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; padding: var(--sp-6);
+  border: 1px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: var(--sh-2);
 }
-.pcard-score { grid-area: score; gap: var(--sp-3); padding: var(--sp-6); }
-.pcard-streak { grid-area: streak; background: var(--streak-100); box-shadow: none; }
-.pcard-cover { grid-area: cover; background: var(--rw-100); box-shadow: none; }
-.pcard-top { display: flex; align-items: center; gap: var(--sp-2); }
-.pcard-ico {
-  width: 30px; height: 30px; border-radius: var(--rad-sm); flex: none;
-  display: inline-flex; align-items: center; justify-content: center;
+.scard-top { display: flex; align-items: center; gap: var(--sp-2); min-height: 22px; }
+.scard-l {
+  font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3); cursor: default;
 }
-.ico-score { background: var(--brand-500); color: var(--fg-inv-1); }
-.ico-streak { background: rgba(255, 255, 255, .7); color: var(--fg-3); }
-.ico-streak.on { background: var(--streak-500); color: var(--fg-inv-1); }
-.ico-cover { background: var(--rw-600); color: var(--fg-inv-1); }
-.pcard-l { font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); cursor: default; }
-.pcard-mid { display: flex; align-items: flex-end; gap: var(--sp-5); }
-.pcard-mid .spark { flex: 1; min-width: 0; }
-.pcard-big {
-  display: flex; align-items: baseline; gap: 4px; flex: none;
-  font: 800 var(--num-l)/1 var(--display); letter-spacing: var(--tr-num-l);
+.scard-mid { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-4); margin-top: -8px; }
+.scard-big {
+  display: flex; align-items: baseline; flex: none;
+  font: 800 var(--num-xl)/1 var(--display); letter-spacing: var(--tr-num-xl);
   color: var(--fg-1); font-variant-numeric: tabular-nums lining-nums;
 }
-.pcard-score .pcard-big { font-size: var(--num-xl); letter-spacing: var(--tr-num-xl); }
-.pcard-streak .pcard-big { color: var(--streak-700); }
-.pcard-cover .pcard-big { color: var(--rw-700); }
-.pcard-locked { color: var(--n-300); }
-.pcard-unit { font: 600 14px/1 var(--sans); letter-spacing: 0; color: var(--fg-3); }
-.pcard-sub { font: var(--type-small); color: var(--fg-2); }
+/* Unit: 0.4 of the numeral (spec 4). */
+.scard-big small {
+  margin-left: 6px; font: 600 calc(var(--num-xl) * .4)/1 var(--sans); letter-spacing: 0; color: var(--fg-3);
+}
 .delta {
   margin-left: auto; display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px;
   border-radius: var(--rad-pill); font: var(--type-badge);
 }
 .delta.up { color: var(--ok-700); background: var(--ok-50); }
 .delta.down { color: var(--bad-700); background: var(--bad-50); }
-.spark { height: 56px; display: block; }
-.spark-line { fill: none; stroke: var(--brand-600); stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-.spark-area { fill: var(--brand-500); opacity: .14; }
+.spark { display: block; flex: 0 1 120px; min-width: 64px; height: 40px; margin-bottom: 6px; overflow: visible; }
+.spark-line { fill: none; stroke: var(--brand-600); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .spark-dot { fill: var(--brand-700); }
+
+.scard-lock { display: flex; align-items: flex-start; gap: var(--sp-3); }
+.scard-lock-ico {
+  flex: none; width: 32px; height: 32px; border-radius: var(--rad-sm);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-subtle); color: var(--fg-2);
+}
+.scard-lock-t { margin: 0; font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-1); }
+.scard-lock-sub { margin: 2px 0 0; font: var(--type-small); color: var(--fg-3); }
+.shell .scard-go { align-self: flex-start; }
+
 .secscores { display: flex; flex-direction: column; gap: 10px; }
-.secscore { display: grid; grid-template-columns: 136px minmax(0, 1fr) 56px; align-items: center; gap: var(--sp-3); }
+.secscore { display: grid; grid-template-columns: 136px minmax(0, 1fr) auto; align-items: center; gap: var(--sp-3); }
 .secscore-l { font: 600 13px/18px var(--sans); color: var(--sec-700); }
 /* A label with a long and a short spelling; the short one shows where space runs out. */
 .short { display: none; }
-.secscore-bar { height: 6px; border-radius: var(--rad-pill); background: var(--sec-100); overflow: hidden; }
+.secscore-bar { height: 8px; border-radius: var(--rad-pill); background: var(--surface-sunken); overflow: hidden; }
 .secscore-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--sec-500); transform-origin: left center; transition: transform var(--dur-data) var(--ease-out); }
 .secscore-n {
-  text-align: right; font: 750 var(--num-s)/1 var(--display); letter-spacing: var(--tr-num-s);
+  min-width: 3ch; text-align: right; font: 750 var(--num-s)/1 var(--display); letter-spacing: var(--tr-num-s);
   color: var(--sec-700); font-variant-numeric: tabular-nums lining-nums;
 }
-.secscore-lock { display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 12px; color: var(--fg-3); white-space: nowrap; }
-.pcard-note { color: var(--fg-3); }
-.days { display: flex; gap: 4px; }
+.secscore-count { font: 600 13px/18px var(--sans); color: var(--sec-700); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Footer: three Stat cells split by hairlines, inside the card rather than a
+   box of their own. The streak cell is sized by its seven dots. */
+.scard-stats {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+  margin-top: var(--sp-1); padding-top: var(--sp-4); border-top: 1px solid var(--hair-1);
+}
+.scard-stats > .stat { padding: 0 var(--sp-4); }
+.scard-stats > .stat:first-child { padding-left: 0; }
+.scard-stats > .stat:last-child { padding-right: 0; }
+.scard-stats > .stat + .stat { border-left: 1px solid var(--hair-1); }
+.scard-stats .stat-n { display: inline-flex; align-items: baseline; }
+.scard-stats .stat-n small { font-size: 13px; }
+.st-streak .stat-n svg { align-self: center; margin-right: 4px; color: var(--streak-500); }
+.st-streak.none .stat-n svg { color: var(--fg-4); }
+.days { list-style: none; display: flex; gap: 2px; margin: 4px 0 0; padding: 0; }
+/* Letters are 11px here, the one exception to the 12px floor (spec 4). */
 .day {
-  width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; color: var(--streak-700); background: rgba(255, 255, 255, .65);
+  width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font: 600 12px/1 var(--sans); color: var(--fg-3); background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--hair-2);
 }
 /* Ink letters on the orange dot: white there is 2.83:1. */
-.day.on { background: var(--streak-500); color: var(--fg-1); }
-.day.today { box-shadow: inset 0 0 0 1.5px var(--streak-500); }
-.cover-meter { background: rgba(255, 255, 255, .7); }
-.cover-meter .meter-fill { background: var(--rw-500); }
+.day > [aria-hidden] { font-size: 11px; }
+.day.on { background: var(--streak-500); color: var(--fg-1); box-shadow: none; }
+.at-risk .day.today { box-shadow: 0 0 0 2px var(--streak-500); }
+.streak-risk { max-width: 152px; margin-top: 2px; color: var(--streak-700); }
+.scard-note { margin: var(--sp-2) 0 0; font: var(--type-small); color: var(--fg-3); }
+/* Between 820px and about 1140px the card's column is too narrow for three
+   footer cells side by side: the streak takes its own row. Phones keep one
+   row (their cells are tighter and the fold matters more there). */
+.scard { container-type: inline-size; }
+@media (min-width: 820px) {
+  @container (max-width: 360px) {
+    .scard-stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: var(--sp-4); }
+    .scard-stats > .st-streak { grid-column: 1 / -1; padding: 0 0 var(--sp-4); border-bottom: 1px solid var(--hair-1); }
+    .scard-stats > .st-streak + .stat { padding-left: 0; border-left: 0; }
+  }
+  @container (max-width: 340px) {
+    /* No room beside the 72px figure; the delta chip still carries the trend. */
+    .scard .spark { display: none; }
+  }
+  @container (max-width: 300px) {
+    .secscore { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; }
+    .secscore-l .long { display: none; }
+    .secscore-l .short { display: inline; }
+  }
+}
 
 /* ---- topics ---- */
 .qsets { margin-bottom: var(--sp-8); }
@@ -257,33 +324,30 @@
 .excl.opt-row { flex-direction: row; align-items: flex-start; gap: 10px; }
 .sheet-go { width: 100%; }
 
-@media (max-width: 1000px) {
-  .hero2-in { grid-template-columns: 1fr; gap: var(--sp-8); }
-}
 @media (max-width: 819px) {
   .hwrap { padding: var(--sp-6) var(--sp-4) var(--sp-6); }
-  .hero2-in { padding: var(--sp-6) var(--sp-4) var(--sp-5); gap: var(--sp-5); }
-  .hero2-t { margin-top: 12px; }
-  .hero2-sub { display: none; }
-  .hero2-bulb { width: 72px; height: auto; top: 50px; right: 4px; }
-  .qsearch { margin-top: 18px; max-width: none; }
-  .idres { max-width: none; }
-  /* One row of three numbers so the topics stay close to the top. */
-  .pstrip { grid-template-columns: 1.3fr 1fr 1fr; grid-template-areas: "score streak cover"; gap: var(--sp-2); }
-  .pcard, .pcard-score { padding: 12px; gap: 4px; border-radius: var(--rad-md); }
-  .pcard-ico { display: none; }
-  .pcard-l { font: 600 12px/16px var(--sans); letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .pcard-big, .pcard-score .pcard-big { font-size: var(--num-m); letter-spacing: var(--tr-num-m); gap: 3px; }
-  .pcard-unit { font-size: 12px; }
-  .days, .spark, .cover-meter, .delta, .pcard-note, .pcard-streak .pcard-sub, .pcard-cover .pcard-sub { display: none; }
-  .secscores { gap: 2px; }
-  .secscore { grid-template-columns: auto 1fr; gap: 4px; }
-  .secscore-bar { display: none; }
-  .secscore-l { font-size: 12px; }
-  .secscore-l .long, .pcard-l .long, .sb-long { display: none; }
-  .secscore-l .short, .pcard-l .short { display: inline; }
-  .secscore-n { font: 700 13px/18px var(--display); }
-  .secscore-lock { font-size: 12px; }
+  .hero2-in { grid-template-columns: 1fr; gap: var(--sp-4); padding: var(--sp-6) var(--sp-4); }
+  /* Under 820px the headline needs the full width. */
+  .hero2-bulb { display: none; }
+  .hero2-sub { margin-top: var(--sp-2); }
+  .hero2 .desk { display: none; }
+  .hero2 .phone { display: inline; }
+  /* One row: the primary takes what the short secondary leaves. */
+  .hero2-go { flex-wrap: nowrap; margin-top: var(--sp-4); gap: var(--sp-2); }
+  .shell .hero2-go .btn { flex: none; }
+  .shell .hero2-go .hero2-main { flex: 1 1 auto; }
+  .qsearch-f { max-width: none; margin-top: var(--sp-4); }
+  .qsearch-kbd { display: none; }
+  .scard { padding: var(--sp-4); gap: 10px; }
+  .scard-lock-sub, .scard-lock-ico { display: none; }
+  .shell .scard-go { align-self: stretch; }
+  .secscore { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; }
+  .secscore-l .long { display: none; }
+  .secscore-l .short { display: inline; }
+  .scard-stats > .stat { padding: 0 10px; }
+  .scard-stats .stat-l { letter-spacing: .03em; }
+  .scard-note { margin-top: 6px; }
+  .sb-long { display: none; }
   .topics-head .seg { width: 100%; }
   .seg-b { padding: 0 8px; }
   .dgrid { columns: 1; }

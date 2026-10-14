@@ -29,3 +29,18 @@ export function sample<T>(pool: readonly T[], n: number, random = Math.random): 
   }
   return copy.slice(0, wanted)
 }
+
+/**
+ * `counts[group]` items from each group of `pool`, each group drawn as `sample`
+ * draws, the groups in the order `counts` lists them.
+ *
+ * The score check needs this: the estimate unlocks per section, and a plain
+ * `sample` of 20 from the whole bank can come back 14 and 6, which leaves one
+ * section still locked after the student did what the button asked.
+ */
+export function sampleBalanced<T, K extends string>(
+  pool: readonly T[], groupOf: (item: T) => K, counts: Record<K, number>, random = Math.random,
+): T[] {
+  return (Object.keys(counts) as K[]).flatMap((g) =>
+    sample(pool.filter((item) => groupOf(item) === g), counts[g], random))
+}

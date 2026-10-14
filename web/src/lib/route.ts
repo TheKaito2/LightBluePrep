@@ -53,3 +53,14 @@ export function titleFor(view: View, home: string,
   }
   return `${NAMES[view]} · LightBluePrep`
 }
+
+/**
+ * The College Board ID a search box was given, lowercased: what was typed, or
+ * the `q` of a pasted share link (".../?q=d72b325e").
+ */
+export function idNeedle(raw: string): string {
+  const s = raw.trim()
+  const m = /[?&]q=([^&#\s]+)/.exec(s)
+  if (!m) return s.toLowerCase()
+  try { return decodeURIComponent(m[1]).trim().toLowerCase() } catch { return m[1].toLowerCase() }
+}
