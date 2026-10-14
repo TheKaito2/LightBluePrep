@@ -4,7 +4,6 @@
  * lib/progress.ts; this only draws them.
  */
 import { Icon } from './Icon'
-import { Mascot } from './Mascot'
 import { score, streak, UNLOCK_AFTER, type HistoryRow } from '../lib/progress'
 import type { Section } from '../types'
 
@@ -99,8 +98,6 @@ export function ProgressStrip({ history, covered, total, accuracy }: Props) {
       </div>
 
       <div className="pcard pcard-streak">
-        {/* Bulb holds the flame while the streak is alive, waits when it isn't. */}
-        <Mascot className="pcard-bulb" mood={st.current ? 'streak' : 'neutral'} size={68} />
         <div className="pcard-top">
           <span className={st.current ? 'pcard-ico ico-streak on' : 'pcard-ico ico-streak'}>
             <Icon name="flame" size={16} strokeWidth={2} />

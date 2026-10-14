@@ -4,7 +4,6 @@ import { Explanation } from './Explanation'
 import { BookmarkFilled, Icon, SplitHandle } from './Icon'
 import { FeedbackLink } from './Feedback'
 import { MistakeFields } from './MistakeFields'
-import { Mascot } from './Mascot'
 import type { Annotation, GradeResult, Mistake, MistakeTag, Question } from '../types'
 
 /**
@@ -254,7 +253,6 @@ export function QuestionView(props: Props) {
           new question starts blank rather than inheriting the last one's text. */}
       {answered && !deferred && !result!.correct ? (
         <section className="mlog-practice" aria-label="Mistake log">
-          <Mascot className="mlog-bulb" mood="oops" size={46} />
           <MistakeFields key={question.id} mistake={mistake} onSave={onSaveMistake}
                          lead="Why did you miss it?" id="mlog-inline" rows={3} />
           <p className="mlog-fine">Saved automatically. Shows up on Review.</p>

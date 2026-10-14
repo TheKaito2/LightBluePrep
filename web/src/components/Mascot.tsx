@@ -3,16 +3,15 @@
  * sounds like "light bulb") whose filament is the check mark from the logo.
  *
  * Hand-built SVG from the concept art, flat fills from tokens.css, no
- * gradients. Four moods for the places a face helps: an empty screen, a
- * streak, a mistake, a 404.
+ * gradients. Three moods for the places a face helps: an empty screen, a
+ * result, a 404, the Home hero.
  */
-type Mood = 'neutral' | 'cheer' | 'oops' | 'streak'
+type Mood = 'neutral' | 'cheer' | 'oops'
 
 const ARMS: Record<Mood, string> = {
   neutral: 'M22 74 Q11 68 9 56 M98 78 Q107 88 107 98',
   cheer: 'M20 76 Q5 68 4 50 M100 76 Q115 68 116 50',
   oops: 'M22 80 Q13 90 13 99 M98 80 Q107 90 107 99',
-  streak: 'M22 78 Q13 88 13 98 M98 74 Q108 70 110 60',
 }
 
 export function Mascot({ mood = 'neutral', size = 120, className }: {
@@ -53,10 +52,6 @@ export function Mascot({ mood = 'neutral', size = 120, className }: {
         </>
       )}
       {mood === 'oops' ? <path className="bulb-sweat" d="M92 30 q-6 9 0 12 q6 -3 0 -12 Z" /> : null}
-      {mood === 'streak' ? (
-        <path className="bulb-flame"
-              d="M107 58 c-8 -2 -10 -9 -7 -16 c1 4 3 5 4 2 c0 -5 3 -9 7 -12 c-2 5 3 8 4 13 c1 7 -3 12 -8 13 Z" />
-      ) : null}
     </svg>
   )
 }

@@ -319,7 +319,12 @@ export function Desmos({ onClose, onExpandedChange }: Props) {
               title="Drag to resize" aria-hidden="true" />
       ) : (
         <span className="desmos-resize" onPointerDown={onGripDown}
-              title="Drag to resize" aria-hidden="true" />
+              title="Drag to resize" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor"
+               strokeWidth="1.5" strokeLinecap="round">
+            <path d="M17 4 4 17M17 9 9 17M17 14 14 17" />
+          </svg>
+        </span>
       )}
     </div>
   )

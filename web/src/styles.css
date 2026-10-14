@@ -693,7 +693,7 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
 }
 .key-marked::after {
   content: ''; position: absolute; top: 0; right: 0; width: 8px; height: 8px;
-  background: linear-gradient(225deg, var(--red) 0 50%, transparent 50%);
+  background: var(--red); clip-path: polygon(0 0, 100% 0, 100% 100%);
 }
 
 .nav-grid {
@@ -721,16 +721,15 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
   /* The ribbon needs a hard corner to fold over. */
   border-top-right-radius: 0;
 }
-.nav-cell.is-flagged::after {
+.nav-cell.is-flagged::before, .nav-cell.is-flagged::after {
   content: ''; position: absolute; top: 0; right: 0;
-  width: 22px; height: 22px;
-  /* Two stacked triangles: a slightly larger white one behind the red, which
-     leaves a white edge along the fold. Without it the ribbon disappears on a
-     cell that is itself red because the latest attempt was wrong. */
-  background:
-    linear-gradient(225deg, var(--red) 0 44%, transparent 44%),
-    linear-gradient(225deg, #fff 0 52%, transparent 52%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
 }
+/* Two stacked triangles: a slightly larger white one behind the red, which
+   leaves a white edge along the fold. Without it the ribbon disappears on a
+   cell that is itself red because the latest attempt was wrong. */
+.nav-cell.is-flagged::before { width: 22px; height: 22px; background: #fff; }
+.nav-cell.is-flagged::after { width: 19px; height: 19px; background: var(--red); }
 /* The darker sliver under the fold is what makes it read as wrapping over the
    corner rather than as a flat triangle stuck on top. */
 /* There used to be a 4px dark triangle here, meant to read as the shadow under
@@ -856,13 +855,12 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
 .desmos-host { flex: 1; min-height: 0; }
 .desmos-error { padding: 16px; color: var(--red); font-size: 14px; }
 
-/* Corner grip, drawn with a gradient so there is no extra svg. */
+/* Corner grip: three diagonal strokes, an inline svg in Desmos.tsx. */
 .desmos-resize {
   position: absolute; right: 0; bottom: 0; width: 20px; height: 20px;
-  cursor: nwse-resize; touch-action: none;
-  background: repeating-linear-gradient(
-    -45deg, transparent 0 3px, var(--line-2) 3px 4px, transparent 4px 6px);
+  cursor: nwse-resize; touch-action: none; color: var(--line-2);
 }
+.desmos-resize svg { display: block; }
 
 /* ---------- official content ---------- */
 /*
@@ -1529,17 +1527,8 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
   position: relative; overflow: hidden; flex: none;
   background: var(--brand-100); border-bottom: 1px solid var(--brand-200);
 }
-/* Flat shapes for identity, no gradients: a pink disc top right, a blue one
-   bottom left, both clipped by the band. */
-.hero2::before, .hero2::after, .phead::before, .phead::after {
-  content: ''; position: absolute; border-radius: 50%; pointer-events: none;
-}
-.hero2::before { width: 340px; height: 340px; right: -90px; top: -150px; background: var(--rw-200); }
-.hero2::after { width: 220px; height: 220px; left: -80px; bottom: -120px; background: var(--brand-200); }
 .hero2-in {
-  /* z-index: the discs are ::after, painted after this box, so without it
-     they sat on top of the progress tiles on phones. */
-  position: relative; z-index: 1; max-width: 1160px; margin: 0 auto; padding: 56px var(--sp-8) 48px;
+  position: relative; max-width: 1160px; margin: 0 auto; padding: 56px var(--sp-8) 48px;
   display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 48px; align-items: center;
 }
 .eyebrow {
@@ -1552,11 +1541,7 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
   margin: 18px 0 0; font-family: var(--display); font-size: 68px; font-weight: 800;
   line-height: .95; letter-spacing: -.045em; color: var(--n-900);
 }
-.hero2-hl {
-  color: var(--brand-700);
-  text-decoration: underline; text-decoration-color: var(--rw-300);
-  text-decoration-thickness: .12em; text-underline-offset: .1em; text-decoration-skip-ink: none;
-}
+.hero2-hl { color: var(--brand-700); }
 .hero2-sub { margin: 18px 0 0; max-width: 44ch; font-size: 17px; line-height: 1.55; color: var(--n-700); }
 
 /* ---- ID search ---- */
@@ -1576,10 +1561,9 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
 .idhit {
   display: flex; align-items: center; gap: 10px; padding: 11px var(--sp-4); border: 0;
   border-radius: var(--rad-md); background: var(--n-0); font: inherit; color: var(--n-900); text-align: left;
-  cursor: pointer; box-shadow: var(--sh-2); transition: transform var(--dur-fast);
+  cursor: pointer; box-shadow: var(--sh-2); transition: background-color var(--dur-fast);
 }
-.idhit:hover { transform: translateY(-1px); }
-.idhit:active { transform: scale(.99); }
+.idhit:hover { background: var(--n-50); }
 .idhit-s { flex: 1; min-width: 0; font-size: var(--fs-md); font-weight: var(--fw-semi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .idhit > svg { color: var(--n-500); flex: none; }
 .idnone { margin: 0; padding: 10px var(--sp-4); border-radius: var(--rad-md); background: rgba(255, 255, 255, .8); font-size: var(--fs-sm); color: var(--n-700); }
@@ -1595,8 +1579,7 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
   border-radius: var(--rad-xl); background: var(--n-0); box-shadow: var(--sh-2);
 }
 .pcard-score { grid-area: score; gap: var(--sp-3); padding: var(--sp-6); }
-.pcard-streak { grid-area: streak; background: var(--streak-100); box-shadow: none; position: relative; }
-.pcard-bulb { position: absolute; top: 14px; right: 16px; pointer-events: none; }
+.pcard-streak { grid-area: streak; background: var(--streak-100); box-shadow: none; }
 .pcard-cover { grid-area: cover; background: var(--rw-100); box-shadow: none; }
 .pcard-top { display: flex; align-items: center; gap: var(--sp-2); }
 .pcard-ico {
@@ -1694,11 +1677,10 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
 .dgrid > .dcard { break-inside: avoid; margin-bottom: var(--sp-4); display: inline-block; width: 100%; vertical-align: top; }
 .dcard {
   position: relative; border-radius: var(--rad-xl); background: var(--n-0); overflow: hidden;
-  box-shadow: 0 1px 2px rgba(20, 50, 90, .05), 0 10px 26px -18px var(--sec-500, #3aa3ec);
-  transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+  box-shadow: 0 0 0 1px var(--n-100), var(--sh-1);
+  transition: box-shadow var(--dur-fast);
 }
-.dcard:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(20, 50, 90, .05), 0 18px 34px -18px var(--sec-500, #3aa3ec); }
-.dcard.is-on, .dcard.is-mixed { box-shadow: 0 0 0 2.5px var(--sec-500), 0 18px 34px -18px var(--sec-500); }
+.dcard.is-on, .dcard.is-mixed { box-shadow: 0 0 0 2.5px var(--sec-500); }
 .dcard-h {
   display: flex; align-items: center; gap: var(--sp-3); width: 100%; padding: var(--sp-5) var(--sp-5) var(--sp-3);
   border: 0; background: none; font: inherit; text-align: left; color: var(--n-900); cursor: pointer;
@@ -1745,19 +1727,19 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
 .box.is-mixed::after { content: ''; position: absolute; width: 10px; height: 2.5px; border-radius: 1px; background: var(--sec-600, var(--accent)); }
 .dcard-h:hover .box.is-off, .skrow:hover .box.is-off { border-color: var(--sec-500, var(--accent)); }
 
-/* Loading: the shape of the cards, shimmering, instead of a spinner. */
+/* Loading: the shape of the cards, pulsing, instead of a spinner. Opacity only,
+   so the browser composites it instead of repainting every frame. */
 .dskel { padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3); box-shadow: var(--sh-1); }
 .skel {
   display: block; height: 14px; border-radius: var(--rad-sm);
-  background: linear-gradient(90deg, var(--n-100) 0%, var(--n-50) 50%, var(--n-100) 100%);
-  background-size: 200% 100%; animation: shimmer 1.4s linear infinite;
+  background: var(--n-100); animation: skel-pulse 1.2s ease-in-out infinite alternate;
 }
 .skel-t { width: 45%; height: 20px; margin-bottom: var(--sp-2); }
 .skel-row:nth-child(3) { width: 82%; }
 .skel-row:nth-child(4) { width: 64%; }
-@keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes skel-pulse { from { opacity: 1; } to { opacity: .55; } }
 
-/* ---- sticky start bar: dark, with a chunky light-blue button ---- */
+/* ---- sticky start bar: dark, with a light-blue button ---- */
 .startbar2 {
   position: sticky; bottom: 0; z-index: 20; flex: none; margin-top: auto;
   background: var(--n-900); color: var(--n-0);
@@ -1784,12 +1766,10 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
 .startbar2 .sb-go {
   padding: 12px 26px; border: 0; border-radius: var(--rad-pill); cursor: pointer;
   font-family: var(--display); font-size: 17px; font-weight: 800; letter-spacing: -.01em;
-  background: var(--brand-500); color: var(--n-900);
-  box-shadow: 0 4px 0 var(--brand-700); transition: transform 90ms, box-shadow 90ms, filter var(--dur-fast);
+  background: var(--brand-500); color: var(--n-900); transition: filter var(--dur-fast);
 }
 .startbar2 .sb-go:hover:not(:disabled) { filter: brightness(1.06); }
-.startbar2 .sb-go:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 var(--brand-700); }
-.startbar2 .sb-go:disabled { background: var(--n-700); color: var(--n-300); box-shadow: none; cursor: default; }
+.startbar2 .sb-go:disabled { background: var(--n-700); color: var(--n-300); cursor: default; }
 .sel {
   height: 38px; padding: 0 32px 0 14px; border: 1px solid var(--n-200); border-radius: var(--rad-pill);
   font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--n-700); cursor: pointer;
@@ -1839,7 +1819,6 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
   .pcard-big, .pcard-score .pcard-big { font-size: 26px; gap: 3px; }
   .pcard-unit { font-size: var(--fs-2xs); }
   .days, .spark, .cover-meter, .delta, .pcard-note, .pcard-streak .pcard-sub, .pcard-cover .pcard-sub { display: none; }
-  .pcard-bulb { width: 30px; height: auto; top: auto; bottom: 8px; right: 8px; }
   .secscores { gap: 2px; }
   .secscore { grid-template-columns: auto 1fr; gap: 4px; }
   .secscore-bar { display: none; }
@@ -1867,8 +1846,7 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
   .startbar2 .sb-go { padding: 11px 18px; font-size: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .skel { animation: none; }
-  .dcard:hover { transform: none; }
+  .skel { animation: none; opacity: .8; }
 }
 
 @keyframes sheet-up { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
@@ -2126,22 +2104,14 @@ button.brand {
 
 /* ============================================================ page heads
    One solid colour band per page: Home blue, Review amber, Stats mint, About
-   ink. Flat shapes clipped by the band, never gradients. */
-.phead { position: relative; overflow: hidden; flex: none; }
+   ink. Flat fill only: no shapes, no gradients. */
+.phead { flex: none; }
 .phead.tone-blue { background: var(--brand-100); }
 .phead.tone-amber { background: var(--streak-100); }
 .phead.tone-mint { background: var(--mint-100); }
 .phead.tone-ink { background: var(--n-900); color: var(--n-0); }
-.phead::before { width: 300px; height: 300px; right: -80px; top: -140px; }
-.phead::after { width: 180px; height: 180px; left: 34%; bottom: -130px; }
-.tone-amber::before { background: var(--streak-200); }
-.tone-amber::after { background: var(--rw-200); }
-.tone-mint::before { background: var(--mint-200); }
-.tone-mint::after { background: var(--brand-200); }
-.tone-ink::before { background: #2a3038; }
-.tone-ink::after { background: var(--brand-700); }
 .phead-in {
-  position: relative; z-index: 1; max-width: 1160px; margin: 0 auto; padding: 48px var(--sp-8) 44px;
+  max-width: 1160px; margin: 0 auto; padding: 48px var(--sp-8) 44px;
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-8); align-items: end;
 }
 .phead .eyebrow { background: rgba(255, 255, 255, .7); border-color: transparent; color: var(--n-700); }
@@ -2260,17 +2230,11 @@ button.brand {
 }
 .about .about-h2 { margin: 0 0 var(--sp-3); font-size: 26px; font-weight: 800; letter-spacing: -.03em; color: var(--n-900); }
 .about .about-p { font-size: 15px; line-height: 1.65; color: var(--n-700); }
-.about .about-block:nth-child(1) { border-top: 4px solid var(--brand-500); }
-.about .about-block:nth-child(2) { border-top: 4px solid var(--mint-500); }
-.about .about-block:nth-child(3) { border-top: 4px solid var(--rw-500); }
-.about .about-block:nth-child(4) { border-top: 4px solid var(--streak-500); }
 
 @media (max-width: 819px) {
   .phead-in { grid-template-columns: 1fr; gap: var(--sp-5); padding: var(--sp-8) var(--sp-4) var(--sp-6); }
   .phead-t { font-size: 44px; }
   .phead-sub { font-size: 15px; }
-  .phead::before { width: 200px; height: 200px; right: -70px; top: -100px; }
-  .phead::after { display: none; }
   .phead .hero-stats { min-width: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
   .phead .tile { padding: var(--sp-3); }
   .phead .tile-n, .phead .tile-lead .tile-n { font-size: 26px; }
@@ -2302,8 +2266,6 @@ button.brand {
 
 /* ============================================================ resources */
 .phead.tone-rose { background: var(--rw-100); }
-.tone-rose::before { background: var(--rw-200); }
-.tone-rose::after { background: var(--brand-200); }
 .tone-rose .eyebrow { color: var(--rw-700); }
 .resources {
   max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) 96px;
@@ -2339,11 +2301,10 @@ button.brand {
 .rcard-go {
   align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px;
   border-radius: var(--rad-pill); background: var(--n-900); color: var(--n-0); text-decoration: none;
-  font-family: var(--display); font-size: 16px; font-weight: 750; box-shadow: 0 4px 0 #000a;
-  transition: transform 90ms, box-shadow 90ms;
+  font-family: var(--display); font-size: 16px; font-weight: 750;
+  transition: background-color var(--dur-fast);
 }
 .rcard-go:hover { background: #2a3038; }
-.rcard-go:active { transform: translateY(4px); box-shadow: none; }
 .rcard-go:focus-visible { outline: 3px solid var(--brand-300); outline-offset: 3px; }
 .resources-note { grid-column: 1 / -1; margin: 0; text-align: center; font-size: var(--fs-sm); color: var(--n-500); }
 @media (max-width: 819px) {
@@ -2411,14 +2372,11 @@ a.tool { text-decoration: none; color: inherit; }
 .bulb-shine { fill: #fff; }
 .bulb-cheek { fill: var(--rw-200); }
 .bulb-sweat { fill: var(--brand-200); }
-.bulb-flame { fill: var(--streak-500); }
 .bulb-ray { fill: none; stroke: var(--streak-500); stroke-width: 4; stroke-linecap: round; }
 .hero2-copy { position: relative; }
 .hero2-bulb { position: absolute; top: 34px; right: 0; transform: rotate(6deg); }
 .review-bulb { margin: var(--sp-8) auto 0; }
 .review-bulb + .review-empty { margin-top: var(--sp-3); text-align: center; }
-.mlog-practice { position: relative; }
-.mlog-bulb { position: absolute; top: -14px; right: 14px; }
 @media (max-width: 819px) {
   .hero2-bulb { width: 72px; height: auto; top: 50px; right: 4px; }
 }
@@ -2431,13 +2389,12 @@ a.tool { text-decoration: none; color: inherit; }
   display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; align-items: end;
   padding: 14px 16px; border: 1px solid var(--n-200); border-radius: var(--rad-lg);
   background: var(--n-0); color: var(--n-900); text-align: left; cursor: pointer;
-  box-shadow: var(--sh-1); transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  box-shadow: var(--sh-1); transition: border-color var(--dur-fast);
 }
 .redo-tile svg { grid-column: 2; grid-row: 1 / 3; align-self: center; color: var(--brand-700); }
 .redo-n { font-family: var(--display); font-weight: 800; font-size: 32px; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .redo-l { margin-top: 4px; font-size: var(--fs-sm); font-weight: 650; color: var(--n-700); }
-.redo-tile:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--sh-2); }
-.redo-tile:active:not(:disabled) { transform: translateY(1px); }
+.redo-tile:hover:not(:disabled) { border-color: var(--n-500); }
 .redo-tile:focus-visible { outline: 3px solid var(--brand-300); outline-offset: 2px; }
 .redo-tile:disabled { cursor: default; opacity: .45; box-shadow: none; }
 .redo-tile.is-tag { background: var(--rw-50); border-color: var(--rw-200); }
