@@ -103,6 +103,8 @@ export default function App() {
   const [dataVersion, setDataVersion] = useState(0)
 
   const [taxonomy, setTaxonomy] = useState<TaxonomyRow[]>([])
+  /** True from the start of a taxonomy fetch until it settles, so Home can tell loading from failed. */
+  const [taxonomyLoading, setTaxonomyLoading] = useState(true)
   const [stats, setStats] = useState<Stats | null>(null)
   const [attemptLog, setAttemptLog] = useState<HistoryRow[]>([])
   const [filters, setFilters] = useState<Filters>({})
@@ -201,9 +203,11 @@ export default function App() {
   useEffect(() => {
     if (view === 'practice') return
     let stale = false
+    setTaxonomyLoading(true)
     api.taxonomy()
       .then((d) => { if (!stale) { setTaxonomy(d.taxonomy); setStats(d.stats) } })
       .catch((e: Error) => !stale && fail(e, reload))
+      .finally(() => { if (!stale) setTaxonomyLoading(false) })
     // Streaks and the score estimate on Home read every attempt.
     api.history()
       .then((d) => { if (!stale) setAttemptLog(d.history) })
@@ -290,6 +294,27 @@ export default function App() {
   }, [filters, order, seed, fail])
 
   useEffect(loadList, [loadList])
+
+  /** Home's "Try again" when the first load failed: the topics and the pool both. */
+  const retryBoot = useCallback(() => { setError(null); reload(); loadList() }, [reload, loadList])
+
+  /**
+   * The pool under difficulty, status and skip-live alone, ignoring the picked
+   * topics, so every skill row on Home can say how many of its questions the
+   * active filters leave ("87 hard"). `items` cannot: it holds only the ticked
+   * skills. Skipped when no such filter is set, since the row totals are then
+   * the answer.
+   */
+  const [facetItems, setFacetItems] = useState<SetItem[] | null>(null)
+  useEffect(() => {
+    if (view !== 'home' || (!filters.difficulties?.length && !filters.statuses?.length)) return
+    let stale = false
+    api.questionSet({ difficulties: filters.difficulties, statuses: filters.statuses, excludeLive: filters.excludeLive })
+      .then((d) => { if (!stale) setFacetItems(d.questions) })
+      // The counts are a hint; the start bar already shows the real total.
+      .catch(() => { if (!stale) setFacetItems(null) })
+    return () => { stale = true }
+  }, [view, filters.difficulties, filters.statuses, filters.excludeLive, dataVersion])
 
   /**
    * Practise a filter straight from Stats. The list is loaded first and then
@@ -461,13 +486,15 @@ export default function App() {
    * Deleting the set does not touch the attempts it produced: those are your
    * practice history and belong to the questions, not to the set.
    */
-  const dropSet = useCallback(async (id: string) => {
+  const dropSet = useCallback(async (id: string): Promise<boolean> => {
     try {
       await api.deleteSet(id)
       if (activeSet?.id === id) setActiveSet(null)
       if (shownSet?.id === id) { setShownSet(null); navigate('review') }
+      setActiveSets((prev) => prev.filter((s) => s.id !== id))
       refreshActiveSets()
-    } catch (e) { fail(e) }
+      return true
+    } catch (e) { fail(e); return false }
   }, [refreshActiveSets, activeSet?.id, shownSet?.id, fail, navigate])
 
   const abandonSet = dropSet
@@ -837,7 +864,9 @@ export default function App() {
     target?.focus()
   }, [view])
 
-  const banner = error ? (
+  // Home's own failure state already says this, with its own Try again.
+  const bootFailed = view === 'home' && !taxonomy.length && !taxonomyLoading
+  const banner = error && !bootFailed ? (
     <ErrorBanner message={error.message}
                  onRetry={error.retry ? () => { setError(null); error.retry?.() } : undefined}
                  onDismiss={() => setError(null)} />
@@ -846,7 +875,9 @@ export default function App() {
   if (view !== 'practice') {
     const pages: Record<Exclude<View, 'practice'>, () => ReactNode> = {
       home: () => (
-        <Home taxonomy={taxonomy} stats={stats} history={attemptLog} value={filters} items={items}
+        <Home taxonomy={taxonomy} taxonomyLoading={taxonomyLoading} onRetryBoot={retryBoot}
+              facet={filters.difficulties?.length || filters.statuses?.length ? facetItems : null}
+              stats={stats} history={attemptLog} value={filters} items={items}
               findIds={findIds} onOpenId={practiceOne}
               loading={listLoading} onChange={setFilters}
               onOpen={(i) => { setIndex(i); navigate('practice') }}

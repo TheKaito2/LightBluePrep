@@ -4,6 +4,8 @@ import { Mascot } from './Mascot'
 import { Footer } from './Footer'
 import { ProgressStrip } from './ProgressStrip'
 import { Modal } from './Modal'
+import { EmptyState } from './EmptyState'
+import { ResumeLabel, SetCard } from './SetCard'
 import { loadProcessTypes, typeCounts, type ProcessTypes } from '../lib/similar'
 import { SPEEDS, setSeconds, formatClock } from '../lib/pacing'
 import {
@@ -19,6 +21,15 @@ import type {
 
 interface Props {
   taxonomy: TaxonomyRow[]
+  /** A taxonomy fetch is in flight. Empty and not loading means it failed. */
+  taxonomyLoading: boolean
+  /** Re-run the first load after it failed. */
+  onRetryBoot: () => void
+  /**
+   * The pool under the difficulty and status filters alone, all topics, or
+   * null when neither filter is set. Drives the per-skill filtered counts.
+   */
+  facet: SetItem[] | null
   stats: Stats | null
   history: HistoryRow[]
   value: Filters
@@ -38,7 +49,8 @@ interface Props {
   onOrder: (next: Order) => void
   activeSets: PracticeSet[]
   onResume: (id: string) => void
-  onAbandon: (id: string) => void
+  /** Resolves true once the set is deleted. */
+  onAbandon: (id: string) => Promise<boolean>
   /** Every question whose College Board ID matches, for the search box. */
   findIds: (needle: string) => Promise<SetItem[]>
   /** Open one question on its own. */
@@ -71,26 +83,41 @@ interface DomainRow {
 
 const SECTION_ICON = { RW: 'book', MATH: 'sigma' } as const
 
-const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0)
+/** Unfinished sets shown before the rest fold behind "Show N more". */
+const SETS_SHOWN = 2
+
+/** How long the first load may run before saying the connection is slow. */
+const SLOW_MS = 8000
+
+/** The word after a filtered count on a skill row ("87 hard"). */
+const STATUS_WORD: Record<Status, string> = {
+  unseen: 'not tried', wrong: 'incorrect', flagged: 'marked', correct: 'correct',
+}
 
 /**
- * Accuracy pill: "new" before any answer, a neutral count until there are
- * enough answers to judge, then the graded percentage.
+ * Graded accuracy, and only from enough answers to judge: one lucky question
+ * is not "100%". Below that the row's count says all there is to say.
  */
-function Acc({ seen, correct, none }: { seen: number; correct: number; none?: string }) {
-  if (!seen) return none ? <span className="acc none">{none}</span> : null
+function Acc({ seen, correct }: { seen: number; correct: number }) {
   const g = graded(seen, correct)
-  if (!g) {
-    return <span className="acc none" title="Too few answers to judge">{fmt(correct)} of {fmt(seen)}</span>
-  }
+  if (!g) return null
   return <span className={`acc ${g.grade}`} title={`${fmt(correct)} of ${fmt(seen)} correct`}>{g.pct}%</span>
 }
 
 export function Home({
-  taxonomy, stats, history, value, items, loading, onChange, onOpen, onStart,
+  taxonomy, taxonomyLoading, onRetryBoot, facet, stats, history, value, items, loading, onChange, onOpen, onStart,
   order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId, onQuickStart, onScoreCheck,
 }: Props) {
   const [showOptions, setShowOptions] = useState(false)
+  const [allSets, setAllSets] = useState(false)
+  /** The first load has run past SLOW_MS. */
+  const [slow, setSlow] = useState(false)
+  const waiting = taxonomyLoading && !taxonomy.length
+  useEffect(() => {
+    if (!waiting) return
+    const t = window.setTimeout(() => setSlow(true), SLOW_MS)
+    return () => { window.clearTimeout(t); setSlow(false) }
+  }, [waiting])
   const closeOptions = useCallback(() => setShowOptions(false), [])
   const [query, setQuery] = useState('')
   /** Hits for the needle they were found for, so a stale list never answers a newer query. */
@@ -181,6 +208,33 @@ export function Home({
     return out
   }, [taxonomy, value.section])
 
+  /** Which section every skill and domain code belongs to, across the whole bank. */
+  const sectionOf = useMemo(() => {
+    const out = new Map<string, Section>()
+    for (const row of taxonomy) { out.set(row.skill, row.section); out.set(row.domain, row.section) }
+    return out
+  }, [taxonomy])
+
+  /**
+   * Questions per skill and per process type under the difficulty and status
+   * filters, or null when neither is set (the row totals are then the answer).
+   */
+  const facetCounts = useMemo(() => {
+    if (!facet) return null
+    const out = new Map<string, number>()
+    const bump = (k: string) => out.set(k, (out.get(k) ?? 0) + 1)
+    for (const q of facet) {
+      bump(q.skill)
+      const ref = q.cb_id && pt?.q[q.cb_id]
+      if (ref) bump(ref)
+    }
+    return out
+  }, [facet, pt])
+  const d1 = value.difficulties?.length === 1 ? value.difficulties[0] : null
+  const s1 = value.statuses?.length === 1 ? value.statuses[0] : null
+  const facetWord = d1 && !value.statuses?.length ? DIFFICULTY_NAME[d1].toLowerCase()
+    : s1 && !value.difficulties?.length ? STATUS_WORD[s1] : 'match'
+
   const secStats = useMemo(() => {
     const out = { RW: { n: 0, seen: 0, correct: 0 }, MATH: { n: 0, seen: 0, correct: 0 } }
     for (const row of taxonomy) {
@@ -265,6 +319,43 @@ export function Home({
   }))
   const summary = pickedNames.length ? andMore(pickedNames)
     : value.section ? `All ${SECTION_NAME[value.section]}` : 'All topics'
+
+  /**
+   * Narrow to one section, keeping the picks that belong to it. Only the other
+   * section's skills, domains and types go; "All" keeps everything.
+   */
+  function pickSection(sec: Section | undefined) {
+    if (!sec) { onChange({ ...value, section: undefined }); return }
+    const keep = (code: string) => sectionOf.get(code) === sec
+    const only = <T,>(list: T[] | undefined, ok: (x: T) => boolean) => {
+      const next = list?.filter(ok)
+      return next?.length ? next : undefined
+    }
+    onChange({
+      ...value, section: sec,
+      domains: only(value.domains, keep),
+      skills: only(value.skills, keep),
+      types: only(value.types, (r) => keep(r.slice(0, r.lastIndexOf('.')))),
+    })
+  }
+
+  // Most recently touched first: that is the one "carry on" means.
+  const setsByRecent = useMemo(
+    () => [...activeSets].sort((a, b) => b.updated_at - a.updated_at), [activeSets])
+  const shownSets = allSets ? setsByRecent : setsByRecent.slice(0, SETS_SHOWN)
+  const hiddenSets = setsByRecent.length - shownSets.length
+
+  async function dropSet(id: string) {
+    const ok = await onAbandon(id)
+    // The row and its focused button are gone: land on the next set, or the topics.
+    if (ok) {
+      requestAnimationFrame(() => {
+        const next = document.querySelector<HTMLElement>('.qsets .setcard-main') ?? document.getElementById('topics-title')
+        next?.focus()
+      })
+    }
+    return ok
+  }
 
   function start() {
     if (value.size) { onStart(); return }
@@ -376,79 +467,79 @@ export function Home({
 
       <div className="hwrap">
         {activeSets.length ? (
-          <section className="qsets">
-            <h2 className="qsets-t">Sets in progress</h2>
+          <section className="qsets" aria-labelledby="qsets-t">
+            <h2 className="qsets-t" id="qsets-t">Pick up where you left off</h2>
             <ul className="setlist">
-              {activeSets.map((s) => (
-                <li key={s.id} className="setcard">
-                  <button className="setcard-main" onClick={() => onResume(s.id)}>
-                    <span className="setcard-text">
-                      <span className="setcard-t">{describeSet(s)}</span>
-                      <span className="setcard-b">{fmt(s.answered)} of {fmt(s.total)} answered</span>
-                      <span className="meter">{s.answered > 0 ? <span className="meter-fill"
-                        style={{ width: `${(s.answered / Math.max(s.total, 1)) * 100}%` }} /> : null}</span>
-                    </span>
-                    <span className="setcard-go">Resume</span>
-                  </button>
-                  <span className="setcard-side">
-                    <button className="setcard-drop" onClick={() => onAbandon(s.id)} title="Discard this set">
-                      <Icon name="trash" size={15} strokeWidth={2} />
-                    </button>
-                  </span>
-                </li>
+              {shownSets.map((s) => (
+                <SetCard key={s.id} set={s} onOpen={() => onResume(s.id)} onDelete={() => dropSet(s.id)}
+                         meta={`${fmt(s.answered)} of ${fmt(s.total)} answered`}
+                         progress={s.answered / Math.max(s.total, 1)}
+                         aside={<ResumeLabel />} />
               ))}
             </ul>
+            {hiddenSets > 0 ? (
+              <button type="button" className="link qsets-more" onClick={() => setAllSets(true)}>
+                Show {fmt(hiddenSets)} more
+              </button>
+            ) : null}
           </section>
         ) : null}
 
         <div className="topics-head">
-          <div className="topics-row">
+          <div className="topics-title">
             <h2 className="h1-section" id="topics-title" tabIndex={-1}>Topics</h2>
-            {/* The static skill pages are the only indexable content; link them. */}
-            <a className="link" href="/skills/">Browse by skill</a>
+            <p className="topics-sub">
+              Pick skills to build a session, or select a whole domain.{' '}
+              {/* The static skill pages are the only indexable content; link them. */}
+              <a className="link" href="/skills/">Browse by skill</a>
+            </p>
           </div>
-          <p className="topics-sub">Tap skills to build your session, or a whole area at once.</p>
           <div className="seg sectabs" role="group" aria-label="Section">
             {tabs.map((t) => (
               <button key={t.label} aria-pressed={value.section === t.key}
                       className={`seg-b${t.key ? ` sec-${t.key}` : ''}${value.section === t.key ? ' on' : ''}`}
-                      onClick={() => onChange({ ...value, section: t.key, domains: undefined, skills: undefined, types: undefined })}>
+                      onClick={() => pickSection(t.key)}>
                 {t.key ? <Icon name={SECTION_ICON[t.key]} size={15} strokeWidth={2} /> : null}
                 <span className="long">{t.label}</span><span className="short">{t.short}</span>
               </button>
             ))}
           </div>
-          {ticked.size ? <button className="link" onClick={() => commit(new Set())}>Clear selection</button> : null}
         </div>
 
-        {!domains.length ? (
-          <div className="dgrid" aria-busy="true" aria-label="Loading topics">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="dcard dskel">
-                <span className="skel skel-t" />
-                {[0, 1, 2].map((j) => <span key={j} className="skel skel-row" />)}
-              </div>
-            ))}
+        {waiting ? (
+          <div className="topics-wait">
+            <div className="topics-wait-msg" role="status" aria-live="polite">
+              <p>Loading the question list from College Board. First visit only, about 1.5 MB.</p>
+              {slow ? <p>Slow connection. This only happens once.</p> : null}
+            </div>
+            <div className="dgrid" aria-hidden="true">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="dcard dskel">
+                  <span className="skel skel-t" />
+                  {[0, 1, 2].map((j) => <span key={j} className="skel skel-row" />)}
+                </div>
+              ))}
+            </div>
           </div>
-        ) : null}
-
-        {domains.length ? SECTIONS.filter((s) => !value.section || s === value.section).map((sec) => {
+        ) : !domains.length ? (
+          <EmptyState mood="oops" className="topics-fail"
+                      title="Couldn't reach College Board's question server"
+                      body="Some school or office networks block it. Try another network, or retry."
+                      action={{ label: 'Try again', onClick: onRetryBoot }} />
+        ) : SECTIONS.filter((s) => !value.section || s === value.section).map((sec) => {
           const ss = secStats[sec]
           const g = graded(ss.seen, ss.correct)
           return (
-            <section key={sec} className={`spanel sec-${sec}`} aria-label={SECTION_NAME[sec]}>
+            <section key={sec} className={`spanel sec-${sec}`} aria-labelledby={`spanel-${sec}`}>
               <header className="spanel-h">
                 <span className="spanel-ico"><Icon name={SECTION_ICON[sec]} size={24} strokeWidth={2} /></span>
                 <div className="spanel-txt">
-                  <h3 className="spanel-t">{SECTION_NAME[sec]}</h3>
+                  <h3 className="spanel-t" id={`spanel-${sec}`}>{SECTION_NAME[sec]}</h3>
                   <p className="spanel-sub">
                     <span>{plural(ss.n, 'question')}</span> · <span>{fmt(ss.seen)} answered</span>
-                    {ss.seen ? <> · <span>{g ? `${g.pct}%` : `${fmt(ss.correct)} of ${fmt(ss.seen)}`} correct</span></> : null}
                   </p>
                 </div>
-                <span className="spanel-pct" aria-label="Section answered">
-                  {pct(ss.seen, ss.n)}<small>%</small>
-                </span>
+                {g ? <span className="spanel-pct">{g.pct}<small>% correct</small></span> : null}
               </header>
               <div className="dgrid">
                 {domains.filter((d) => d.section === sec).map((d) => {
@@ -461,14 +552,18 @@ export function Home({
                         <span className={`box is-${state}`}><Icon name="check" size={12} strokeWidth={3} /></span>
                         <span className="dcard-t">{d.name}</span>
                         <span className="dcard-stat">
-                          {fmt(d.seen)}/{fmt(d.n)}
+                          {fmt(d.seen)} of {fmt(d.n)} answered
                           <Acc seen={d.seen} correct={d.correct} />
                         </span>
                       </button>
-                      <span className="dmeter"><span style={{ transform: `scaleX(${d.n ? d.seen / d.n : 0})` }} /></span>
+                      <span className="dmeter" aria-hidden="true">
+                        <span style={{ transform: `scaleX(${d.n ? d.seen / d.n : 0})` }} />
+                      </span>
                       <ul className="sklist">
                         {d.skills.map((s) => {
                           const sOn = ticked.has(s.code)
+                          const g = graded(s.seen, s.correct)
+                          const left = facetCounts ? facetCounts.get(s.code) ?? 0 : null
                           return (
                             <li key={s.code}>
                               <button className={sOn ? 'skrow on' : 'skrow'} role="checkbox" aria-checked={sOn}
@@ -477,9 +572,23 @@ export function Home({
                                   <Icon name="check" size={10} strokeWidth={3.2} />
                                 </span>
                                 <span className="skrow-name">{s.name}</span>
-                                <span className="skrow-n">{fmt(s.seen)}/{fmt(s.n)}</span>
-                                <Acc seen={s.seen} correct={s.correct} none="new" />
-                                <span className="skbar"><span style={{ transform: `scaleX(${s.n ? s.seen / s.n : 0})` }} /></span>
+                                <span className="skrow-end">
+                                  {left !== null ? <span className="skrow-f">{fmt(left)} {facetWord}</span> : null}
+                                  {/* Compact on screen; spelled out for screen readers below. */}
+                                  <span className="skrow-n" aria-hidden="true">
+                                    {s.seen ? `${fmt(s.seen)}/${fmt(s.n)}` : fmt(s.n)}
+                                  </span>
+                                  <Acc seen={s.seen} correct={s.correct} />
+                                </span>
+                                <span className="sr-only">
+                                  {`, ${fmt(s.seen)} of ${fmt(s.n)} answered`}
+                                  {!s.seen ? ', not started' : g ? `, ${g.pct}% correct` : ''}
+                                </span>
+                                {s.seen ? (
+                                  <span className="skbar" aria-hidden="true">
+                                    <span style={{ transform: `scaleX(${s.seen / s.n})` }} />
+                                  </span>
+                                ) : null}
                               </button>
                               {sOn && pt?.types[s.code] ? (() => {
                                 const types = Object.entries(pt.types[s.code])
@@ -501,7 +610,11 @@ export function Home({
                                                 <Icon name="check" size={9} strokeWidth={3.4} />
                                               </span>
                                               <span className="sktype-name">{t.label}</span>
-                                              <span className="sktype-n">{ptCounts?.get(ref) ?? 0}</span>
+                                              <span className="sktype-n">
+                                                {facetCounts
+                                                  ? `${fmt(facetCounts.get(ref) ?? 0)} ${facetWord}`
+                                                  : ptCounts?.get(ref) ?? 0}
+                                              </span>
                                             </button>
                                           </li>
                                         )
@@ -520,7 +633,7 @@ export function Home({
               </div>
             </section>
           )
-        }) : null}
+        })}
 
       </div>
 
@@ -529,10 +642,18 @@ export function Home({
       <div className="startbar2">
         <div className="startbar2-in">
           <div className="sb-sum">
-            <strong>
-              {pickedSections.map((s) => <i key={s} className={`sb-dot sec-${s}`} aria-hidden="true" />)}
-              {summary}
-            </strong>
+            <div className="sb-line">
+              <strong>
+                {pickedSections.map((s) => <i key={s} className={`sb-dot sec-${s}`} aria-hidden="true" />)}
+                <span className="sb-name">{summary}</span>
+              </strong>
+              {ticked.size ? (
+                <button type="button" className="sb-clear" aria-label="Clear topics" title="Clear topics"
+                        onClick={() => commit(new Set())}>
+                  <Icon name="close" size={14} strokeWidth={2.4} />
+                </button>
+              ) : null}
+            </div>
             <span>
               {loading ? 'Counting…' : plural(count, 'question')}
               {!loading && pool.done ? <span className="sb-long"> · {fmt(pool.done)} answered</span> : ''}

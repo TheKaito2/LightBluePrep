@@ -20,10 +20,11 @@ import * as api from '../api'
 import { QuestionDetail } from './QuestionDetail'
 import { Icon } from './Icon'
 import { PageHead } from './PageHead'
+import { SetCard } from './SetCard'
 import { Stat, StatGroup } from './Stat'
 import { Mascot } from './Mascot'
 import { TAG_LABEL } from './MistakeFields'
-import { DIFFICULTIES, DIFFICULTY_NAME, SECTION_NAME, VERDICT, describeSet, fmt, plural } from '../lib/labels'
+import { DIFFICULTIES, DIFFICULTY_NAME, SECTION_NAME, VERDICT, fmt, plural } from '../lib/labels'
 import { loadProcessTypes, typeOf, type ProcessTypes } from '../lib/similar'
 import { duration } from '../lib/pacing'
 import { graded } from '../lib/score'
@@ -69,7 +70,8 @@ interface Props {
   onPracticeMany: (ids: string[], title: string) => void
   /** Open a finished set's score screen. */
   onOpenSet: (id: string) => void
-  onDeleteSet: (id: string) => void
+  /** Resolves true once the set is deleted. */
+  onDeleteSet: (id: string) => Promise<boolean>
 }
 
 export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: Props) {
@@ -125,32 +127,21 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
         {sets.map((s) => {
           const g = graded(s.total, s.correct)
           return (
-            <li key={s.id} className="setcard">
-              <button className="setcard-main" onClick={() => onOpenSet(s.id)}>
-                <span className="setcard-text">
-                  <span className="setcard-t">{describeSet(s)}</span>
-                  <span className="setcard-b">
-                    {new Date((s.finished_at ?? s.created_at) * 1000)
-                      .toLocaleDateString(undefined,
-                        { month: 'short', day: 'numeric', year: 'numeric' })}
-                    {s.seconds ? ` · ${duration(s.seconds)}` : ''}
-                  </span>
-                </span>
-                <span className={`setcard-score ${g?.grade ?? ''}`}>
-                  {fmt(s.correct)}<span className="dim">/{fmt(s.total)}</span>
-                </span>
-              </button>
-              <span className="setcard-side">
-                <button className="setcard-drop"
-                        title="Delete this set"
-                        onClick={() => {
-                          setSets((prev) => prev?.filter((x) => x.id !== s.id) ?? prev)
-                          onDeleteSet(s.id)
-                        }}>
-                  <Icon name="trash" size={15} strokeWidth={2} />
-                </button>
-              </span>
-            </li>
+            <SetCard key={s.id} set={s} onOpen={() => onOpenSet(s.id)}
+                     meta={<>
+                       {new Date((s.finished_at ?? s.created_at) * 1000)
+                         .toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                       {s.seconds ? ` · ${duration(s.seconds)}` : ''}
+                     </>}
+                     aside={<span className={`setcard-score ${g?.grade ?? ''}`}>
+                       {fmt(s.correct)}<span className="dim">/{fmt(s.total)}</span>
+                     </span>}
+                     onDelete={async () => {
+                       // The row goes only once the delete has really happened.
+                       const ok = await onDeleteSet(s.id)
+                       if (ok) setSets((prev) => prev?.filter((x) => x.id !== s.id) ?? prev)
+                       return ok
+                     }} />
           )
         })}
       </ul>

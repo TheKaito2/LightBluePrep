@@ -29,33 +29,46 @@ const DOMAINS: Record<number, string> = { [RW]: 'INI,CAS,EOI,SEC', [MATH]: 'H,P,
 const RETRIES = 4
 const TIMEOUT_MS = 60_000
 
+/**
+ * The index is the first thing a new visitor waits on, with nothing on screen
+ * until it lands. It measures 1.7s on a normal line, so 20s means the network
+ * is not getting through; three tries then fail in about a minute instead of
+ * four, and Home can offer another network or a retry.
+ */
+const INDEX_TRIES = { attempts: 3, timeoutMs: 20_000 }
+
+interface Tries { attempts: number; timeoutMs: number }
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Json = any
 
-async function request(url: string, init: RequestInit): Promise<Json> {
+async function request(
+  url: string, init: RequestInit,
+  { attempts, timeoutMs }: Tries = { attempts: RETRIES, timeoutMs: TIMEOUT_MS },
+): Promise<Json> {
   let last: unknown = null
-  for (let attempt = 0; attempt < RETRIES; attempt++) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     try {
-      const response = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) })
+      const response = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) })
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
       return await response.json()
     } catch (error) {
       last = error
       // Exponential backoff, same shape as the Python client.
-      if (attempt < RETRIES - 1) {
+      if (attempt < attempts - 1) {
         await new Promise((r) => setTimeout(r, 2 ** attempt * 1000))
       }
     }
   }
-  throw new Error(`${url} failed after ${RETRIES} attempts: ${last}`)
+  throw new Error(`${url} failed after ${attempts} attempts: ${last}`)
 }
 
-function post(url: string, payload: unknown): Promise<Json> {
+function post(url: string, payload: unknown, tries?: Tries): Promise<Json> {
   return request(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  })
+  }, tries)
 }
 
 /**
@@ -67,7 +80,7 @@ export async function fetchIndex(): Promise<Stub[]> {
   const pages = await Promise.all(sections.map(async ([test, section]) => {
     const rows: Json[] = await post(LIST_URL, {
       asmtEventId: SAT_EVENT_ID, test, domain: DOMAINS[test],
-    })
+    }, INDEX_TRIES)
     return rows.map((row) => tagStub(row, section))
   }))
   return dedupeStubs(pages.flat())

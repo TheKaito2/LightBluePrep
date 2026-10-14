@@ -210,20 +210,25 @@
   }
 }
 
-/* ---- topics ---- */
-.qsets { margin-bottom: var(--sp-8); }
+/* ---- sets in progress: right under the hero, before the topics ---- */
+.hwrap:has(> .qsets) { padding-top: var(--sp-6); }
+.qsets { margin-bottom: var(--sp-12); }
 .qsets-t { margin: 0 0 var(--sp-3); font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
-.topics-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-3) var(--sp-6); margin-bottom: var(--sp-5); }
-.topics-head > :first-child { flex-basis: 100%; }
-.topics-sub { margin: -4px 0 0; font: var(--type-body); color: var(--fg-3); flex: 1 1 260px; }
-.topics-head .link { margin-left: auto; }
-.topics-row { display: flex; align-items: baseline; gap: var(--sp-4); }
+.qsets-more { margin-top: var(--sp-2); }
 
-/* Masonry: two columns that pack cards of different heights without gaps. */
-.dgrid { columns: 2; column-gap: var(--sp-3); }
-.dgrid > .dcard { break-inside: avoid; margin-bottom: var(--sp-3); display: inline-block; width: 100%; vertical-align: top; }
+/* ---- topics ---- */
+.topics-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-4) var(--sp-6); margin-bottom: var(--sp-5); }
+.topics-title { min-width: 0; }
+.topics-sub { margin: var(--sp-1) 0 0; font: var(--type-small); color: var(--fg-3); }
+.topics-sub .link { font: inherit; font-weight: 600; }
+.sectabs { flex: none; }
+
+/* Two plain grid columns: row-major tab order, and a card that grows only
+   pushes the cards below it. */
+.dgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); align-items: start; }
 /* Topic cards sit inside the white panel, so a hairline and no fill. Picked:
-   an inset ring in the section colour (no layout shift) and its tint. */
+   an inset ring in the section colour (no layout shift) and its tint. The card
+   is not one target, so it never lifts; only its rows answer the pointer. */
 .dcard {
   position: relative; border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface); overflow: hidden;
   transition: box-shadow var(--dur-fast), background-color var(--dur-fast);
@@ -237,27 +242,36 @@
 /* The card clips its corners, so the ring goes inside the header. */
 .shell .dcard-h:focus-visible { outline-offset: -2px; }
 .dcard-t { flex: 1; min-width: 0; font: var(--type-h3); letter-spacing: var(--tr-h3); }
-.dcard-stat { display: inline-flex; align-items: center; gap: var(--sp-2); flex: none; font-size: 12px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.dcard-stat {
+  display: inline-flex; align-items: center; gap: var(--sp-2); flex: none;
+  font: var(--type-small); color: var(--fg-3); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
 .dmeter { display: block; height: 6px; margin: 0 var(--sp-4); background: var(--sec-50); border-radius: var(--rad-pill); overflow: hidden; }
 .dcard.is-on .dmeter { background: var(--surface); }
 .dmeter > span { display: block; height: 100%; border-radius: inherit; background: var(--sec-500); transform-origin: left center; transition: transform var(--dur-data) var(--ease-out); }
-.sklist { list-style: none; margin: var(--sp-2) 0 var(--sp-2); padding: 0 var(--sp-2); }
+/* Skill rows: 44px, edge to edge, split by hairlines. */
+.sklist { list-style: none; margin: var(--sp-3) 0 0; padding: 0; }
+.sklist > li { border-top: 1px solid var(--hair-1); }
 .skrow {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-rows: auto auto;
-  align-items: center; gap: 5px var(--sp-3); width: 100%; padding: 10px var(--sp-2); border: 0; border-radius: var(--rad-sm);
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: var(--sp-3);
+  width: 100%; min-height: 44px; padding: 10px var(--sp-4); border: 0; border-radius: 0;
   background: none; font: inherit; text-align: left; color: var(--fg-2); cursor: pointer;
   transition: background-color var(--dur-fast);
 }
+.shell .skrow:focus-visible { outline-offset: -2px; }
 .skrow:hover { background: var(--surface-subtle); color: var(--fg-1); }
 .skrow.on { background: var(--sec-50); color: var(--fg-1); }
 .dcard.is-on .skrow.on { background: none; }
 .skrow-name { font: 500 14px/20px var(--sans); }
 .skrow.on .skrow-name { font-weight: 600; color: var(--sec-700); }
-.skrow-n { font-size: 12px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
-.skbar { grid-column: 2 / -1; display: block; height: 3px; border-radius: var(--rad-pill); background: var(--surface-sunken); overflow: hidden; }
-.skbar > span { display: block; height: 100%; border-radius: inherit; background: var(--sec-300); transform-origin: left center; transition: transform var(--dur-data) var(--ease-out); }
-.skrow.on .skbar { background: var(--sec-100); }
-.skrow.on .skbar > span { background: var(--sec-500); }
+.skrow-end { display: inline-flex; align-items: center; gap: var(--sp-2); justify-self: end; }
+.skrow-n { min-width: 4ch; text-align: right; font: var(--type-small); color: var(--fg-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* The count the active difficulty or status filter leaves ("87 hard"). */
+.skrow-f { font: 600 12px/16px var(--sans); color: var(--sec-700); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Only drawn once a skill has an answer, under the name. */
+.skbar { grid-column: 2 / -1; display: block; height: 3px; margin-top: 6px; border-radius: var(--rad-pill); background: var(--surface-sunken); overflow: hidden; }
+.skbar > span { display: block; height: 100%; border-radius: inherit; background: var(--sec-500); transform-origin: left center; transition: transform var(--dur-data) var(--ease-out); }
+.skrow.on .skbar { background: var(--surface); }
 /* Accuracy: text tokens only, never a series colour. */
 .acc {
   min-width: 46px; text-align: right; padding: 2px 8px; border-radius: var(--rad-pill); white-space: nowrap;
@@ -282,6 +296,14 @@
 .box.is-mixed::after { content: ''; position: absolute; width: 8px; height: 2px; border-radius: 1px; background: var(--sec-600, var(--brand-700)); }
 .dcard-h:hover .box.is-off, .skrow:hover .box.is-off { border-color: var(--sec-600, var(--brand-700)); }
 
+/* First load: what is happening and why it takes a moment, over the shape of
+   the cards. The words wait a beat, so a quick load from this device's own
+   copy never flashes them. */
+.topics-wait-msg { margin-bottom: var(--sp-4); font: var(--type-small); color: var(--fg-3); animation: wait-in var(--dur-fast) .8s both; }
+.topics-wait-msg p { margin: 0; }
+.topics-wait-msg p + p { margin-top: 2px; color: var(--fg-2); }
+@keyframes wait-in { from { opacity: 0; } }
+.topics-fail { padding: var(--sp-10) 0 var(--sp-12); }
 /* Loading: the shape of the cards, pulsing, instead of a spinner. Opacity only,
    so the browser composites it instead of repainting every frame. */
 .dskel { padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3); }
@@ -302,10 +324,18 @@
 }
 .startbar2-in { max-width: 1160px; margin: 0 auto; padding: 12px var(--sp-8); display: flex; align-items: center; gap: var(--sp-3); }
 .sb-sum { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
+.sb-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .sb-sum strong {
-  display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: flex; align-items: center; gap: 8px; min-width: 0;
   font: var(--type-h3); letter-spacing: var(--tr-h3);
 }
+.sb-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-clear {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0;
+  border: 0; border-radius: var(--rad-sm); background: none; color: var(--fg-inv-2); cursor: pointer;
+  transition: background-color var(--dur-fast), color var(--dur-fast);
+}
+.sb-clear:hover { background: rgba(255, 255, 255, .12); color: var(--fg-inv-1); }
 .sb-sum span { font: var(--type-small); color: var(--fg-inv-3); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--sec-500); flex: none; }
 .sb-ctl { align-items: center; gap: var(--sp-2); }
@@ -348,9 +378,17 @@
   .scard-stats .stat-l { letter-spacing: .03em; }
   .scard-note { margin-top: 6px; }
   .sb-long { display: none; }
-  .topics-head .seg { width: 100%; }
+  .hwrap:has(> .qsets) { padding-top: var(--sp-4); }
+  .qsets { margin-bottom: var(--sp-10); }
+  .topics-head { flex-direction: column; align-items: stretch; margin-bottom: var(--sp-4); }
   .seg-b { padding: 0 8px; }
-  .dgrid { columns: 1; }
+  .dgrid { grid-template-columns: minmax(0, 1fr); }
+  .skrow { padding-inline: var(--sp-3); }
+  /* No room beside a two-line title: the figures take their own line under it. */
+  .dcard-h { flex-wrap: wrap; row-gap: 6px; padding: var(--sp-3) var(--sp-3) 10px; }
+  .dcard-t { flex-basis: calc(100% - 30px); }
+  .dcard-stat { margin-left: 30px; }
+  .dmeter { margin: 0 var(--sp-3); }
   .startbar2-in { padding: 8px 12px; gap: var(--sp-2); }
   /* Options and Start share the one row here, so they share a height. */
   .shell .startbar2 .sb-opt { min-height: 48px; }
@@ -360,38 +398,37 @@
 }
 
 /* ==================================================== practice sets
-   A set is a fixed, randomly drawn run of questions with a score at the end.
-   The cards below are used twice: unfinished sets queued on Home, and finished
-   ones in the history on Review. */
+   components/SetCard.tsx: unfinished sets on Home, finished ones on Review.
+   One bordered list, 52px rows split by hairlines (spec 7.11). The section
+   colour comes from .sec-RW / .sec-MATH on the row; a mixed set falls back to
+   brand blue. */
 
-.setlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
-.setcard {
-  display: flex; align-items: stretch; gap: 10px;
-  border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface);
-  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+.setlist {
+  list-style: none; margin: 0; padding: 0;
+  border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface); overflow: hidden;
 }
-.setcard:hover { border-color: var(--hair-ctl); box-shadow: var(--sh-1); }
-/* The whole card is the button, apart from the delete. The label that says what
-   clicking does has to be inside it. */
+.setcard { display: flex; align-items: center; gap: var(--sp-1); padding-right: var(--sp-2); transition: background-color var(--dur-fast); }
+.setcard + .setcard { border-top: 1px solid var(--hair-1); }
+.setcard:hover { background: var(--surface-subtle); }
+/* The whole row is the button, apart from the delete. */
 .setcard-main {
-  flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px;
-  padding: 14px 16px; background: none; border: none; cursor: pointer; border-radius: var(--rad-md);
+  flex: 1; min-width: 0; min-height: 52px; display: flex; align-items: center; gap: var(--sp-3);
+  padding: 6px var(--sp-2) 6px var(--sp-4); background: none; border: 0; cursor: pointer;
   text-align: left; color: var(--fg-1); font: inherit;
 }
-.setcard-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.setcard-t { font: var(--type-h3); letter-spacing: var(--tr-h3); }
-.setcard-b { font: var(--type-small); color: var(--fg-3); }
-.setcard-text .meter { margin-top: 6px; }
-.setcard-side {
-  display: flex; align-items: center; gap: 6px; padding: 0 14px 0 0; flex: none;
+.shell .setcard-main:focus-visible { outline-offset: -2px; }
+.setcard-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--sec-500, var(--brand-600)); }
+.setcard-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.setcard-t { font: var(--type-h3); letter-spacing: var(--tr-h3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.setcard-b { font: var(--type-small); color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.setcard-meter {
+  flex: none; width: 160px; height: 4px; border-radius: var(--rad-pill);
+  background: var(--sec-50, var(--brand-50)); overflow: hidden;
 }
-.setcard-go { flex: none; font: 600 13px/18px var(--sans); color: var(--fg-link); }
-.setcard-drop {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: var(--rad-sm);
-  background: none; border: none; cursor: pointer; color: var(--fg-3);
-}
-.setcard-drop:hover { background: var(--bad-50); color: var(--bad-700); }
+.setcard-meter > span { display: block; height: 100%; min-width: 4px; border-radius: inherit; background: var(--sec-500, var(--brand-600)); }
+/* A secondary sm button in look; the row's own button does the work. */
+.shell .setcard-go { flex: none; pointer-events: none; }
+.setcard-main:hover .setcard-go { border-color: var(--hair-ctl); }
 .setcard-score {
   flex: none; font: 750 var(--num-s)/1 var(--display); letter-spacing: var(--tr-num-s);
   font-variant-numeric: tabular-nums lining-nums;
@@ -400,7 +437,13 @@
 .setcard-score.mid  { color: var(--warn-700); }
 .setcard-score.poor { color: var(--bad-700); }
 @media (max-width: 819px) {
-  .setcard-side { padding-right: 10px; }
+  .setcard-main { gap: 10px; padding-left: var(--sp-3); }
+  .setcard-meter { width: 56px; }
+  /* Resume becomes a 36px icon button; its word stays for screen readers. */
+  .shell .setcard-go { width: 36px; min-height: 36px; padding: 0; }
+  .setcard-go-t { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* While delete asks, it needs the room. */
+  .setcard:has(.cdel[role=group]) :is(.setcard-meter, .setcard-go) { display: none; }
 }
 
 /* ---- College Board question id in list rows (ID search hits, Inbox) ---- */

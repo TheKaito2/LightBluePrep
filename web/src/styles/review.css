@@ -153,7 +153,6 @@
 /* Section heading to content: 20px (phone 16). */
 .review .h1-section { margin-bottom: var(--sp-5); }
 @media (max-width: 819px) { .review .h1-section { margin-bottom: var(--sp-4); } }
-.review .setlist { gap: var(--sp-2); }
 .review-bulb { margin: var(--sp-8) auto 0; }
 .review-bulb + .review-empty { margin-top: var(--sp-3); text-align: center; }
 
