@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useId, useState } from 'react'
 import { Modal } from './Modal'
 import * as fb from '../lib/feedback'
+import { toUserMessage } from '../lib/errors'
 
 const EVENT = 'lbp:feedback'
 
@@ -62,7 +63,7 @@ export function FeedbackHost() {
       await fb.send(kind, message, ctx, website)
       setPhase('sent')
     } catch (err) {
-      setError((err as Error).message); setPhase('edit')
+      setError(toUserMessage(err, 'server')); setPhase('edit')
     }
   }
 

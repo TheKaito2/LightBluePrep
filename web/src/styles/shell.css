@@ -10,9 +10,59 @@
 .shell { height: 100%; display: flex; flex-direction: column; background: var(--surface); color: var(--fg-1); }
 .page { flex: 1; min-height: 0; overflow-y: auto; }
 
-.error {
-  background: var(--bad-50); color: var(--bad-700); padding: 10px 22px;
-  font: var(--type-small); cursor: pointer; border-bottom: 1px solid var(--bad-200);
+/* Home's .home is its own scroller; its main only hands the height down. */
+.page.page-home { display: flex; flex-direction: column; overflow: hidden; }
+
+/* The whole-app crash screen: nothing else is on the page, so centre it. */
+.crash-page { display: flex; align-items: center; justify-content: center; padding: var(--sp-6) var(--sp-4); }
+.empty.crash .fb-link { margin-top: var(--sp-2); }
+
+/* Views take focus at their title (or main) on navigation. They are not
+   controls, so they get no ring; the move is for screen readers and Tab order. */
+:is(h1, main, [role=heading])[tabindex="-1"]:focus { outline: none; }
+
+/* ============================================================ skip link
+   First stop on Tab in both layouts. Hidden like .sr-only until focused, then
+   a dark pill top-left over whatever is there. */
+.skiplink {
+  position: absolute; z-index: 1000; left: var(--sp-3); top: var(--sp-3);
+  padding: 10px var(--sp-4); border-radius: var(--rad-pill);
+  background: var(--surface-ink); color: var(--fg-inv-1);
+  font: var(--type-ui); font-weight: 600; text-decoration: none;
+}
+.skiplink:not(:focus) {
+  width: 1px; height: 1px; padding: 0; overflow: hidden;
+  white-space: nowrap; clip-path: inset(50%);
+}
+.skiplink:focus { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ============================================================ error banner
+   components/ErrorBanner.tsx, under the nav (or the practice header). Status
+   tokens only; shared by both layouts, so nothing here is scoped to .shell. */
+.errbar {
+  flex: none; display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-6);
+  background: var(--bad-50); color: var(--bad-700); border-bottom: 1px solid var(--bad-200);
+  font: var(--type-small);
+}
+.errbar > svg { flex: none; }
+.errbar-t { flex: 1; min-width: 0; margin: 0; color: var(--bad-700); }
+.errbar-retry {
+  flex: none; height: 32px; padding: 0 var(--sp-3);
+  border: 1px solid var(--bad-200); border-radius: var(--rad-sm);
+  background: var(--surface); color: var(--bad-700);
+  font: var(--type-small); font-weight: 600; cursor: pointer;
+}
+.errbar-retry:hover { border-color: var(--bad-700); }
+.errbar-x {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--rad-sm);
+  background: none; color: var(--bad-700); cursor: pointer;
+}
+.errbar-x:hover { background: var(--bad-200); }
+.errbar button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media (max-width: 819px) {
+  .errbar { padding-left: var(--sp-4); }
 }
 
 /* Headlines balance their lines; running text avoids a lone last word. */

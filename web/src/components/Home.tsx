@@ -248,7 +248,7 @@ export function Home({
             <span className="eyebrow">
               {totals.all ? `${fmt(totals.all)} official questions` : 'Official questions'} · always free
             </span>
-            <h1 className="hero2-t">Pick a topic.<br /><span className="hero2-hl">Start drilling.</span></h1>
+            <h1 className="hero2-t" tabIndex={-1}>Pick a topic.<br /><span className="hero2-hl">Start drilling.</span></h1>
             <p className="hero2-sub">
               Every College Board practice question, sorted by skill. Your progress saves as you go.
             </p>

@@ -14,6 +14,7 @@ import * as auth from '../lib/auth'
 import * as sync from '../lib/sync'
 import { PageHead } from './PageHead'
 import { plural } from '../lib/labels'
+import { toUserMessage } from '../lib/errors'
 
 type Summary = Awaited<ReturnType<NonNullable<typeof api.localDataSummary>>>
 type Action = 'local' | 'both' | 'cloud'
@@ -48,7 +49,7 @@ export function Settings() {
 
   const count = useCallback(() => {
     api.localDataSummary?.().then(setSummary)
-      .catch((e: Error) => setResult({ action: 'local', error: e.message }))
+      .catch((e: Error) => setResult({ action: 'local', error: toUserMessage(e) }))
   }, [])
   useEffect(count, [count])
   // A sync can pull rows in while this page is open (signing in, another device).
@@ -72,7 +73,7 @@ export function Settings() {
       }
       setResult({ action })
     } catch (e) {
-      setResult({ action, error: (e as Error).message })
+      setResult({ action, error: toUserMessage(e, 'server') })
     } finally {
       setBusy(false); setConfirm(null)
     }

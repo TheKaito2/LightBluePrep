@@ -26,6 +26,7 @@ import { DIFFICULTIES, DIFFICULTY_NAME, SECTION_NAME, VERDICT, describeSet, fmt,
 import { loadProcessTypes, typeOf, type ProcessTypes } from '../lib/similar'
 import { duration } from '../lib/pacing'
 import { graded } from '../lib/score'
+import { toUserMessage } from '../lib/errors'
 import { MISTAKE_TAGS, type MistakeTag, type PracticeSet, type Section, type SetItem } from '../types'
 
 /**
@@ -103,7 +104,7 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
   useEffect(() => {
     api.reviewed()
       .then((d) => setItems(d.questions))
-      .catch((e: Error) => setError(e.message))
+      .catch((e: Error) => setError(toUserMessage(e)))
     // Up front, not as rows are opened: a filter that only knows about what you
     // already clicked is not a filter.
     api.loggedIds()

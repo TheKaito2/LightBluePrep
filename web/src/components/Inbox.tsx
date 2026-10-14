@@ -37,7 +37,7 @@ export function Inbox() {
   return (
     <div className="inbox">
       <div className="inbox-head">
-        <h1 className="about-h1">Feedback inbox</h1>
+        <h1 className="about-h1" tabIndex={-1}>Feedback inbox</h1>
         <button className="btn" onClick={load}>Refresh</button>
       </div>
       {usage ? (

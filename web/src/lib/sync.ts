@@ -15,6 +15,7 @@
  */
 import * as auth from './auth'
 import * as store from './store'
+import { toUserMessage } from './errors'
 import type { Annotation, MistakeTag } from '../types'
 
 export type SyncStatus = 'off' | 'syncing' | 'synced' | 'pending'
@@ -129,7 +130,7 @@ async function run(): Promise<void> {
     // Surfaced as amber in the UI rather than swallowed: a sync that silently
     // stops looks identical to one that is switched off.
     retryDelay = retryDelay ? Math.min(retryDelay * 2, RETRY_MAX_MS) : RETRY_MIN_MS
-    emit('pending', (e as Error).message)
+    emit('pending', toUserMessage(e, 'server'))
     schedule(retryDelay)
   }
 }

@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import * as auth from '../lib/auth'
 import * as sync from '../lib/sync'
 import * as fb from '../lib/feedback'
+import { toUserMessage } from '../lib/errors'
 import { Icon } from './Icon'
 
 const LABEL: Record<sync.SyncStatus, string> = {
@@ -115,8 +116,8 @@ function SignedOutPanel({ onSignedIn }: { onSignedIn: () => void }) {
         await sync.seedOutbox()
         await sync.syncNow()
       },
-      (message) => { setError(message); rendered.current = false },
-    ).catch((e: Error) => { setError(e.message); rendered.current = false })
+      (message) => { setError(toUserMessage(message, 'signin')); rendered.current = false },
+    ).catch((e: Error) => { setError(toUserMessage(e, 'signin')); rendered.current = false })
   }, [onSignedIn])
 
   return (
@@ -159,7 +160,7 @@ function SignedInPanel(
       onSignedOut()
       onClose()
     } catch (e) {
-      setError((e as Error).message)
+      setError(toUserMessage(e, 'server'))
     } finally {
       setBusy(false)
     }

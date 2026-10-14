@@ -438,7 +438,9 @@ async function handleAuth(request, env, origin) {
   }
 
   if (!env.GOOGLE_CLIENT_ID) {
-    return fail('GOOGLE_CLIENT_ID is not set on the Worker. Check GET /health.', 500, origin)
+    // The detail is for the owner's logs; a student only needs to know it is down.
+    console.error('GOOGLE_CLIENT_ID is not set on the Worker. Check GET /health.')
+    return fail('sign-in is not available right now', 500, origin)
   }
 
   const sub = await verifyGoogleToken(body.credential, env.GOOGLE_CLIENT_ID)

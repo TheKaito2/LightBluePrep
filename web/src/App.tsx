@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as api from './api'
 import { Home } from './components/Home'
 import { Stats as StatsPage } from './components/Stats'
@@ -22,6 +22,8 @@ import { SetReview } from './components/SetReview'
 import { FeedbackHost } from './components/Feedback'
 import { Inbox } from './components/Inbox'
 import { Resources } from './components/Resources'
+import { ErrorBanner } from './components/ErrorBanner'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { sample } from './lib/draw'
 import { arrange, type Order } from './lib/order'
 import type { HistoryRow } from './lib/progress'
@@ -29,6 +31,8 @@ import { setSeconds, formatClock } from './lib/pacing'
 import { useQuestionTimer } from './lib/useTimer'
 import { SECTION_NAME } from './lib/labels'
 import * as sync from './lib/sync'
+import { toUserMessage } from './lib/errors'
+import { parseHash, titleFor, urlFor, type View } from './lib/route'
 import type {
   Annotation, Filters, GradeResult, Mistake, PracticeSet, Question, SetAnswer,
   SetItem, Stats, TaxonomyRow,
@@ -61,9 +65,39 @@ const NAV = [
   { key: 'settings', label: 'Settings', icon: 'gear' },
 ] as const
 
+/** index.html's own title, which Home goes back to. */
+const HOME_TITLE = document.title
+
+/** Move focus to an in-page target without letting the hash reach the router. */
+function skipTo(id: string) {
+  return (event: React.MouseEvent) => {
+    event.preventDefault()
+    document.getElementById(id)?.focus()
+  }
+}
+
 export default function App() {
-  const [view, setView] =
-    useState<'home' | 'stats' | 'about' | 'review' | 'practice' | 'results' | 'inbox' | 'resources' | 'settings'>('home')
+  // A deep link (?q, ?skill, ?type) wins over the hash: it opens practice
+  // from Home below, so Back from it lands on Home.
+  const [view, setView] = useState<View>(() => (
+    ['q', 'skill', 'type'].some((k) => new URLSearchParams(window.location.search).has(k))
+      ? 'home' : parseHash(window.location.hash)))
+  const viewRef = useRef(view)
+  useEffect(() => { viewRef.current = view }, [view])
+
+  /**
+   * Show `next` and give it a history entry, so Back and reload behave like
+   * pages. Practice and Results keep the URL they were opened from: what they
+   * show is in memory, and a reload there lands on the page underneath.
+   */
+  const navigate = useCallback((next: View, replace = false) => {
+    const url = urlFor(next, window.location.href)
+    // Clicking the tab you are on must not add a step to Back.
+    if (replace || next !== viewRef.current || url.href !== window.location.href) {
+      history[replace ? 'replaceState' : 'pushState']({ view: next }, '', url)
+    }
+    setView(next)
+  }, [])
 
   /** Bumped by a sync that pulled rows; drives the taxonomy refetch below. */
   const [dataVersion, setDataVersion] = useState(0)
@@ -135,7 +169,18 @@ export default function App() {
   const [showTimer, setShowTimer] = useState(true)
   const [showDesmos, setShowDesmos] = useState(false)
   const [desmosSplit, setDesmosSplit] = useState<number | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{ message: string; retry?: () => void } | null>(null)
+  /** Every failure the app shows goes through here, never a raw message. */
+  const fail = useCallback((e: unknown, retry?: () => void) => {
+    setError({ message: toUserMessage(e), retry })
+  }, [])
+  /**
+   * Bumped by Retry to re-run the taxonomy or question load. One counter is
+   * enough: the question load only runs in practice and the taxonomy only
+   * outside it.
+   */
+  const [reloadKey, setReloadKey] = useState(0)
+  const reload = useCallback(() => setReloadKey((n) => n + 1), [])
   const [loading, setLoading] = useState(false)
 
   const current = items[index] ?? null
@@ -158,13 +203,13 @@ export default function App() {
     let stale = false
     api.taxonomy()
       .then((d) => { if (!stale) { setTaxonomy(d.taxonomy); setStats(d.stats) } })
-      .catch((e: Error) => !stale && setError(e.message))
+      .catch((e: Error) => !stale && fail(e, reload))
     // Streaks and the score estimate on Home read every attempt.
     api.history()
       .then((d) => { if (!stale) setAttemptLog(d.history) })
       .catch(() => {})
     return () => { stale = true }
-  }, [view, dataVersion])
+  }, [view, dataVersion, reloadKey, fail, reload])
 
   // Starts the sync loop if a session already exists. No-op when signed out or
   // when the build has no sync configured, so the localhost path is untouched.
@@ -189,33 +234,41 @@ export default function App() {
       const byId = new Map(d.questions.map((q) => [q.id, q]))
       const list = ids.flatMap((id) => byId.get(id) ?? [])
       if (!list.length) return
-      setItems(list); setIndex(0); setListTitle(title); setView('practice')
-    }).catch((e: Error) => setError(e.message))
-  }, [])
+      setItems(list); setIndex(0); setListTitle(title); navigate('practice')
+    }).catch((e: Error) => fail(e))
+  }, [fail, navigate])
 
   const practiceOne = useCallback((id: string) => {
     const found = items.find((i) => i.id === id)
-    if (found) { setItems([found]); setIndex(0); setView('practice'); return }
+    if (found) { setItems([found]); setIndex(0); navigate('practice'); return }
     api.questionSet({}).then((d) => {
       const one = d.questions.find((q) => q.id === id)
-      if (one) { setItems([one]); setIndex(0); setView('practice') }
-    }).catch((e: Error) => setError(e.message))
-  }, [items])
+      if (one) { setItems([one]); setIndex(0); navigate('practice') }
+    }).catch((e: Error) => fail(e))
+  }, [items, fail, navigate])
 
-  // The feedback inbox has no tab: the account panel opens it with #inbox.
+  /**
+   * Back, Forward and hash links (the account panel's #inbox) all land here.
+   * Results comes back only while its set is still in memory; anything else
+   * the URL names.
+   */
+  const shownSetRef = useRef<PracticeSet | null>(null)
+  useEffect(() => { shownSetRef.current = shownSet }, [shownSet])
+  const bankTime = useRef(() => {})
   useEffect(() => {
-    const go = () => {
-      if (window.location.hash !== '#inbox') return
-      setView('inbox')
-      // A URL object, never pathname + search: a pathname of "//" turns that
-      // string into a protocol-relative URL and replaceState throws.
-      const url = new URL(window.location.href)
-      url.hash = ''
-      history.replaceState(null, '', url)
+    const follow = () => {
+      // Leaving a set by Back must bank the clock the way the in-app back
+      // button does; the interval flush only runs every few seconds.
+      if (viewRef.current === 'practice') bankTime.current()
+      const results = history.state?.view === 'results' && shownSetRef.current
+      setView(results ? 'results' : parseHash(window.location.hash))
     }
-    go()
-    window.addEventListener('hashchange', go)
-    return () => window.removeEventListener('hashchange', go)
+    window.addEventListener('popstate', follow)
+    window.addEventListener('hashchange', follow)
+    return () => {
+      window.removeEventListener('popstate', follow)
+      window.removeEventListener('hashchange', follow)
+    }
   }, [])
 
   // A pull from another device changes the same numbers an answer does.
@@ -225,15 +278,16 @@ export default function App() {
   const [order, setOrder] = useState<Order>('mixed')
   const [seed, setSeed] = useState('')
 
-  const loadList = useCallback(() => {
+  // Named so the Retry it hands the banner can call it again.
+  const loadList = useCallback(function load() {
     let stale = false
     setListLoading(true)
     api.questionSet(filters)
       .then((d) => { if (!stale) { setItems(arrange(d.questions, order, seed)); setIndex(0) } })
-      .catch((e: Error) => !stale && setError(e.message))
+      .catch((e: Error) => !stale && fail(e, () => { load() }))
       .finally(() => { if (!stale) setListLoading(false) })
     return () => { stale = true }
-  }, [filters, order, seed])
+  }, [filters, order, seed, fail])
 
   useEffect(loadList, [loadList])
 
@@ -251,15 +305,16 @@ export default function App() {
       // "Math: Linear functions" rather than "All questions: ...".
       setFilters(next.skills?.length === 1 && !next.section
         ? { ...next, section: d.questions[0].section } : next)
-      setItems(arrange(d.questions, order, seed)); setIndex(0); setView('practice')
-    }).catch((e: Error) => setError(e.message))
-  }, [order, seed])
+      setItems(arrange(d.questions, order, seed)); setIndex(0); navigate('practice')
+    }).catch((e: Error) => fail(e))
+  }, [order, seed, fail, navigate])
 
   /**
    * Links into the app: ?q=<College Board ID> opens that question, ?skill=<code>
    * practises a skill and ?type=<skill.key> one question type. They come from
    * Info's Link button, video descriptions and the static /skills pages. Read
-   * once on load, then dropped from the address bar so a reload lands on Home.
+   * once on load, then dropped from the address bar (with any hash) so a reload
+   * lands on Home, and so does Back: Home is the entry practice is pushed over.
    */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -270,11 +325,12 @@ export default function App() {
     // A URL object, like the #inbox handler: "//?q=" must not throw.
     const url = new URL(window.location.href)
     for (const key of ['q', 'skill', 'type']) url.searchParams.delete(key)
-    history.replaceState(null, '', url)
+    url.hash = ''
+    history.replaceState({ view: 'home' }, '', url)
     if (q) {
       findIds(q).then((m) => {
         if (m[0]?.cb_id?.toLowerCase() === q) practiceOne(m[0].id)
-      }).catch((e: Error) => setError(e.message))
+      }).catch((e: Error) => fail(e))
     } else if (type?.includes('.')) {
       practiceFilters({ skills: [type.slice(0, type.lastIndexOf('.'))], types: [type] })
     } else if (skill) {
@@ -282,7 +338,7 @@ export default function App() {
     }
     // Once, on load: these callbacks change identity as the list loads, and
     // re-running would reopen the link every time.
-  }, [])
+  }, [fail])
 
   // Landing back on Home reloads the list: answers since then change its status
   // marks, and opening one question or a set replaced `items` with just those.
@@ -310,10 +366,10 @@ export default function App() {
         setQuestion(d.question); setAnnotations(d.annotations); setFlagged(d.flagged)
         setMistake(d.mistake)
       })
-      .catch((e: Error) => !stale && setError(e.message))
+      .catch((e: Error) => !stale && fail(e, reload))
       .finally(() => { if (!stale) setLoading(false) })
     return () => { stale = true }
-  }, [current?.id, practising])
+  }, [current?.id, practising, reloadKey, fail, reload])
 
   /** Reload the queue of unfinished sets shown on Home. */
   const refreshActiveSets = useCallback(() => {
@@ -333,7 +389,7 @@ export default function App() {
    * the two identical.
    */
   const startSet = useCallback(async () => {
-    if (!filters.size) { setIndex(0); setView('practice'); return }
+    if (!filters.size) { setIndex(0); navigate('practice'); return }
     try {
       const chosen = sample(items, filters.size)
       // Names go in with the set so it can still say what it covers if a later
@@ -353,9 +409,9 @@ export default function App() {
       setActiveSet(created)
       setItems(chosen)
       setIndex(0)
-      setView('practice')
-    } catch (e) { setError((e as Error).message) }
-  }, [filters, items, taxonomy])
+      navigate('practice')
+    } catch (e) { fail(e) }
+  }, [filters, items, taxonomy, fail, navigate])
 
   /** Put a set's frozen questions back on screen, at the first unanswered one. */
   const openSet = useCallback(async (id: string) => {
@@ -372,9 +428,9 @@ export default function App() {
       setActiveSet(set)
       setItems(ordered)
       setIndex(firstOpen < 0 ? 0 : Math.min(firstOpen, ordered.length - 1))
-      setView('practice')
-    } catch (e) { setError((e as Error).message) }
-  }, [])
+      navigate('practice')
+    } catch (e) { fail(e) }
+  }, [fail, navigate])
 
   /**
    * Drop a set for good, from either list.
@@ -386,10 +442,10 @@ export default function App() {
     try {
       await api.deleteSet(id)
       if (activeSet?.id === id) setActiveSet(null)
-      if (shownSet?.id === id) { setShownSet(null); setView('review') }
+      if (shownSet?.id === id) { setShownSet(null); navigate('review') }
       refreshActiveSets()
-    } catch (e) { setError((e as Error).message) }
-  }, [refreshActiveSets, activeSet?.id, shownSet?.id])
+    } catch (e) { fail(e) }
+  }, [refreshActiveSets, activeSet?.id, shownSet?.id, fail, navigate])
 
   const abandonSet = dropSet
 
@@ -414,8 +470,8 @@ export default function App() {
       // The local ref is authoritative for the length of the session.
       if (finished) { activeSetRef.current = null; setActiveSet(null) }
       return saved
-    } catch (e) { setError((e as Error).message); return null }
-  }, [])
+    } catch (e) { fail(e); return null }
+  }, [fail])
 
   /** End the set and show the score. */
   const finishSet = useCallback(async () => {
@@ -436,10 +492,10 @@ export default function App() {
     setShowSetReview(false)
     setShownSet(saved)
     setRemaining(null)
-    setView('results')
+    navigate('results', true)
     refreshActiveSets()
     api.taxonomy().then((d) => { setTaxonomy(d.taxonomy); setStats(d.stats) }).catch(() => {})
-  }, [persistSet, refreshActiveSets])
+  }, [persistSet, refreshActiveSets, navigate])
 
   /**
    * The set clock.
@@ -475,9 +531,9 @@ export default function App() {
   const showSet = useCallback(async (id: string) => {
     try {
       setShownSet(await api.getSet(id))
-      setView('results')
-    } catch (e) { setError((e as Error).message) }
-  }, [])
+      navigate('results')
+    } catch (e) { fail(e) }
+  }, [fail, navigate])
 
   /**
    * Run the same questions again as a NEW set, rather than resetting the old
@@ -498,8 +554,8 @@ export default function App() {
       })
       setShownSet(null)
       await openSet(created.id)
-    } catch (e) { setError((e as Error).message) }
-  }, [])
+    } catch (e) { fail(e) }
+  }, [fail])
 
   const go = useCallback((next: number) => {
     setIndex(Math.min(items.length - 1, Math.max(0, next)))
@@ -539,6 +595,20 @@ export default function App() {
     setActiveSet(activeSetRef.current)
     void persistSet(next, false, sum)
   }, [items, index, persistSet])
+  useEffect(() => { bankTime.current = () => commitElapsed(seconds) }, [commitElapsed, seconds])
+
+  /**
+   * Out of practice by the way it came in: Back to Home, Review or wherever the
+   * entry practice pushed sits over. A deep link or a reload has nothing under
+   * it, so that goes Home.
+   */
+  const leavePractice = useCallback(() => {
+    // Bank the time on the question on screen before the set is dropped; the
+    // interval flush only runs every few seconds.
+    commitElapsed(seconds)
+    if (history.state?.view === 'practice') history.back()
+    else navigate('home')
+  }, [commitElapsed, seconds, navigate])
 
   /**
    * Bank the clock as the set runs, not only when an answer is given.
@@ -615,7 +685,7 @@ export default function App() {
         setActiveSet(activeSetRef.current)
         void persistSet(next, false, spent)
       }
-    } catch (e) { setError((e as Error).message) }
+    } catch (e) { fail(e) }
   }
 
   async function toggleFlag() {
@@ -623,7 +693,7 @@ export default function App() {
     const next = !flagged
     setFlagged(next)
     setItems((prev) => prev.map((i) => (i.id === current.id ? { ...i, flagged: next ? 1 : 0 } : i)))
-    try { await api.flag(current.id, next) } catch (e) { setError((e as Error).message) }
+    try { await api.flag(current.id, next) } catch (e) { fail(e) }
   }
 
   async function persistAnnotations(next: Annotation[]) {
@@ -632,7 +702,7 @@ export default function App() {
     try {
       const saved = await api.saveAnnotations(current.id, next)
       setAnnotations(saved.annotations)
-    } catch (e) { setError((e as Error).message) }
+    } catch (e) { fail(e) }
   }
 
   function toggleCrossOut(label: string) {
@@ -706,15 +776,71 @@ export default function App() {
     return lead
   }, [activeSet, listTitle, filters, question?.domain_name, question?.skill_name])
 
-  if (!practising) {
+  useEffect(() => {
+    document.title = titleFor(view, HOME_TITLE, { index, count: items.length, set: setTitle })
+  }, [view, index, items.length, setTitle])
+
+  /**
+   * A new view takes focus at its title, so a screen reader announces where it
+   * landed and Tab starts from the top of it rather than from <body>. Not on
+   * first load: the browser puts a fresh page at the top already.
+   */
+  const focusedView = useRef(view)
+  useEffect(() => {
+    if (focusedView.current === view) return
+    focusedView.current = view
+    const target = document.querySelector<HTMLElement>('#main h1, #view-title')
+      ?? document.getElementById('main')
+    target?.focus()
+  }, [view])
+
+  const banner = error ? (
+    <ErrorBanner message={error.message}
+                 onRetry={error.retry ? () => { setError(null); error.retry?.() } : undefined}
+                 onDismiss={() => setError(null)} />
+  ) : null
+
+  if (view !== 'practice') {
+    const pages: Record<Exclude<View, 'practice'>, () => ReactNode> = {
+      home: () => (
+        <Home taxonomy={taxonomy} stats={stats} history={attemptLog} value={filters} items={items}
+              findIds={findIds} onOpenId={practiceOne}
+              loading={listLoading} onChange={setFilters}
+              onOpen={(i) => { setIndex(i); navigate('practice') }}
+              order={order}
+              onOrder={(next) => {
+                setOrder(next)
+                if (next === 'random') setSeed(crypto.randomUUID())
+              }}
+              activeSets={activeSets}
+              onResume={openSet}
+              onAbandon={abandonSet}
+              onStart={startSet} />
+      ),
+      resources: () => <Resources />,
+      inbox: () => <Inbox />,
+      about: () => <About />,
+      settings: () => <Settings />,
+      results: () => (shownSet ? (
+        <SetResults set={shownSet}
+                    onPractice={practiceOne}
+                    onPracticeMany={practiceMany}
+                    onRedo={redoSet}
+                    onDelete={dropSet}
+                    onDone={() => { setShownSet(null); navigate('review') }} />
+      ) : null),
+      review: () => (
+        <Review onPractice={practiceOne} onPracticeMany={practiceMany} onOpenSet={showSet}
+                onDeleteSet={dropSet} />
+      ),
+      stats: () => <StatsPage taxonomy={taxonomy} onPractice={practiceFilters} />,
+    }
     return (
       <div className="shell">
-        {error ? (
-          <div className="error" onClick={() => setError(null)}>{error} (dismiss)</div>
-        ) : null}
-        <nav className="tabs">
+        <a className="skiplink" href="#main" onClick={skipTo('main')}>Skip to content</a>
+        <nav className="tabs" aria-label="Main">
           <div className="tabs-inner">
-            <button className="brand" onClick={() => setView('home')} aria-label="LightBluePrep home">
+            <button className="brand" onClick={() => navigate('home')} aria-label="LightBluePrep home">
               <Mark size={30} />
               <span className="wordmark">Light<span className="wordmark-blue">Blue</span>Prep</span>
             </button>
@@ -724,7 +850,7 @@ export default function App() {
                         className={`tab tab-${t.key}${view === t.key ? ' on' : ''}`}
                         title={t.label}
                         aria-current={view === t.key ? 'page' : undefined}
-                        onClick={() => setView(t.key)}>
+                        onClick={() => navigate(t.key)}>
                   <Icon name={t.icon} size={18} strokeWidth={2} />
                   <span>{t.label}</span>
                 </button>
@@ -741,59 +867,11 @@ export default function App() {
             <AccountBadge />
           </div>
         </nav>
-
-        {view === 'home' ? (
-          <Home taxonomy={taxonomy} stats={stats} history={attemptLog} value={filters} items={items}
-                findIds={findIds} onOpenId={practiceOne}
-                loading={listLoading} onChange={setFilters}
-                onOpen={(i) => { setIndex(i); setView('practice') }}
-                order={order}
-                onOrder={(next) => {
-                  setOrder(next)
-                  if (next === 'random') setSeed(crypto.randomUUID())
-                }}
-                activeSets={activeSets}
-                onResume={openSet}
-                onAbandon={abandonSet}
-                onStart={startSet} />
-        ) : view === 'resources' ? (
-          <div className="page">
-            <Resources />
-          </div>
-        ) : view === 'inbox' ? (
-          <div className="page">
-            <Inbox />
-          </div>
-        ) : view === 'about' ? (
-          <div className="page">
-            <About />
-          </div>
-        ) : view === 'settings' ? (
-          <div className="page">
-            <Settings />
-          </div>
-        ) : view === 'results' ? (
-          <div className="page">
-            {shownSet ? (
-              <SetResults set={shownSet}
-                          onPractice={practiceOne}
-                          onPracticeMany={practiceMany}
-                          onRedo={redoSet}
-                          onDelete={dropSet}
-                          onDone={() => { setShownSet(null); setView('review') }} />
-            ) : null}
-          </div>
-        ) : view === 'review' ? (
-          <div className="page">
-            <Review onPractice={practiceOne} onPracticeMany={practiceMany} onOpenSet={showSet}
-                    onDeleteSet={dropSet} />
-          </div>
-        ) : (
-          <div className="page">
-            <StatsPage taxonomy={taxonomy}
-                       onPractice={practiceFilters} />
-          </div>
-        )}
+        {banner}
+        {/* Home scrolls inside its own .home, so its main only passes the height down. */}
+        <main id="main" tabIndex={-1} className={view === 'home' ? 'page page-home' : 'page'}>
+          {pages[view]()}
+        </main>
         <FeedbackHost />
         <SupportHost />
       </div>
@@ -802,21 +880,18 @@ export default function App() {
 
   return (
     <div className="app">
+      <a className="skiplink" href="#question" onClick={skipTo('question')}>Skip to question</a>
       <header className="topbar">
         <div className="topbar-left">
           <div className="section-title">
-            <button className="backbtn" title="Go back"
-                    onClick={() => {
-                      // Bank the time on the question on screen before the set
-                      // is dropped; the interval flush only runs every few seconds.
-                      if (activeSetRef.current) commitElapsed(seconds)
-                      setView('home')
-                    }}>
+            <button className="backbtn" title="Go back" aria-label="Go back"
+                    onClick={leavePractice}>
               <Icon name="chevron-left" size={18} strokeWidth={2.2} />
             </button>
             {/* Wrapped so it can be truncated on a phone. A bare text node in a
                 flex row cannot take text-overflow. */}
-            <span className="section-name">{setTitle}</span>
+            <span className="section-name" id="view-title" tabIndex={-1}
+                  role="heading" aria-level={1}>{setTitle}</span>
           </div>
           <button className="ghostlink" onClick={() => setShowDirections((v) => !v)}>
             Directions
@@ -891,11 +966,10 @@ export default function App() {
         </div>
       </header>
 
-      {error ? (
-        <div className="error" onClick={() => setError(null)}>{error} (dismiss)</div>
-      ) : null}
+      {banner}
 
-      <main className={desmosSplit === null ? 'main' : 'main is-split-tool'}
+      <main id="question" tabIndex={-1}
+            className={desmosSplit === null ? 'main' : 'main is-split-tool'}
             style={desmosSplit === null
               ? undefined
               : ({ '--tool-split': `${desmosSplit}%` } as React.CSSProperties)}>
@@ -904,35 +978,38 @@ export default function App() {
           <div className="placeholder">No questions match these filters.</div>
         ) : null}
         {!loading && question && current ? (
-          <QuestionView
-            question={question}
-            number={index + 1}
-            annotations={annotations}
-            result={result}
-            seconds={seconds}
-            response={response}
-            flagged={flagged}
-            crossOutMode={crossOutMode}
-            crossOut={crossOut}
-            deferred={Boolean(activeSet)}
-            onRespond={(value) => {
-              setResponse(value)
-              if (activeSet) holdAnswer(value, seconds)
-            }}
-            onSubmit={submit}
-            onToggleFlag={toggleFlag}
-            onToggleCrossOutMode={() => setCrossOutMode((v) => !v)}
-            onToggleCrossOut={toggleCrossOut}
-            onAddAnnotation={(a) => persistAnnotations([...annotations, a as Annotation])}
-            onRemoveAnnotation={(id) =>
-              persistAnnotations(annotations.filter((a) => a.id !== id))}
-            mistake={mistake}
-            onSaveMistake={(tags, note) => {
-              void api.saveMistake(current.id, tags, note)
-                .then((r) => setMistake(r.mistake))
-                .catch((e: Error) => setError(e.message))
-            }}
-          />
+          // Keyed by question, so Next clears a crash and the bar below keeps working.
+          <ErrorBoundary key={current.id} context="question" onReset={leavePractice}>
+            <QuestionView
+              question={question}
+              number={index + 1}
+              annotations={annotations}
+              result={result}
+              seconds={seconds}
+              response={response}
+              flagged={flagged}
+              crossOutMode={crossOutMode}
+              crossOut={crossOut}
+              deferred={Boolean(activeSet)}
+              onRespond={(value) => {
+                setResponse(value)
+                if (activeSet) holdAnswer(value, seconds)
+              }}
+              onSubmit={submit}
+              onToggleFlag={toggleFlag}
+              onToggleCrossOutMode={() => setCrossOutMode((v) => !v)}
+              onToggleCrossOut={toggleCrossOut}
+              onAddAnnotation={(a) => persistAnnotations([...annotations, a as Annotation])}
+              onRemoveAnnotation={(id) =>
+                persistAnnotations(annotations.filter((a) => a.id !== id))}
+              mistake={mistake}
+              onSaveMistake={(tags, note) => {
+                void api.saveMistake(current.id, tags, note)
+                  .then((r) => setMistake(r.mistake))
+                  .catch((e: Error) => fail(e))
+              }}
+            />
+          </ErrorBoundary>
         ) : null}
         {showDesmos && DESMOS_EMBEDDED ? (
           <Desmos onClose={() => setShowDesmos(false)}
@@ -1013,7 +1090,7 @@ export default function App() {
         </>
       ) : null}
       <FeedbackHost />
-        <SupportHost />
+      <SupportHost />
     </div>
   )
 }

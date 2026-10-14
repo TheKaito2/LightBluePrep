@@ -20,7 +20,7 @@ export function PageHead({ tone, eyebrow, title, sub, children }: {
       <div className="phead-in">
         <div className="phead-copy">
           {eyebrow ? <span className="eyebrow">{eyebrow}</span> : null}
-          <h1 className="phead-t">{title}</h1>
+          <h1 className="phead-t" tabIndex={-1}>{title}</h1>
           {sub ? <p className="phead-sub">{sub}</p> : null}
         </div>
         {children ? <div className="phead-aside">{children}</div> : null}

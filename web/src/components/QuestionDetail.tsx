@@ -21,6 +21,7 @@ import { RichText } from './RichText'
 import { Icon } from './Icon'
 import { duration } from '../lib/pacing'
 import { VERDICT, plural } from '../lib/labels'
+import { toUserMessage } from '../lib/errors'
 import type {
   Annotation, Attempt, GradeResult, Mistake, MistakeTag, Question,
 } from '../types'
@@ -82,7 +83,7 @@ export function QuestionDetail({
         setData(q); setResult(r); setAttempts(a.attempts)
         onLogged?.(id, q.mistake ? q.mistake.tags : null)
       })
-      .catch((e: Error) => !stale && setError(e.message))
+      .catch((e: Error) => !stale && setError(toUserMessage(e)))
     return () => { stale = true }
   }, [id, response, onLogged])
 
@@ -112,7 +113,7 @@ export function QuestionDetail({
         onLogged?.(id, r.mistake && (r.mistake.tags.length || r.mistake.note)
           ? r.mistake.tags : null)
       })
-      .catch((e: Error) => setLogError(e.message))
+      .catch((e: Error) => setLogError(toUserMessage(e)))
   }
 
   return (
