@@ -12,7 +12,7 @@ import type { Annotation, GradeResult, Mistake, MistakeTag, Question } from '../
  * Measured, not guessed: at 390px the split gave a 195px passage column and a
  * 191px question column, which puts answer choices at two or three words a line
  * and made single choices over 900px tall. It has to match the breakpoint in
- * styles.css.
+ * styles/bluebook.css.
  */
 const STACK_BELOW = 820
 

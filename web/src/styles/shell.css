@@ -1,0 +1,358 @@
+/* The frame around every page that is not the practice screen: the nav, page
+   heads, buttons, chips, the shared dialog shell, Bulb.
+
+   Sans only. Proportions follow how well-made product pages handle this
+   (linear.app, stripe.com): one big confident number, everything else small and
+   quiet, tight negative tracking at display size, generous vertical rhythm. */
+.shell { height: 100%; display: flex; flex-direction: column; background: var(--bg); }
+.page { flex: 1; min-height: 0; overflow-y: auto; }
+
+.error {
+  background: var(--red-soft); color: #991b1b; padding: 10px 22px;
+  font-size: 13.5px; cursor: pointer; border-bottom: 1px solid #fecaca;
+}
+
+/* ============================================================ nav
+   The first rules here are the original thin nav; "nav v2" further down
+   overrides most of them. Order matters: the narrow-screen blocks must stay
+   between the two, which is where they were tuned. */
+
+/* The mark and the name are one unit, so the spacing that separates the brand
+   from the tabs belongs on the group rather than on the word. */
+.brand { display: inline-flex; align-items: center; gap: 8px; margin-right: 26px; }
+.mark { display: block; flex: none; }
+.tab {
+  position: relative; background: none; border: none; cursor: pointer;
+  padding: 0 12px; font: inherit; font-size: 14px; font-weight: 550;
+  color: var(--muted);
+}
+.tab:hover { color: var(--ink); }
+.tab.on { color: var(--ink); font-weight: 650; }
+.tab.on::after {
+  content: ''; position: absolute; left: 12px; right: 12px; bottom: -1px;
+  height: 2px; background: var(--ink);
+}
+
+@media (max-width: 640px) {
+  .tabs-inner { padding: 0 14px; gap: 0; }
+  .brand { margin-right: 12px; gap: 7px; }
+  .wordmark { font-size: 15px; }
+  .tab { padding: 0 9px; font-size: 13.5px; }
+  .tab.on::after { left: 9px; right: 9px; }
+}
+/* Nav row, right of the sync badge. Icon only: the row is already four items
+   wide and a phone has about 70px spare. First item of the right-hand group,
+   so it carries the auto margin that pushes itself and the sync badge to the
+   end of the nav row. */
+.ghlink {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; margin-left: auto; margin-right: 8px;
+  border-radius: var(--r-sm); color: var(--ink-2); text-decoration: none;
+}
+.ghlink:hover { background: var(--bg-soft); color: var(--ink); }
+
+/* The nav row runs out of width well before the practice view does. The
+   wordmark, four tabs, the GitHub link and the sync badge measured 436px
+   together, so below that it overflowed on every phone. Review being a tab
+   rather than a card is what pushed it over; it was already 12px short at
+   360px before that.
+
+   GitHub is the one that goes, because it is the only item in this row that is
+   also reachable from somewhere else (the About page links it). Everything
+   else here is a destination.
+
+   This has to sit after .ghlink rather than up with the other tab rules, or
+   its display:inline-flex wins on source order and the link never hides. */
+@media (max-width: 470px) {
+  .tabs-inner { padding: 0 10px; }
+  .tabs-inner > * { flex: none; }
+  /* One or the other, never both: the mark, the name, four tabs and the sync
+     badge do not fit together at 390px. The name wins, because a phone gives
+     you no other place to read what the site is called. The mark is still in
+     the browser tab. */
+  .brand { margin-right: 10px; }
+  .mark { display: none; }
+  .tab { padding: 0 6px; font-size: 13px; }
+  .tab.on::after { left: 6px; right: 6px; }
+  .ghlink { display: none; }
+  /* The auto margin that pushes the right-hand group to the end lives on
+     .ghlink, so it has to move when .ghlink does. */
+  .acct { margin-left: auto; }
+}
+
+/* The name is 43px wider than the mark it replaced, which put 360px back into
+   the scrolling range. 360 is too common a phone to leave scrolling, so the
+   branding and the tab padding give a little more here. Nothing is dropped, and
+   375 and up keep the roomier sizing. */
+@media (max-width: 389px) {
+  .brand { margin-right: 6px; }
+  .wordmark { font-size: 14px; }
+  .tab { padding: 0 4px; }
+  .tab.on::after { left: 4px; right: 4px; }
+}
+
+/* The scroll fallback, and ONLY where it earns its keep.
+ *
+ * `overflow-x: auto` forces overflow-y to auto with it, so this makes the nav
+ * row a scroll container in both axes. An account panel is position:fixed
+ * inside it, and on iOS a fixed descendant of a touch-scrolling container is
+ * the classic case that renders but will not take a tap. It was applied at
+ * 470px, which is every phone; the row actually fits down to 345, so the
+ * container only belongs below that.
+ */
+@media (max-width: 344px) {
+  .tabs-inner { overflow-x: auto; scrollbar-width: none; }
+  .tabs-inner::-webkit-scrollbar { display: none; }
+}
+
+/* ---- LightBluePrep brand and the Support pill ---- */
+.wordmark-blue { color: var(--brand-700); }
+.supportlink {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 13px; margin-right: 6px;
+  border: 1px solid var(--brand-200); border-radius: 999px; background: var(--brand-50);
+  font-size: 13px; font-weight: 650; color: var(--brand-700); text-decoration: none;
+  transition: background .12s, border-color .12s;
+}
+.supportlink:hover { background: var(--brand-100); border-color: var(--brand-300); }
+.supportlink:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 2px; }
+.tabs-inner .supportlink + .ghlink { margin-left: 0; }
+button.supportlink { font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+
+/* ============================================================ nav v2
+   Taller, bolder: display-font wordmark, icon + label pill tabs (the active
+   one filled ink), a pink Support pill. Phones keep the bottom tab bar, now
+   with icons. */
+.tabs { flex: none; border-bottom: 1px solid var(--n-100); background: var(--n-0); }
+.tabs-inner {
+  max-width: 1160px; margin: 0 auto; padding: 0 var(--sp-8);
+  display: flex; align-items: center; gap: var(--sp-2); height: var(--navh);
+}
+button.brand {
+  border: 0; background: none; padding: 4px 6px 4px 0; cursor: pointer; margin-right: var(--sp-6);
+  display: inline-flex; align-items: center; gap: 10px; color: var(--n-900);
+}
+.wordmark { font-family: var(--display); font-size: 21px; font-weight: 800; letter-spacing: -.035em; color: var(--n-900); }
+.tablinks { display: flex; gap: 4px; }
+.tabs .tab {
+  display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px;
+  border-radius: var(--rad-pill); font-family: var(--display); font-weight: 650; font-size: 15px;
+  color: var(--n-700); transition: background var(--dur-fast), color var(--dur-fast);
+}
+.tabs .tab svg { color: var(--n-500); transition: color var(--dur-fast); }
+.tabs .tab:hover { background: var(--n-50); color: var(--n-900); }
+.tabs .tab.on { background: var(--n-900); color: var(--n-0); font-weight: 750; }
+/* The nav row is capped at the page width, and six labelled tabs plus the
+   right-hand controls do not fit in it. So on a desktop Settings is always just
+   its gear, and below about 1,150px every tab drops to its icon and Sync uses
+   its short label. A hidden name stays in the DOM for screen readers and shows
+   as a tooltip (title in App.tsx). The phone bar keeps every label. */
+@media (min-width: 820px) {
+  .tabs .tab { padding: 0 12px; }
+  .tabs .tab.tab-settings { padding: 0 12px; gap: 0; }
+  .tabs .tab.tab-settings span {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+}
+@media (min-width: 820px) and (max-width: 1149px) {
+  .tabs .tab { padding: 0 12px; gap: 0; }
+  .tabs .tab span {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
+  .tabs-inner .acct-label { display: none; }
+  .tabs-inner .acct-label-sm { display: inline; }
+  /* Touch and keyboard users get no tooltip, so the tab you are on keeps its
+     name. The GitHub icon steps aside to make room; About links to it. */
+  .tabs .tab.on { gap: 8px; padding: 0 14px; }
+  .tabs .tab.on span {
+    position: static; width: auto; height: auto; overflow: visible; clip-path: none;
+  }
+  .tabs-inner .ghlink { display: none; }
+}
+.tabs .tab.on svg { color: var(--brand-300); }
+.tabs .tab.on::after { display: none; }
+.tabs .tab:focus-visible, button.brand:focus-visible { outline: 3px solid var(--brand-300); outline-offset: 2px; }
+.tabs-inner .supportlink {
+  display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; margin-left: auto;
+  border: 0; border-radius: var(--rad-pill); background: var(--rw-100); color: var(--rw-700);
+  font-family: var(--display); font-size: 14px; font-weight: 700;
+}
+.tabs-inner .supportlink:hover { background: var(--rw-200); }
+.tabs-inner .supportlink svg { color: var(--rw-600); }
+
+/* Phone: the tabs move to a bottom bar, the top row keeps brand + sync. */
+@media (max-width: 819px) {
+  .shell { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .tabs-inner { height: var(--navh); padding: 0 var(--sp-4); justify-content: flex-start; }
+  .brand { margin-right: auto; }
+  button.brand { margin-right: auto; }
+  .wordmark { font-size: 19px; }
+  .tablinks {
+    display: flex; position: fixed; z-index: 50; left: 0; right: 0; bottom: 0;
+    height: calc(64px + env(safe-area-inset-bottom)); gap: 0; padding: 6px 8px env(safe-area-inset-bottom);
+    background: var(--n-0); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--n-100); box-shadow: 0 -8px 24px -18px rgba(20, 50, 90, .4);
+  }
+  .tablinks .tab {
+    flex: 1; flex-direction: column; justify-content: center; gap: 3px; height: 52px; padding: 0;
+    border-radius: var(--rad-md); font-size: 10.5px; font-weight: 650; color: var(--n-500); background: none;
+  }
+  .tablinks .tab svg { width: 22px; height: 22px; }
+  .tablinks .tab.on { background: var(--brand-100); color: var(--n-900); }
+  .tablinks .tab.on svg { color: var(--brand-700); }
+  .tablinks .tab.on::after { display: none; }
+  .tabs-inner .supportlink { margin-left: 0; height: 34px; padding: 0 12px; font-size: 13px; }
+  .tabs-inner .acct { margin-left: 8px; }
+}
+
+/* ============================================================ page heads
+   One solid colour band per page: Home blue, Review amber, Stats mint,
+   Resources rose, About ink. Flat fill only: no shapes, no gradients. */
+.phead { flex: none; }
+.phead.tone-amber { background: var(--streak-100); }
+.phead.tone-mint { background: var(--mint-100); }
+.phead.tone-ink { background: var(--n-900); color: var(--n-0); }
+.phead.tone-rose { background: var(--rw-100); }
+.phead-in {
+  max-width: 1160px; margin: 0 auto; padding: 48px var(--sp-8) 44px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-8); align-items: end;
+}
+.phead .eyebrow { background: rgba(255, 255, 255, .7); border-color: transparent; color: var(--n-700); }
+.tone-mint .eyebrow { color: var(--mint-700); }
+.tone-amber .eyebrow { color: var(--streak-700); }
+.tone-ink .eyebrow { background: rgba(255, 255, 255, .1); color: var(--brand-300); }
+.tone-rose .eyebrow { color: var(--rw-700); }
+.phead-t {
+  margin: 16px 0 0; font-family: var(--display); font-size: 64px; font-weight: 800;
+  letter-spacing: -.045em; line-height: .95; color: var(--n-900);
+}
+.tone-ink .phead-t { color: var(--n-0); }
+.phead-blue { color: var(--brand-300); }
+.phead-sub { margin: 14px 0 0; max-width: 52ch; font-size: 16.5px; line-height: 1.55; color: var(--n-700); }
+.tone-ink .phead-sub { color: var(--n-300); }
+.phead-aside { min-width: 0; }
+
+/* Small white number tiles that sit inside a page head. */
+.htiles { display: flex; gap: var(--sp-3); }
+.htile {
+  display: flex; flex-direction: column; gap: 4px; min-width: 120px; padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--rad-lg); background: var(--n-0); box-shadow: var(--sh-1);
+}
+.htile-n { font-family: var(--display); font-size: 32px; font-weight: 800; letter-spacing: -.04em; line-height: 1; color: var(--n-900); }
+.htile-n small { font-size: 16px; margin-left: 1px; }
+.htile-l { font-size: var(--fs-xs); font-weight: var(--fw-semi); color: var(--n-500); }
+
+@media (max-width: 819px) {
+  .phead-in { grid-template-columns: 1fr; gap: var(--sp-5); padding: var(--sp-8) var(--sp-4) var(--sp-6); }
+  .phead-t { font-size: 44px; }
+  .phead-sub { font-size: 15px; }
+  .htiles { gap: var(--sp-2); }
+  .htile { flex: 1; min-width: 0; padding: var(--sp-3); }
+  .htile-n { font-size: 24px; }
+}
+
+/* ============================================================ buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 999px; padding: 9px 26px; font-size: 15px; font-weight: 700;
+  cursor: pointer; border: 1px solid transparent; transition: background .12s, border-color .12s;
+}
+.btn.lg { padding: 13px 26px; font-size: 15.5px; }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary:hover:not(:disabled) { background: var(--accent-dark); }
+.btn.quiet { background: var(--bg); border-color: var(--line-2); color: var(--ink-2); }
+.btn.quiet:hover:not(:disabled) { background: var(--bg-soft); color: var(--ink); }
+.btn:disabled { opacity: .38; cursor: default; }
+.btn.small {
+  padding: 6px 15px; border-radius: var(--rad-pill);
+  font-family: var(--display); font-size: 13px; font-weight: 700;
+  background: var(--bg); border: 1px solid var(--line-2); color: var(--ink);
+}
+.btn.small:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--bg); }
+/* Only used behind a confirm step, never as a first click. */
+.btn.danger { background: var(--bad-700); border-color: var(--bad-700); color: var(--fg-inv-1); }
+.btn.danger:hover { background: var(--bad-800); border-color: var(--bad-800); }
+
+@media (max-width: 819px) {
+  .btn { padding: 8px 14px; font-size: 13.5px; }
+  /* Full width and one line. It was 173px wide and 72px tall, ie. wrapped over
+     two lines. The bar is a space-between row, so the button has to get its own
+     row before width:100% means anything. */
+  .btn.lg {
+    width: 100%; justify-content: center; white-space: nowrap;
+    padding: 14px 20px; font-size: 15px;
+  }
+}
+@media (max-width: 430px) {
+  .btn { padding: 7px 11px; font-size: 12.5px; }
+}
+
+/* ============================================================ chips, labels */
+.chips { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+.chip {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 14px; font: inherit; font-size: 13.5px; font-weight: 500;
+  color: var(--ink-2); cursor: pointer;
+  transition: border-color .12s, background .12s, color .12s;
+}
+.chip:hover { border-color: var(--line-2); color: var(--ink); }
+.chip:active { transform: scale(.97); }
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--fg-inv-1); font-weight: 600; }
+.chip.static { cursor: default; }
+
+/* Section labels: sentence case, not the all-caps tracked micro-label look,
+   which reads as a dashboard template rather than as this site. */
+.label {
+  margin: 0 0 14px;
+  font-size: 13px; font-weight: 650; letter-spacing: -.005em;
+  color: var(--ink-2);
+}
+.hint { margin: 0 0 16px; font-size: 13.5px; line-height: 1.55; color: var(--muted); max-width: 64ch; }
+
+.meter { display: block; height: 6px; border-radius: 999px; background: var(--bg-soft); overflow: hidden; }
+.meter-fill {
+  display: block; height: 100%; border-radius: 999px; background: var(--accent);
+  transition: width .4s ease-out;
+}
+
+/* ============================================================ dialogs
+   One shell for every dialog: Options, Support, Feedback. Their contents live
+   with their own pages. */
+.fb-scrim { position: fixed; inset: 0; z-index: 80; background: rgba(16, 20, 30, .42); animation: fade-in .18s ease-out; }
+.fb-dialog {
+  position: fixed; z-index: 81; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(520px, calc(100vw - 24px)); max-height: calc(100vh - 40px); overflow-y: auto;
+  background: var(--bg); border-radius: 16px; box-shadow: var(--shadow); padding: 20px 22px 22px;
+}
+.fb-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fb-title { margin: 0; font-family: var(--display); font-size: 19px; font-weight: 700; letter-spacing: -.015em; }
+.fb-x { display: inline-flex; }
+.fb-body { margin-top: 14px; }
+@media (max-width: 819px) {
+  .fb-dialog {
+    top: auto; bottom: 0; left: 0; transform: none; width: 100%;
+    border-radius: 18px 18px 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    animation: sheet-up .22s ease-out;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fb-dialog, .fb-scrim { animation: none; }
+}
+@keyframes sheet-up { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---- Bulb, the mascot (components/Mascot.tsx) ---- */
+.bulb { display: block; overflow: visible; }
+.bulb-glass, .bulb-limb-fill { fill: var(--brand-500); }
+.bulb-base { fill: var(--brand-700); }
+.bulb-limb { fill: none; stroke: var(--brand-500); stroke-width: 9; stroke-linecap: round; }
+.bulb-check { fill: none; stroke: var(--fg-inv-1); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+.bulb-ink { fill: var(--n-900); }
+.bulb-line { fill: none; stroke: var(--n-900); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
+.bulb-shine { fill: var(--fg-inv-1); }
+.bulb-cheek { fill: var(--rw-200); }
+.bulb-sweat { fill: var(--brand-200); }
+.bulb-ray { fill: none; stroke: var(--streak-500); stroke-width: 4; stroke-linecap: round; }

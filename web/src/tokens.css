@@ -10,7 +10,7 @@
  * bad-700 5.88, warn-600 5.02. NOT white-text fills: brand-600 (3.70),
  * mint-600 (4.38). *-500 and lighter: bars, dots, icons, never text.
  * Bluebook names (--line, --line-2, --bg, --rule, --ink, --accent ...) live in
- * styles.css :root and are practice-only. Never redefine them here.
+ * styles/base.css :root and are practice-only. Never redefine them here.
  */
 :root {
   /* ---- brand: light blue ---- */

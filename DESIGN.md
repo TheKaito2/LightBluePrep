@@ -1,6 +1,6 @@
 # LightBluePrep design system
 
-Tokens live in [`web/src/tokens.css`](web/src/tokens.css). Components read tokens; they do not hard-code hex values. The practice screen keeps its Bluebook look (styles in `web/src/styles.css`, top of file) so test day feels familiar. This system covers everything around it.
+Tokens live in [`web/src/tokens.css`](web/src/tokens.css). Components read tokens; they do not hard-code hex values. The practice screen keeps its Bluebook look (palette at the top of `web/src/styles/base.css`, the screen itself in `styles/bluebook.css` and `styles/bluebook-tools.css`) so test day feels familiar. This system covers everything around it.
 
 ## Colour
 

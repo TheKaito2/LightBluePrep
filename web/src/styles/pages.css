@@ -1,0 +1,133 @@
+/* About, Settings, Resources and the owner's feedback Inbox. */
+
+/* ---- about ---- */
+.about-block { margin-bottom: 44px; }
+.about-block:last-child { margin-bottom: 0; }
+.about-h1 {
+  margin: 0 0 12px; font-family: var(--display); font-size: 44px; font-weight: 800;
+  letter-spacing: -.045em; line-height: 1; color: var(--ink);
+}
+.about-h2 {
+  margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  font-family: var(--display); font-size: 19px; font-weight: 750; letter-spacing: -.025em; color: var(--ink);
+}
+.about-p {
+  margin: 0 0 14px; font-size: 14.5px; line-height: 1.7; color: var(--ink-2);
+}
+.about-p:last-child { margin-bottom: 0; }
+.about-p strong { color: var(--ink); font-weight: 650; }
+@media (max-width: 640px) {
+  .about { padding: 32px 20px 64px; }
+}
+
+/* ---- about: link and the GitHub button ---- */
+.about-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.about-link:hover { color: var(--accent-dark); }
+
+/* ============================================================ settings
+   Settings is an About page with its own cards, so it reuses .about. This sits
+   before "about v2" on purpose: .about .about-p there still sets the size and
+   colour of .settings-fine, which only adds the margin.
+
+   Two cards, one column (About's two-column flow left a blank side).
+   Delete buttons confirm inline rather than in a browser dialog. */
+.about.settings { columns: auto; max-width: 760px; }
+.settings-confirm {
+  padding: 16px 18px; border: 1px solid var(--red); border-radius: var(--rad-md);
+  background: var(--red-soft);
+}
+.settings-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.settings-done { margin: 12px 0 0; font-weight: 650; color: var(--ink); }
+.about .settings-fine { margin-top: 16px; font-size: 14px; color: var(--muted); }
+
+/* ============================================================ about v2 */
+/* Prose cards pack into two columns like the topic cards. */
+.about {
+  max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) 96px;
+  columns: 2; column-gap: var(--sp-4);
+}
+.about .about-block {
+  break-inside: avoid; display: inline-block; width: 100%;
+  margin-bottom: var(--sp-4); padding: var(--sp-6) var(--sp-8); border-radius: var(--rad-xl);
+  background: var(--n-0); box-shadow: 0 0 0 1px var(--n-100), var(--sh-1);
+}
+.about .about-h2 { margin: 0 0 var(--sp-3); padding: 0; border: 0; font-size: 26px; font-weight: 800; letter-spacing: -.03em; color: var(--n-900); }
+.about .about-p { font-size: 15px; line-height: 1.65; color: var(--n-700); }
+@media (max-width: 819px) {
+  .about { padding: var(--sp-6) var(--sp-4) var(--sp-8); columns: 1; }
+  .about .about-block { padding: var(--sp-5); }
+  .about .about-h2 { font-size: 22px; }
+}
+
+/* ============================================================ resources */
+.resources {
+  max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) 96px;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-5); align-items: start;
+}
+.rcard {
+  display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-6);
+  border-radius: 28px; background: var(--t-100);
+}
+.rcard.tone-mint { --t-100: var(--mint-100); --t-200: var(--mint-200); --t-600: var(--mint-600); --t-700: var(--mint-700); }
+.rcard.tone-rose { --t-100: var(--rw-100); --t-200: var(--rw-200); --t-600: var(--rw-600); --t-700: var(--rw-700); }
+.rcard-top { display: flex; align-items: center; gap: var(--sp-4); }
+.rcard-ico {
+  width: 60px; height: 60px; border-radius: 20px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--t-600); color: var(--n-0);
+}
+.rcard-id { min-width: 0; }
+.rcard-t {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0;
+  font-family: var(--display); font-size: 32px; font-weight: 800; letter-spacing: -.04em; line-height: 1.05; color: var(--n-900);
+}
+.rcard-by { font-size: var(--fs-sm); font-weight: var(--fw-semi); color: var(--t-700); }
+.goat {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px 4px 8px; border-radius: var(--rad-pill);
+  background: var(--n-900); color: var(--warn-500); font-size: 13px; font-weight: 800; letter-spacing: .04em;
+}
+.rcard-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.rcard-tags li { padding: 4px 11px; border-radius: var(--rad-pill); background: rgba(255, 255, 255, .7); font-size: var(--fs-xs); font-weight: var(--fw-semi); color: var(--t-700); }
+.rcard-what { margin: 0; font-size: 15.5px; line-height: 1.6; color: var(--n-700); }
+.rcard-take { margin: 0; padding: var(--sp-4) var(--sp-5); border-radius: var(--rad-lg); background: var(--n-0); }
+.rcard-take figcaption { font-family: var(--display); font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--t-700); }
+.rcard-take blockquote { margin: 6px 0 0; font-size: 15.5px; line-height: 1.6; color: var(--n-900); }
+.rcard-go {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px;
+  border-radius: var(--rad-pill); background: var(--n-900); color: var(--n-0); text-decoration: none;
+  font-family: var(--display); font-size: 16px; font-weight: 750;
+  transition: background-color var(--dur-fast);
+}
+.rcard-go:hover { background: var(--surface-ink-2); }
+.rcard-go:focus-visible { outline: 3px solid var(--brand-300); outline-offset: 3px; }
+.resources-note { grid-column: 1 / -1; margin: 0; text-align: center; font-size: var(--fs-sm); color: var(--n-500); }
+@media (max-width: 819px) {
+  .resources { grid-template-columns: 1fr; padding: var(--sp-6) var(--sp-4) var(--sp-8); gap: var(--sp-4); }
+  .rcard { padding: var(--sp-5); border-radius: 24px; }
+  .rcard-ico { width: 50px; height: 50px; border-radius: 16px; }
+  .rcard-t { font-size: 26px; }
+}
+
+/* ---- feedback inbox (owner only) ---- */
+.inbox { max-width: 760px; margin: 0 auto; padding: 36px 24px 80px; }
+.inbox-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.inbox-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0 6px; }
+.inbox-stats div { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; background: var(--bg); }
+.inbox-stats b {
+  display: block; font-family: var(--display); font-size: 28px; font-weight: 800;
+  letter-spacing: -.03em; line-height: 1.1;
+}
+.inbox-stats span { font-size: 13px; color: var(--ink-2); }
+@media (max-width: 560px) {
+  .inbox-stats { grid-template-columns: repeat(2, 1fr); }
+}
+.inbox-seg { display: inline-flex; margin: 16px 0 6px; }
+.inbox-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.inbox-item { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--bg); }
+.inbox-item.is-done { opacity: .62; }
+.inbox-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12.5px; color: var(--muted); }
+.inbox-kind { padding: 1px 9px; border-radius: 999px; font-weight: 700; font-size: 11.5px; }
+.inbox-kind.k-bug { background: var(--red-soft); color: var(--red); }
+.inbox-kind.k-comment { background: var(--brand-50); color: var(--brand-700); }
+.inbox-msg { margin: 9px 0 12px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14.5px; line-height: 1.5; color: var(--ink); }
+.inbox-actions { display: flex; gap: 8px; }
+.inbox-del { color: var(--red); }

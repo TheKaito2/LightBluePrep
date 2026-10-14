@@ -1,0 +1,149 @@
+/* Sync, Support and Feedback: the account badge and its panel, the support
+   popup and the feedback form. The dialog shell they open in is in shell.css.
+
+   The account badge is the only sync affordance in the app. It sits in the nav
+   row; nothing appears at all when the build has no VITE_SYNC_API. */
+.acct { position: relative; }
+
+.acct-badge {
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; flex: none;
+  padding: 5px 12px 5px 10px; border: 1px solid var(--line);
+  border-radius: 999px; background: var(--bg);
+  font: inherit; font-size: 12.5px; color: var(--muted);
+  cursor: pointer; transition: border-color .12s, color .12s;
+}
+.acct-badge:hover { border-color: var(--line-2); color: var(--ink-2); }
+
+.acct-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex: none;
+  background: var(--line-2);
+}
+.acct-badge.synced  .acct-dot, .acct-dot.synced  { background: var(--green); }
+.acct-badge.pending .acct-dot, .acct-dot.pending { background: var(--yellow); }
+.acct-badge.off     .acct-dot, .acct-dot.off     { background: var(--line-2); }
+
+/* Syncing is a ring rather than a filled dot, so the three resting states stay
+   readable as colour alone and motion means exactly one thing. */
+.acct-badge.syncing .acct-dot, .acct-dot.syncing {
+  background: none; border: 1.5px solid var(--line-2);
+  border-top-color: var(--accent); animation: acct-spin .7s linear infinite;
+}
+@keyframes acct-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .acct-badge.syncing .acct-dot, .acct-dot.syncing {
+    animation: none; background: var(--accent); border-color: var(--accent);
+  }
+}
+
+.acct-panel {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 40;
+  width: 340px; padding: 18px 18px 16px;
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: var(--r-lg); box-shadow: var(--shadow);
+  text-align: left;
+}
+.acct-h {
+  margin: 0 0 6px; font-size: 15px; font-weight: 650;
+  letter-spacing: -.01em; color: var(--ink);
+}
+.acct-p { margin: 0 0 12px; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.acct-status {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 12px; font-size: 13px; color: var(--ink-2);
+}
+.acct-gbtn { display: flex; justify-content: center; min-height: 44px; margin-top: 4px; }
+.acct-fine { margin: 12px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--muted); }
+.acct-err {
+  margin: 10px 0 0; padding: 8px 10px; border-radius: var(--r-sm);
+  background: var(--red-soft); color: var(--red); font-size: 12.5px; line-height: 1.45;
+}
+
+.acct-actions { display: flex; gap: 8px; }
+.acct-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--bg); font: inherit; font-size: 12.5px; font-weight: 550;
+  color: var(--ink-2); cursor: pointer;
+}
+.acct-btn:hover:not(:disabled) { border-color: var(--line-2); background: var(--bg-soft); }
+.acct-btn:disabled { opacity: .5; cursor: default; }
+.acct-btn.danger { border-color: var(--red); color: var(--red); }
+.acct-btn.danger:hover:not(:disabled) { background: var(--red-soft); }
+
+.acct-danger { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.acct-link {
+  padding: 0; border: 0; background: none; font: inherit; font-size: 12.5px;
+  color: var(--muted); text-decoration: underline; text-underline-offset: 2px;
+  cursor: pointer;
+}
+.acct-link:hover { color: var(--red); }
+.acct-inbox { margin-top: 10px; width: 100%; justify-content: center; }
+
+.acct-label-sm { display: none; }
+
+@media (max-width: 640px) {
+  /* Centred on the viewport rather than hung off the badge. The badge is no
+     longer the last thing in the nav row (the GitHub link is), so anchoring the
+     panel to its right edge pushed it visibly left of centre. Fixed rather than
+     absolute because the nav does not scroll. */
+  .acct-panel {
+    position: fixed; top: calc(var(--navh) + 8px);
+    left: 50%; right: auto; transform: translateX(-50%);
+    width: min(340px, calc(100vw - 24px));
+  }
+  /* Swap the long label for the short one rather than dropping it: a bare dot
+     says nothing about there being a sign-in at all. */
+  .acct-label { display: none; }
+  .acct-label-sm { display: inline; }
+  .acct-badge { padding: 5px 10px 5px 9px; gap: 6px; }
+}
+
+/* ---- feedback ---- */
+.fb-link {
+  border: 0; background: none; padding: 0; font: inherit; font-size: 13px;
+  color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.fb-link:hover { color: var(--accent); }
+.q-report { display: block; margin: 26px 0 0; }
+.fb-kind { margin-bottom: 12px; }
+.fb-kind .seg-b { justify-content: center; }
+.fb-attach { margin: 0 0 10px; font-size: 13px; color: var(--ink-2); }
+.fb-attach code { font-family: ui-monospace, "SF Mono", Menlo, monospace; background: var(--bg-soft); padding: 1px 6px; border-radius: 4px; }
+.fb-text {
+  width: 100%; resize: vertical; min-height: 120px; padding: 11px 13px;
+  border: 1px solid var(--line-2); border-radius: 10px; font: inherit; font-size: 15px; line-height: 1.5; color: var(--ink);
+}
+.fb-text:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.fb-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.fb-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.fb-note { font-size: 12px; color: var(--muted); }
+.fb-err { margin: 10px 0 0; font-size: 13px; color: var(--red); }
+.fb-p { margin: 0 0 16px; font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+
+/* ---- support popup ---- */
+.sp-lead { margin: 10px 0 14px; font-size: 14.5px; }
+.sp-options { display: flex; flex-direction: column; gap: 8px; }
+.sp-opt {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--bg);
+  font: inherit; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer;
+  transition: border-color .12s, background .12s, transform .12s;
+}
+.sp-opt:hover { border-color: var(--brand-300); background: var(--brand-50); }
+.sp-opt:active { transform: scale(.99); }
+.sp-opt.on { border-color: var(--brand-500); background: var(--brand-50); }
+.sp-opt:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 2px; }
+.sp-opt > svg { margin-left: auto; color: var(--muted); flex: none; }
+.sp-badge {
+  flex: none; width: 38px; height: 38px; border-radius: 10px; display: inline-flex;
+  align-items: center; justify-content: center; font-weight: 800; font-size: 17px; color: var(--fg-inv-1);
+}
+.sp-kofi { background: var(--rw-50); color: var(--rw-600); }
+.sp-bmc { background: var(--streak-50); color: var(--streak-700); }
+.sp-pp { background: var(--math-50); color: var(--math-700); }
+.sp-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.sp-text b { font-size: 15px; font-weight: 650; }
+.sp-text small { font-size: 12.5px; color: var(--muted); }
+.sp-qr { margin: 14px 0 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.sp-qr img { width: 240px; height: auto; max-width: 100%; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+.sp-qr figcaption { font-size: 13px; color: var(--ink-2); text-align: center; }

@@ -1,0 +1,206 @@
+/* Stats: the page head tiles, where to focus, domain bars and the per-skill
+ * breakdown. The first half is the original quiet layout; "stats v2" below
+ * restyles it into cards and wins on order.
+ *
+ * Colour here follows the data-viz method: form first, colour last, and the
+ * palette was run through the validator rather than eyeballed.
+ *
+ *  - Magnitude across categories -> horizontal bars, one series, so the row
+ *    label carries identity and no legend box is needed.
+ *  - Continuous magnitude across two dimensions -> a sequential single-hue
+ *    heatmap, stepped from College Board's #324DC7. Validated monotone in
+ *    lightness with >=0.06 gaps and a 4 degree hue spread. Its palest steps sit
+ *    under 3:1 on white by design ("near zero" recedes toward the surface), so
+ *    every cell carries a visible count -- that label IS the required relief.
+ *  - Single headlines are stat tiles, not charts.
+ *
+ * Accuracy uses status colours, and all three clear 4.5:1 on white as text.
+ * The old --yellow (#eab308) measured 1.92:1 and was effectively invisible;
+ * --amber-ink replaces it for type.
+ */
+.stats { max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) 96px; }
+
+/* ---- headline tiles ---- */
+.hero-stats {
+  display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 1px;
+  background: var(--line); border: 1px solid var(--line); border-radius: 12px;
+  overflow: hidden; margin-bottom: 48px;
+}
+.tile { background: var(--bg); padding: 20px 22px 18px; display: flex; flex-direction: column; }
+.tile-wide { grid-column: 1 / -1; }
+.tile-l {
+  font-size: 12.5px; font-weight: 550; color: var(--muted);
+}
+.tile-n {
+  margin-top: 12px; font-size: 34px; font-weight: 700; letter-spacing: -.04em;
+  line-height: 1; font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.tile-lead .tile-n { font-size: 44px; }
+.tile-n.good { color: var(--green); }
+.tile-n.mid { color: var(--amber-ink); }
+.tile-n.poor { color: var(--red); }
+.tile-n.none { color: var(--line-2); }
+.tile-sub { margin-top: 8px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tile-wide .meter { margin-top: 14px; }
+.meter.big { height: 10px; }
+
+/* ---- block headers ---- */
+.block { margin-top: 46px; }
+.block-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 16px; }
+
+/* ---- generic magnitude bar: thin mark, rounded end, recessive track ---- */
+.bar { display: block; height: 6px; border-radius: 999px; background: var(--bg-soft); overflow: hidden; }
+.bar-fill { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
+
+/* ---- where to focus ---- */
+.focus { list-style: none; margin: 0; padding: 0; }
+.focus-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) 140px auto auto; gap: 20px;
+  align-items: center; padding: 15px 0; border-top: 1px solid var(--line);
+}
+.focus-row:first-child { border-top: none; }
+.focus-id { display: flex; flex-direction: column; min-width: 0; }
+.focus-name {
+  font-size: 14.5px; font-weight: 650; letter-spacing: -.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.focus-where { margin-top: 3px; font-size: 12px; color: var(--muted); }
+
+/* ---- domain bars: total length is bank size, fill is what you have seen ---- */
+.dbars { list-style: none; margin: 0; padding: 0; }
+/* Groups the bars under Reading and Writing / Math so the two halves of the
+   test read separately instead of as one run of eight. */
+.dbar-group {
+  font-size: 12.5px; font-weight: 650; color: var(--ink-2);
+  padding: 16px 0 6px;
+}
+.dbar-group:first-child { padding-top: 0; }
+.dbar {
+  display: grid; grid-template-columns: 218px minmax(0, 1fr) 56px 46px; gap: 16px;
+  align-items: center; padding: 8px 0;
+}
+.dbar-name {
+  font-size: 13.5px; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dbar-track { display: block; }
+.dbar-total {
+  display: block; height: 22px; border-radius: 4px;
+  background: var(--bg-soft); box-shadow: inset 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+.dbar-seen { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+.dbar-n {
+  font-size: 12.5px; color: var(--ink-2); text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- breakdown rows ---- */
+.rows { list-style: none; margin: 0; padding: 0; }
+.rows.sub { margin: 0 0 8px; padding-left: 18px; border-left: 1px solid var(--line); }
+.domain-group + .domain-group { margin-top: 4px; }
+.row-item {
+  display: grid; grid-template-columns: minmax(0, 1fr) 92px 130px 46px; gap: 16px;
+  align-items: center; padding: 9px 0;
+}
+.row-item.is-domain { border-top: 1px solid var(--line); font-weight: 650; }
+.row-item.is-skill { padding: 6px 0; }
+.row-name {
+  font-size: 13.5px; letter-spacing: -.005em; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.row-item.is-skill .row-name { font-size: 13px; color: var(--ink-2); }
+button.row-name {
+  display: inline-flex; align-items: center; gap: 5px; min-width: 0;
+  background: none; border: none; padding: 0; cursor: pointer;
+  font: inherit; font-size: 13px; color: var(--ink-2); text-align: left;
+}
+button.row-name svg { opacity: 0; transition: opacity .12s; flex: none; }
+button.row-name:hover { color: var(--accent); }
+button.row-name:hover svg { opacity: 1; }
+.row-count {
+  font-size: 12.5px; color: var(--ink-2); text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.row-count .dim { color: var(--muted); }
+
+@media (max-width: 819px) {
+  .hero-stats { grid-template-columns: 1fr 1fr; }
+  .tile-lead { grid-column: 1 / -1; }
+  .dbar { grid-template-columns: 130px minmax(0, 1fr) 46px; }
+  .dbar-n { display: none; }
+  .row-item { grid-template-columns: minmax(0, 1fr) 78px 46px; }
+  .row-item .bar { display: none; }
+  .focus-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .focus-row .bar { display: none; }
+}
+
+/* ============================================================ stats v2 */
+.phead .hero-stats {
+  display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap: var(--sp-3);
+  margin: 0; background: none; border: 0; border-radius: 0; overflow: visible; min-width: 440px;
+}
+.phead .tile {
+  padding: var(--sp-4) var(--sp-5); border-radius: var(--rad-lg); background: var(--n-0); box-shadow: var(--sh-1);
+}
+.phead .tile-wide { grid-column: 1 / -1; }
+.phead .tile-l { font-size: var(--fs-xs); font-weight: var(--fw-semi); color: var(--n-500); }
+.phead .tile-n { margin-top: 8px; font-family: var(--display); font-size: 34px; font-weight: 800; letter-spacing: -.04em; }
+.phead .tile-lead .tile-n { font-size: 44px; }
+.phead .tile-sub { margin-top: 6px; font-size: var(--fs-xs); }
+.phead .meter.big { height: 10px; background: var(--mint-100); }
+.phead .meter.big .meter-fill { background: var(--mint-500); }
+.stats .block { margin-top: var(--sp-10); }
+.stats .block:first-child { margin-top: 0; }
+.h { margin: 0; font-family: var(--display); font-size: 30px; font-weight: 800; letter-spacing: -.035em; color: var(--n-900); }
+.stats .h { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spacing: -.035em; color: var(--n-900); }
+.stats .hint { font-size: var(--fs-md); }
+.stats .focus { display: flex; flex-direction: column; gap: var(--sp-2); }
+.stats .focus-row {
+  position: relative; padding: var(--sp-4) var(--sp-5) var(--sp-4) var(--sp-6); border: 0;
+  border-radius: var(--rad-lg); background: var(--n-0); box-shadow: 0 0 0 1px var(--n-100), var(--sh-1);
+}
+.stats .focus-row::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 4px; border-radius: 0 4px 4px 0; background: var(--sec-500); }
+.stats .focus-name { font-family: var(--display); font-size: 17px; font-weight: 750; letter-spacing: -.02em; }
+.stats .focus-where { color: var(--sec-700); font-weight: var(--fw-semi); }
+.stats .bar { height: 8px; background: var(--n-100); }
+.stats .bar-fill { background: var(--sec-500, var(--accent)); }
+.stats .dbars {
+  padding: var(--sp-5) var(--sp-6); border-radius: var(--rad-xl); background: var(--n-0);
+  box-shadow: 0 0 0 1px var(--n-100), var(--sh-1);
+}
+.stats .dbar-group { display: flex; align-items: center; gap: 8px; padding: var(--sp-4) 0 var(--sp-2); font-family: var(--display); font-size: 15px; font-weight: 750; color: var(--sec-700); }
+.stats .dbar-group::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--sec-500); }
+.stats .dbar-group:first-child { padding-top: 0; }
+.stats .dbar-name { font-weight: var(--fw-medium); color: var(--n-900); }
+.stats .dbar-total { height: 16px; border-radius: var(--rad-pill); background: var(--sec-50, var(--n-50)); box-shadow: none; }
+.stats .dbar-seen { border-radius: var(--rad-pill); background: var(--sec-500); }
+.stats .dbar.d-E .dbar-total { background: var(--green-soft); }
+.stats .dbar.d-E .dbar-seen { background: var(--green); }
+.stats .dbar.d-M .dbar-total { background: var(--yellow-soft); }
+.stats .dbar.d-M .dbar-seen { background: var(--yellow); }
+.stats .dbar.d-H .dbar-total { background: var(--red-soft); }
+.stats .dbar.d-H .dbar-seen { background: var(--red); }
+.stats .spanel { margin-top: var(--sp-6); }
+.stats .spanel .rows:not(.sub) {
+  padding: var(--sp-2) var(--sp-5); border-radius: var(--rad-xl); background: var(--n-0);
+  box-shadow: 0 10px 26px -20px var(--sec-500);
+}
+.stats .spanel .row-item.is-domain { border-top-color: var(--n-100); font-family: var(--display); font-size: 16px; font-weight: 750; }
+.stats .spanel .domain-group:first-child .row-item.is-domain { border-top: 0; }
+.stats .spanel .rows.sub { border-left-color: var(--sec-200); }
+.stats .spanel button.row-name:hover { color: var(--sec-700); }
+@media (max-width: 819px) {
+  .phead .hero-stats { min-width: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+  .phead .tile { padding: var(--sp-3); }
+  .phead .tile-n, .phead .tile-lead .tile-n { font-size: 26px; }
+  .phead .tile-sub { display: none; }
+  .stats { padding: var(--sp-6) var(--sp-4) var(--sp-8); }
+  .h, .stats .h { font-size: 24px; }
+  .stats .dbars { padding: var(--sp-4); }
+  .stats .spanel { margin-left: calc(var(--sp-4) * -1); margin-right: calc(var(--sp-4) * -1); }
+  .phead .tile-lead { grid-column: auto; }
+  .phead .tile-l { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stats .focus-row { grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; padding: var(--sp-3) var(--sp-4) var(--sp-3) var(--sp-5); }
+  .stats .focus-row .bar { display: none; }
+}

@@ -2,7 +2,7 @@
    These were fetched from Google Fonts once and committed; nothing here is
    generated at build time.
 
-   Variable weight ranges, not static weights. styles.css uses 550, 620 and 650,
+   Variable weight ranges, not static weights. The stylesheets use 550, 620 and 650,
    which a static family silently rounds to whatever it actually ships.
 
    Subsets: latin, latin-ext, greek. latin carries U+2212, the unicode minus that

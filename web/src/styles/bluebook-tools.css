@@ -1,0 +1,330 @@
+/* What the practice tools open on top of the question: the highlight menu,
+   the navigator, Highlights & Notes, the calculator, the mistake log, the
+   end-of-set review page, the Info popover and the Math reference sheet. */
+
+/* ---------- highlight menu ---------- */
+.hl-menu {
+  position: fixed; transform: translate(-50%, -100%);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 999px; box-shadow: var(--shadow); padding: 7px 12px; z-index: 60;
+}
+.swatch { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(0,0,0,.1); cursor: pointer; transition: transform .1s; }
+.swatch:hover { transform: scale(1.12); }
+.sw-yellow { background: var(--hl-yellow); }
+.sw-blue { background: var(--hl-blue); }
+.sw-pink { background: var(--hl-pink); }
+.hl-sep { width: 1px; height: 20px; background: var(--line); }
+.hl-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%; border: none;
+  background: none; cursor: pointer; color: var(--ink-2);
+}
+.hl-icon:hover { background: var(--bg-soft); color: var(--ink); }
+/* Named -input to keep it clear of mark.hl-note, which is a different thing.
+   Sharing the class put a pill border and padding on every noted highlight. */
+.hl-note-input {
+  border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 12px;
+  font: inherit; font-size: 13px; width: 168px; color: var(--ink);
+}
+.hl-note-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+/* ---------- navigator ---------- */
+.nav-scrim { position: fixed; inset: 0; background: rgba(16,20,30,.24); z-index: 50; }
+.nav-popup {
+  position: fixed; left: 50%; bottom: calc(var(--bar) + 18px); transform: translateX(-50%);
+  width: min(720px, 94vw); max-height: 66vh; display: flex; flex-direction: column;
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: var(--r-lg); box-shadow: var(--shadow); z-index: 51;
+}
+.nav-head { position: relative; padding: 18px 50px 14px; text-align: center; }
+.nav-title { font-size: 16px; font-weight: 620; letter-spacing: -.01em; }
+.nav-close {
+  position: absolute; top: 14px; right: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 50%; border: none;
+  background: none; cursor: pointer; color: var(--muted);
+}
+.nav-close:hover { background: var(--bg-soft); color: var(--ink); }
+
+.nav-legend {
+  display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;
+  padding: 12px 20px; font-size: 12.5px; color: var(--ink-2);
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+.nav-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.key { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+.key-unanswered { border: 1px dashed var(--line-2); background: var(--bg); }
+.key-answered { background: var(--accent-soft); border: 1px solid var(--accent-ring); }
+.key-first { background: var(--green); }
+.key-retry { background: var(--yellow); }
+.key-wrong { background: var(--red); }
+.key-marked {
+  position: relative; background: var(--bg); border: 1px solid var(--line-2);
+  border-top-right-radius: 0;
+}
+.key-marked::after {
+  content: ''; position: absolute; top: 0; right: 0; width: 8px; height: 8px;
+  background: var(--red); clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+.nav-grid {
+  display: grid; grid-template-columns: repeat(10, 1fr);
+  gap: 9px; padding: 20px; overflow-y: auto;
+}
+.nav-cell {
+  position: relative; height: 40px; border-radius: var(--r-sm);
+  font-size: 14px; font-weight: 550; font-variant-numeric: tabular-nums;
+  cursor: pointer; background: var(--bg); border: 1px dashed var(--line-2);
+  color: var(--ink-2);
+}
+/* Answered, but not yet graded: a set holds answers until it ends. Solid rather
+   than the dashed unanswered cell, and neutral rather than a verdict colour. */
+.nav-cell.is-answered {
+  background: var(--accent-soft); border: 1px solid var(--accent-ring);
+  color: var(--accent-dark); font-weight: 650;
+}
+.nav-cell.is-first { background: var(--green); border: 1px solid var(--green); color: #fff; }
+.nav-cell.is-retry { background: var(--yellow); border: 1px solid var(--yellow); color: #3a2c00; }
+.nav-cell.is-wrong { background: var(--red);   border: 1px solid var(--red);   color: #fff; }
+.nav-cell:hover { border-color: var(--ink-2); }
+.nav-cell.is-current { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+.nav-cell.is-flagged {
+  /* The ribbon needs a hard corner to fold over. */
+  border-top-right-radius: 0;
+}
+/* Two stacked triangles: a slightly larger white one behind the red, which
+   leaves a white edge along the fold. Without it the ribbon disappears on a
+   cell that is itself red because the latest attempt was wrong. */
+.nav-cell.is-flagged::before {
+  content: ''; position: absolute; top: 0; right: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  width: 22px; height: 22px; background: #fff;
+}
+.nav-cell.is-flagged::after {
+  content: ''; position: absolute; top: 0; right: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  width: 19px; height: 19px; background: var(--red);
+}
+/* There used to be a 4px dark triangle here, meant to read as the shadow under
+   a folded corner. At the size these cells actually render it just looked like
+   a stray artifact hanging off the ribbon, outside the cell border. The ribbon
+   alone reads fine. */
+.nav-foot {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 0 20px 18px; text-align: center; color: var(--muted); font-size: 12.5px;
+}
+.nav-review { margin-bottom: 10px; }
+
+/* ---------- highlights & notes ---------- */
+.notes-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 92vw);
+  z-index: 56; display: flex; flex-direction: column;
+  background: var(--bg); border-left: 1px solid var(--line-2);
+  box-shadow: -14px 0 40px rgba(16, 20, 30, .16);
+}
+.notes-head {
+  flex: none; position: relative; display: flex; align-items: center;
+  padding: 16px 52px 14px 20px; background: var(--chrome);
+  border-bottom: 1px solid var(--line-2);
+}
+.notes-title { font-size: 16px; font-weight: 700; }
+.notes-head .nav-close { top: 13px; right: 14px; }
+
+.notes-list { list-style: none; margin: 0; padding: 14px 16px 24px; overflow-y: auto; }
+.note-item {
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: 12px 14px; margin-bottom: 10px; background: var(--bg);
+}
+.note-item-head { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+.note-swatch {
+  width: 14px; height: 14px; border-radius: 4px; flex: none;
+  border: 1px solid rgba(0, 0, 0, .12);
+}
+.note-swatch.sw-underline { background: var(--ink); }
+.note-where {
+  font-size: 12px; font-weight: 600; color: var(--muted);
+}
+.note-del {
+  margin-left: auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 6px; border: none;
+  background: none; cursor: pointer; color: var(--muted);
+}
+.note-del:hover { background: var(--red-soft); color: var(--red); }
+.note-quote {
+  margin: 0; font-family: var(--serif); font-size: 15px; line-height: 1.5;
+  border-left: 3px solid var(--line-2); padding-left: 11px; color: var(--ink-2);
+}
+.note-missing { color: var(--muted); }
+.note-text {
+  margin: 9px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink);
+  background: var(--bg-soft); border-radius: var(--r-sm); padding: 8px 11px;
+}
+.notes-empty { padding: 26px 20px; color: var(--ink-2); font-size: 14.5px; }
+.notes-empty p { margin: 0 0 10px; }
+
+/* The calculator is a floating window you can drag anywhere and resize, with an
+   expand toggle that snaps it to a left-half split screen. That is how Bluebook
+   behaves; College Board's own docs say "You can drag it anywhere on the
+   screen". It opens on the LEFT because on a split-pane reading question the
+   right side is where the question lives. */
+.desmos-panel {
+  position: absolute; z-index: 30;
+  background: var(--bg); border: 1px solid #1c1c1c; border-radius: 2px;
+  box-shadow: 0 14px 44px rgba(16, 20, 30, .28);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.desmos-panel.is-expanded {
+  left: 0; top: 0; height: 100%;
+  border-radius: 0; border-width: 0; box-shadow: none;
+}
+/* The split edge drags like the passage divider. */
+.desmos-split-grip {
+  position: absolute; top: 0; right: 0; width: 4px; height: 100%;
+  background: #888888; cursor: col-resize; touch-action: none;
+}
+.desmos-split-grip:hover { background: var(--ink-2); }
+
+/* Bluebook's calculator title bar: near-black, white bold title on the left, a
+   3x3 dot grid in the centre as the drag handle, expand and close on the right.
+   Measured off the real app at #1c1c1c and ~41px tall. */
+.desmos-head {
+  flex: none; position: relative; height: 41px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 8px 0 14px; background: #1c1c1c;
+  cursor: grab; touch-action: none; user-select: none;
+}
+body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-select: none; }
+.desmos-panel.is-expanded .desmos-head { cursor: default; }
+.desmos-title { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+/* Centred on the bar itself, not in the flex flow, so it stays put whatever
+   the title width is. */
+.desmos-grab {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  color: #fff; pointer-events: none;
+}
+.desmos-panel.is-expanded .desmos-grab { display: none; }
+.desmos-btn {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 3px; border: none;
+  background: none; cursor: pointer; color: #fff;
+}
+.desmos-btn:last-of-type { margin-left: 0; }
+.desmos-btn:first-of-type { margin-left: auto; }
+.desmos-btn:hover { background: rgba(255, 255, 255, .16); }
+.desmos-host { flex: 1; min-height: 0; }
+.desmos-error { padding: 16px; color: var(--red); font-size: 14px; }
+
+/* Corner grip: three diagonal strokes, an inline svg in Desmos.tsx. */
+.desmos-resize {
+  position: absolute; right: 0; bottom: 0; width: 20px; height: 20px;
+  cursor: nwse-resize; touch-action: none; color: var(--line-2);
+}
+.desmos-resize svg { display: block; }
+
+@media (max-width: 819px) {
+  .nav-grid { grid-template-columns: repeat(6, 1fr); }
+  /* Panels that assumed a wide viewport. */
+  .notes-panel { width: min(400px, 100vw); }
+  .nav-popup { width: min(720px, 96vw); max-height: 60vh; }
+}
+
+/* ---- mistake log ---- */
+.mlog { padding: 18px 20px 28px; overflow-y: auto; }
+.mlog-lead { margin: 0 0 12px; font-size: 14px; color: var(--ink-2); }
+/* The top margin is the point: the tag chips sat flush against this label with
+   nothing between them, so the two controls read as one cramped block instead
+   of as "pick your tags" then "write a note". */
+.mlog-label {
+  display: block; margin: 24px 0 8px;
+  font-size: 13px; font-weight: 650; color: var(--ink-2);
+}
+.mlog-note {
+  width: 100%; box-sizing: border-box; resize: vertical;
+  padding: 10px 12px; border: 1px solid var(--line-2); border-radius: var(--r-sm);
+  font: inherit; font-size: 14px; line-height: 1.5; color: var(--ink);
+}
+.mlog-note:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.mlog-fine { margin: 10px 0 0; font-size: 11.5px; color: var(--muted); }
+.mlog-error { margin: 8px 0 0; font-size: 12px; color: var(--red); }
+
+/* ---- the end-of-set review page, modelled on Bluebook's ---- */
+.setreview {
+  position: fixed; inset: 0; z-index: 60; background: var(--bg);
+  display: flex; flex-direction: column; overflow-y: auto;
+}
+.setreview-top {
+  flex: none; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; background: var(--chrome);
+  background-image: var(--rule); background-size: 100% 2px;
+  background-repeat: repeat-x; background-position: left bottom;
+}
+.setreview-clock {
+  font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.setreview-clock.is-low { color: var(--red); }
+.setreview-body { flex: 1; max-width: 760px; margin: 0 auto; padding: 40px 24px 80px; width: 100%; }
+.setreview-h { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 6px; text-align: center; }
+.setreview-sub { font-size: 14px; color: var(--muted); margin: 0 0 26px; text-align: center; }
+.setreview-legend { justify-content: center; margin-bottom: 22px; }
+.setreview-grid { grid-template-columns: repeat(10, 1fr); }
+.setreview-foot { margin-top: 34px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.setreview-foot .hint { text-align: center; max-width: 46ch; margin: 0; }
+
+@media (max-width: 819px) {
+  .setreview-body { padding: 26px 16px 60px; }
+  .setreview-h { font-size: 21px; }
+  .setreview-grid { grid-template-columns: repeat(6, 1fr); }
+}
+
+/* DIAGNOSTIC, paired with the `diag` state in Desmos.tsx. Remove together. */
+.desmos-diag {
+  flex: none; padding: 6px 10px; background: #fdecef; color: #a60d26;
+  font-size: 11.5px; line-height: 1.35; word-break: break-word;
+  border-top: 1px solid rgba(166, 13, 38, .25);
+}
+
+/* ---- practice: inline mistake log under a wrong answer ---- */
+.mlog-practice {
+  margin-top: var(--sp-5); padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--n-200); border-radius: var(--rad-lg); background: var(--n-25);
+}
+.mlog-practice .mlog-lead { font-family: var(--display); font-weight: 750; font-size: var(--fs-lg); color: var(--n-900); }
+.mlog-practice .mlog-label { margin-top: var(--sp-3); }
+
+/* ---- practice: Info popover (ID, difficulty, band) ---- */
+.qinfo { position: relative; }
+.qinfo-pop {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
+  display: grid; gap: 10px; min-width: 250px; padding: 14px 16px;
+  background: var(--n-0); border: 1px solid var(--n-200); border-radius: var(--rad-md);
+  box-shadow: var(--sh-3); color: var(--n-900); text-align: left;
+}
+.qinfo-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.qinfo-k { font-size: 12px; font-weight: 650; color: var(--n-500); text-transform: uppercase; letter-spacing: .04em; }
+.qinfo-v { font-family: var(--display); font-weight: 750; font-size: 18px; font-variant-numeric: tabular-nums; }
+.qinfo-v .dim { font-size: 13px; color: var(--n-500); font-weight: 600; }
+.qinfo .q-id { margin-right: 0; }
+
+/* ---- practice: Math reference sheet ---- */
+.ref-panel { width: min(460px, 100vw); }
+.ref-body { padding: 16px 18px 28px; overflow-y: auto; }
+.ref-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ref-card {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 8px 12px;
+  border: 1px solid var(--math-100); border-radius: var(--rad-md); background: var(--math-50); text-align: center;
+}
+.ref-fig { width: 100%; max-width: 132px; height: auto; fill: none; stroke: var(--math-700); stroke-width: 1.6; stroke-linejoin: round; }
+.ref-card.wide { grid-column: span 2; }
+.ref-card.wide .ref-fig { max-width: 264px; }
+.ref-fig .ref-dash { stroke-dasharray: 3 3; stroke-width: 1.2; }
+.ref-fig .ref-dot { fill: var(--math-700); }
+.ref-lbl { fill: var(--n-900); stroke: none; font-size: 10px; font-style: italic; font-family: Georgia, 'Times New Roman', serif; }
+.ref-name { margin-top: 4px; font-size: 12px; font-weight: 650; color: var(--n-500); }
+.ref-f { font-family: Georgia, 'Times New Roman', serif; font-size: 15.5px; color: var(--n-900); }
+.ref-f sup, .ref-f sub { font-size: .68em; }
+.ref-facts { margin: 16px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.6; color: var(--n-700); }
+@media (max-width: 470px) {
+  /* Anchored to the button it ran off the left edge; pin it under the bar. */
+  .qinfo-pop { position: fixed; top: 62px; left: 12px; right: 12px; min-width: 0; }
+}

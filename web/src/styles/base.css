@@ -1,0 +1,110 @@
+/* Reset, the page itself, and utilities every surface uses.
+
+   The :root palette below is Bluebook's, sampled from a Bluebook screenshot,
+   not guessed. Swap the whole typeface by changing --sans / --serif. */
+
+/* Bluebook palette: practice screen (.app) only. Any use under .shell is a bug. */
+:root {
+  --sans: "Noto Sans", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --serif: "Noto Serif", Charter, Georgia, "Times New Roman", serif;
+
+  --ink: #1e1e1e;
+  --ink-2: #35383d;
+  --muted: #63666b;
+  --line: #d7dae0;
+  --line-2: #aeaeae;
+  --bg: #ffffff;
+  --bg-soft: #f7f8fa;
+
+  /* Bluebook chrome: the pale blue header/footer bands and the grey question
+     band that sits above the stem. */
+  --chrome: #e6edf8;
+  --chrome-line: #b9c6de;
+  --band: #f0f0f0;
+
+  /* College Board royal blue, sampled off the Back/Next pills. */
+  --accent: #324dc8;
+  --accent-dark: #26399a;
+  --accent-soft: #e8edfb;
+  --accent-soft-2: #dae2fa;
+  --accent-ring: #85bcf9;
+  --navy: #1b2264;
+
+  --green: #15803d;
+  --green-soft: #f0fdf4;
+  --yellow: #eab308;
+  /* Readable amber TEXT. --yellow is 1.92:1 on white and illegible. */
+  --amber-ink: #8a5a00;
+  --yellow-soft: #fefce8;
+  --red: #c8102e;
+  --red-soft: #fdf2f4;
+
+  --hl-yellow: #fef08a;
+  --hl-blue: #bfdbfe;
+  --hl-pink: #fbcfe8;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --bar: 74px;
+  --pane-pad: 46px;
+  --shadow: 0 10px 34px rgba(16, 20, 30, .13);
+
+  /* Measured off the real app: 26px on, 2px off, 2px tall, near-black. */
+  --rule: repeating-linear-gradient(to right, var(--ink) 0 26px, transparent 26px 28px);
+}
+
+* { box-sizing: border-box; }
+html, #root { height: 100%; margin: 0; }
+
+body {
+  height: 100%; margin: 0;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+body.dragging { cursor: col-resize; user-select: none; }
+/* `color: inherit` is not cosmetic. A <button> with no colour of its own takes
+   the UA keyword `buttontext`, which Chrome resolves to black and iOS Safari
+   resolves to the system accent blue. Answer choices and the section cards on
+   Home are buttons, so on an iPhone every answer choice rendered in blue while
+   the same CSS looked black on desktop. Do not remove this. */
+button { font-family: inherit; color: inherit; }
+
+/*
+ * The bank ships a long-form description of every chart and figure for screen
+ * readers ("The Men (United States) line: Begins at 1900, 25.9 ..."), marked
+ * class="sr-only". It is in 1,375 of the 3,767 questions. Bluebook does not
+ * render it, and with no rule for the class it was dumping the entire data
+ * table onto the page under the graph.
+ *
+ * Clipped rather than display:none on purpose: the text has to stay in the
+ * accessibility tree for screen readers, and it has to stay in the text-node
+ * stream or every saved highlight offset after it would shift.
+ *
+ * GLOBAL, deliberately. This was a list of the containers that render question
+ * HTML, and the Review page added two more (.review-passage, .review-stem) that
+ * were not on it, so the whole data table reappeared under the graph. The class
+ * never appears in our own markup, only inside College Board HTML, and
+ * "sr-only" means visually hidden everywhere. Do not narrow this again.
+ */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  overflow: hidden; white-space: nowrap;
+  clip: rect(0 0 0 0); clip-path: inset(50%);
+}
+@media (max-width: 819px) {
+  /* No blue flash when a passage is tapped. */
+  a, button { -webkit-tap-highlight-color: transparent; }
+}
+
+.desk-only { display: flex; }
+@media (max-width: 819px) {
+  .desk-only { display: none; }
+}
