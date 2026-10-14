@@ -2,9 +2,22 @@
  * The LightBluePrep mark: Bulb's face (see Mascot.tsx) on a deep-blue tile.
  * Inline so it costs no request and cannot flash in after the nav paints.
  *
+ * Below 40px the face blurs into a blob, so small sizes (the nav, 24 to 28px)
+ * draw the simplified mark: the white tick alone on the blue tile.
+ *
  * Keep the geometry in step with public/favicon.svg; they are the same mark.
  */
 export function Mark({ size = 26 }: { size?: number }) {
+  if (size < 40) {
+    return (
+      <svg className="mark" width={size} height={size} viewBox="0 0 48 48"
+           fill="none" aria-hidden="true" focusable="false">
+        <rect x="2" y="2" width="44" height="44" rx="12" fill="#1479c2" />
+        <path d="M14.5 24.5l6.5 6.5 12.5-13" stroke="#fff" strokeWidth="5"
+              strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
   return (
     <svg className="mark" width={size} height={size} viewBox="0 0 48 48"
          fill="none" aria-hidden="true" focusable="false">

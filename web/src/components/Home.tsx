@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon } from './Icon'
 import { Mascot } from './Mascot'
-import { FeedbackLink } from './Feedback'
+import { Footer } from './Footer'
 import { ProgressStrip } from './ProgressStrip'
 import { Modal } from './Modal'
 import { loadProcessTypes, typeCounts, type ProcessTypes } from '../lib/similar'
@@ -306,7 +306,11 @@ export function Home({
         ) : null}
 
         <div className="topics-head">
-          <h2 className="topics-t">Topics</h2>
+          <div className="topics-row">
+            <h2 className="topics-t">Topics</h2>
+            {/* The static skill pages are the only indexable content; link them. */}
+            <a className="link" href="/skills/">Browse by skill</a>
+          </div>
           <p className="topics-sub">Tap skills to build your session, or a whole area at once.</p>
           <div className="seg sectabs" role="group" aria-label="Section">
             {tabs.map((t) => (
@@ -422,10 +426,9 @@ export function Home({
           )
         }) : null}
 
-        <div className="hfoot">
-          <FeedbackLink label="Found a bug? Send feedback" ctx={{ context: 'home' }} />
-        </div>
       </div>
+
+      <Footer context="home" />
 
       <div className="startbar2">
         <div className="startbar2-in">

@@ -26,12 +26,12 @@ export function GithubMark({ size = 16 }: { size?: number }) {
   )
 }
 
-/** Sits in the nav row beside the sync badge. Icon only; the title carries it. */
+/** A quiet icon button in the nav's right cluster; the title carries it. */
 export function GithubLink() {
   return (
-    <a className="ghlink" href={REPO} target="_blank" rel="noreferrer"
+    <a className="navicon ghlink" href={REPO} target="_blank" rel="noreferrer"
        title="Source on GitHub" aria-label="Source on GitHub">
-      <GithubMark size={22} />
+      <GithubMark size={20} />
     </a>
   )
 }

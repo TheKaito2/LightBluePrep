@@ -91,12 +91,15 @@ Rules:
 
 | Name | Width | What changes |
 |---|---|---|
-| Phone | 470px and under | Narrowest nav; GitHub link hidden |
-| Tablet | 819px and under | Bottom tab bar, phone type scale, dialogs become bottom sheets, single-column layouts |
-| Compact desktop | 820 to 1149px | Nav tabs drop to icons except the active one |
+| Phone | 819px and under | 52px header, five-tab bottom bar, phone type scale, dialogs become bottom sheets, single-column layouts |
+| Compact desktop | 820 to 1149px | Nav tabs and Support drop to icons except the active tab; GitHub hidden (the footer links it) |
 | Desktop | 1150px and up | Everything labelled |
 
 ## Components (`shell.css`)
+
+**Nav** (`.tabs`, `App.tsx`). Desktop: 64px `--surface` bar over a `--hair-1` hairline, `--sh-1` once the page scrolls. Brand is the 28px mark plus the Bricolage 19/800 wordmark ("Blue" in `--brand-700`), 32px before the tabs. Tabs run the full bar height, padding 0 14, `--type-ui` 600 in `--fg-2` with an 18px `--fg-3` icon; hover is `--fg-1` over a 2px `--hair-2` bar, active is `--fg-1`, a `--brand-700` icon and a 3px `--brand-700` bar on the bottom edge. Results counts as Review. The right cluster (gap 8) is Settings and GitHub as 36px quiet icon buttons, Support as a quiet button with a `--rw-600` heart, then Sync: secondary sm "Sign in to sync" with a cloud, or a 24px avatar plus the 8px status dot once signed in. Phone: a 52px header with the 24px mark, the 18px wordmark and 40px icon buttons (Support, Settings, Sync; the dot only when signed in), and a bottom bar of five tabs (Practice, Review, Stats, Resources, About), 60px plus the safe area, hairline top, no shadow or blur, 22px icon over a 12px/600 label, the active icon on a 56x28 `--brand-100` pill in `--brand-800`. Marks under 40px draw the simplified tick-on-tile, never the face.
+
+**Footer** (`Footer.tsx`, `.foot`): on every page but practice, after the content (inside Home's own scroller, above the start bar). "Free forever · No ads · No account needed", the College Board line, then All SAT skills, Privacy, Source and Send feedback; 13px `--fg-3` over a `--hair-1` top hairline.
 
 **Buttons** (`.btn`). Noto 600, `--rad-sm`, 16px icon with an 8px gap, a trailing arrow only on forward actions.
 

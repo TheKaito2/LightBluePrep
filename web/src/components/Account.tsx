@@ -22,19 +22,6 @@ const LABEL: Record<sync.SyncStatus, string> = {
   pending: 'Not synced',
 }
 
-/**
- * Shown instead of LABEL on a phone, where the nav row has about 70px left
- * after the wordmark and three tabs. Hiding the label entirely was the first
- * attempt and it put the discoverability problem straight back: a bare coloured
- * dot does not tell anyone that signing in is possible.
- */
-const SHORT: Record<sync.SyncStatus, string> = {
-  off: 'Sync',
-  syncing: 'Sync',
-  synced: 'Synced',
-  pending: 'Sync',
-}
-
 /** Subscribes to the sync module so the dot tracks it without prop drilling. */
 function useSyncStatus(): sync.SyncStatus {
   const [status, setStatus] = useState<sync.SyncStatus>(sync.getStatus())
@@ -70,11 +57,25 @@ export function AccountBadge() {
 
   return (
     <div className="acct" ref={wrap}>
-      <button className={`acct-badge ${status}`} onClick={() => setOpen((v) => !v)}
-              aria-expanded={open} title="Sync and account">
-        <span className="acct-dot" aria-hidden="true" />
-        <span className="acct-label">{LABEL[status]}</span>
-        <span className="acct-label-sm" aria-hidden="true">{SHORT[status]}</span>
+      {/*
+        Signed out, it says what it offers ("Sign in to sync"): a grey dot and
+        "Not signed in" read as an offline indicator. Signed in, the desktop
+        shows an avatar and the status dot; the phone header has room for an
+        icon only, so there it is the cloud with the dot. The avatar is a
+        generic figure on purpose: sign-in keeps only an anonymous account ID
+        (privacy.html), so there is no name or photo to draw.
+      */}
+      <button className={`acct-badge ${status}${isIn ? ' in' : ''}`}
+              onClick={() => setOpen((v) => !v)} aria-expanded={open}
+              aria-label={isIn ? `Sync: ${LABEL[status]}` : LABEL.off}
+              title="Sync and account">
+        <Icon name="cloud" size={18} strokeWidth={2} className="acct-cloud" />
+        {isIn ? (
+          <>
+            <span className="acct-avatar" aria-hidden="true"><Icon name="user" size={15} strokeWidth={2} /></span>
+            <span className="acct-dot" aria-hidden="true" />
+          </>
+        ) : <span className="acct-label">{LABEL.off}</span>}
       </button>
       {/*
         Signed-in and signed-out are separate COMPONENTS, not two branches of

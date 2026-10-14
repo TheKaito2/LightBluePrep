@@ -16,6 +16,7 @@ import { QuestionView } from './components/QuestionView'
 import { Desmos, DESMOS_EMBEDDED } from './components/Desmos'
 import { Icon } from './components/Icon'
 import { Mark } from './components/Mark'
+import { Footer } from './components/Footer'
 import { SetResults } from './components/SetResults'
 import type { CellState } from './components/Navigator'
 import { SetReview } from './components/SetReview'
@@ -62,7 +63,6 @@ const NAV = [
   { key: 'stats', label: 'Stats', icon: 'chart' },
   { key: 'resources', label: 'Resources', icon: 'compass' },
   { key: 'about', label: 'About', icon: 'info' },
-  { key: 'settings', label: 'Settings', icon: 'gear' },
 ] as const
 
 /** index.html's own title, which Home goes back to. */
@@ -785,6 +785,25 @@ export default function App() {
    * landed and Tab starts from the top of it rather than from <body>. Not on
    * first load: the browser puts a fresh page at the top already.
    */
+  /**
+   * The nav takes a hairline shadow once the page under it has scrolled. The
+   * window never scrolls here: #main does, or Home's own .home inside it, and
+   * scroll does not bubble, hence the capture listener.
+   */
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const main = document.getElementById('main')
+    if (!main) return
+    const read = (el: Element | null) => (el?.scrollTop ?? 0) > 0
+    const onScroll = (e: Event) => {
+      const el = e.target as Element
+      if (el === main || el.classList.contains('home')) setScrolled(read(el))
+    }
+    main.addEventListener('scroll', onScroll, { capture: true, passive: true })
+    setScrolled(read(main) || read(main.querySelector('.home')))
+    return () => main.removeEventListener('scroll', onScroll, { capture: true })
+  }, [view])
+
   const focusedView = useRef(view)
   useEffect(() => {
     if (focusedView.current === view) return
@@ -835,42 +854,52 @@ export default function App() {
       ),
       stats: () => <StatsPage taxonomy={taxonomy} onPractice={practiceFilters} />,
     }
+    // Results is the end of a set, read back from Review, so Review stays lit.
+    const current = view === 'results' ? 'review' : view
     return (
       <div className="shell">
         <a className="skiplink" href="#main" onClick={skipTo('main')}>Skip to content</a>
-        <nav className="tabs" aria-label="Main">
+        <nav className={scrolled ? 'tabs scrolled' : 'tabs'} aria-label="Main">
           <div className="tabs-inner">
             <button className="brand" onClick={() => navigate('home')} aria-label="LightBluePrep home">
-              <Mark size={30} />
+              <Mark size={28} />
               <span className="wordmark">Light<span className="wordmark-blue">Blue</span>Prep</span>
             </button>
             <div className="tablinks">
               {NAV.map((t) => (
                 <button key={t.key}
-                        className={`tab tab-${t.key}${view === t.key ? ' on' : ''}`}
-                        title={t.label}
-                        aria-current={view === t.key ? 'page' : undefined}
+                        className={current === t.key ? 'tab on' : 'tab'}
+                        title={t.label} aria-label={t.label}
+                        aria-current={current === t.key ? 'page' : undefined}
                         onClick={() => navigate(t.key)}>
-                  <Icon name={t.icon} size={18} strokeWidth={2} />
-                  <span>{t.label}</span>
+                  <span className="tab-ico"><Icon name={t.icon} size={18} strokeWidth={2} /></span>
+                  <span className="tab-label">{t.label}</span>
                 </button>
               ))}
             </div>
             {/*
-              In the nav rather than in a page corner, so Home, Stats and About
-              all show it from one instance. It was on Stats only, and the user's
-              report was that nothing indicated sync existed. The practice view
-              renders its own header and deliberately does not get one.
+              In the nav rather than in a page corner, so every page shows them
+              from one instance. The practice view renders its own header and
+              deliberately does not get them.
             */}
-            <SupportLink />
-            <GithubLink />
-            <AccountBadge />
+            <div className="navright">
+              <button className="navicon" onClick={() => navigate('settings')}
+                      aria-label="Settings" title="Settings"
+                      aria-current={view === 'settings' ? 'page' : undefined}>
+                <Icon name="gear" size={20} strokeWidth={2} />
+              </button>
+              <GithubLink />
+              <SupportLink />
+              <AccountBadge />
+            </div>
           </div>
         </nav>
         {banner}
         {/* Home scrolls inside its own .home, so its main only passes the height down. */}
         <main id="main" tabIndex={-1} className={view === 'home' ? 'page page-home' : 'page'}>
           {pages[view]()}
+          {/* Home scrolls inside .home, so it renders its own footer in there. */}
+          {view === 'home' ? null : <Footer context={view} />}
         </main>
         <FeedbackHost />
         <SupportHost />

@@ -70,189 +70,146 @@
 .shell p { text-wrap: pretty; }
 
 /* ============================================================ nav
-   The first rules here are the original thin nav; "nav v2" further down
-   overrides most of them. Order matters: the narrow-screen blocks must stay
-   between the two, which is where they were tuned. */
+   Spec 7.1 (820px and up) and 7.2 (phone). One DOM for every width: under
+   820px the tab links become a fixed bottom bar and the header keeps the
+   brand and three icon buttons. The DOM order follows the desktop layout; on a
+   phone the skip link covers keyboard users. */
+.tabs {
+  position: relative; z-index: 30; flex: none;
+  background: var(--surface); border-bottom: 1px solid var(--hair-1);
+  transition: box-shadow var(--dur-fast) var(--ease-std);
+}
+/* Set by App once the page under the nav has scrolled. */
+.tabs.scrolled { box-shadow: var(--sh-1); }
+.tabs-inner {
+  max-width: 1160px; margin: 0 auto; padding: 0 var(--sp-8);
+  display: flex; align-items: center; height: calc(var(--navh) - 1px);
+}
 
-/* The mark and the name are one unit, so the spacing that separates the brand
-   from the tabs belongs on the group rather than on the word. */
-.brand { display: inline-flex; align-items: center; gap: 8px; margin-right: 26px; }
+/* The mark and the name are one unit, so the space that separates the brand
+   from the tabs belongs on the group. */
+.brand {
+  flex: none; display: inline-flex; align-items: center; gap: 10px;
+  margin-right: var(--sp-8); padding: 4px 0; border: 0; border-radius: var(--rad-sm);
+  background: none; color: var(--fg-1); cursor: pointer;
+}
 .mark { display: block; flex: none; }
+.wordmark { font-family: var(--display); font-size: 19px; font-weight: 800; letter-spacing: -.03em; color: var(--fg-1); white-space: nowrap; }
+.wordmark-blue { color: var(--brand-700); }
+
+/* Tabs run the full bar height so the active bar sits on its bottom edge. */
+.tablinks { display: flex; align-self: stretch; }
 .tab {
-  position: relative; background: none; border: none; cursor: pointer;
-  padding: 0 12px; font: inherit; font-size: 14px; font-weight: 550;
-  color: var(--fg-3);
+  position: relative; display: inline-flex; align-items: center; gap: 8px;
+  height: 100%; padding: 0 14px; border: 0; background: none; cursor: pointer;
+  font: var(--type-ui); font-weight: 600; letter-spacing: var(--tr-ui); color: var(--fg-2);
+  white-space: nowrap; transition: color var(--dur-fast) var(--ease-std);
+}
+.tab-ico { display: inline-flex; color: var(--fg-3); transition: color var(--dur-fast) var(--ease-std); }
+.tab::after {
+  content: ''; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 0;
+  border-radius: 3px 3px 0 0; background: var(--hair-2);
 }
 .tab:hover { color: var(--fg-1); }
-.tab.on { color: var(--fg-1); font-weight: 650; }
-.tab.on::after {
-  content: ''; position: absolute; left: 12px; right: 12px; bottom: -1px;
-  height: 2px; background: var(--fg-1);
-}
+.tab:hover::after { height: 2px; }
+.tab.on { color: var(--fg-1); }
+.tab.on .tab-ico { color: var(--brand-700); }
+.tab.on::after { height: 3px; background: var(--brand-700); }
+/* A full-height tab would draw a 64px ring past the bar; keep it inside. */
+.shell .tab:focus-visible { outline-offset: -4px; border-radius: var(--rad-sm); }
 
-@media (max-width: 640px) {
-  .tabs-inner { padding: 0 14px; gap: 0; }
-  .brand { margin-right: 12px; gap: 7px; }
-  .wordmark { font-size: 15px; }
-  .tab { padding: 0 9px; font-size: 13.5px; }
-  .tab.on::after { left: 9px; right: 9px; }
-}
-/* Nav row, right of the sync badge. Icon only: the row is already four items
-   wide and a phone has about 70px spare. First item of the right-hand group,
-   so it carries the auto margin that pushes itself and the sync badge to the
-   end of the nav row. */
-.ghlink {
+/* Right cluster: Settings, GitHub, Support, Sync, in that order. */
+.navright { flex: none; display: flex; align-items: center; gap: var(--sp-2); margin-left: auto; }
+.navicon {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; margin-left: auto; margin-right: 8px;
-  border-radius: var(--rad-sm); color: var(--fg-2); text-decoration: none;
+  width: 36px; height: 36px; padding: 0; border: 0; border-radius: var(--rad-sm);
+  background: none; color: var(--fg-2); text-decoration: none; cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
 }
-.ghlink:hover { background: var(--surface-subtle); color: var(--fg-1); }
+.navicon:hover { background: var(--surface-subtle); color: var(--fg-1); }
+.navicon[aria-current=page] { color: var(--brand-700); }
 
-/* The nav row runs out of width well before the practice view does. The
-   wordmark, four tabs, the GitHub link and the sync badge measured 436px
-   together, so below that it overflowed on every phone. Review being a tab
-   rather than a card is what pushed it over; it was already 12px short at
-   360px before that.
-
-   GitHub is the one that goes, because it is the only item in this row that is
-   also reachable from somewhere else (the About page links it). Everything
-   else here is a destination.
-
-   This has to sit after .ghlink rather than up with the other tab rules, or
-   its display:inline-flex wins on source order and the link never hides. */
-@media (max-width: 470px) {
-  .tabs-inner { padding: 0 10px; }
-  .tabs-inner > * { flex: none; }
-  /* One or the other, never both: the mark, the name, four tabs and the sync
-     badge do not fit together at 390px. The name wins, because a phone gives
-     you no other place to read what the site is called. The mark is still in
-     the browser tab. */
-  .brand { margin-right: 10px; }
-  .mark { display: none; }
-  .tab { padding: 0 6px; font-size: 13px; }
-  .tab.on::after { left: 6px; right: 6px; }
-  .ghlink { display: none; }
-  /* The auto margin that pushes the right-hand group to the end lives on
-     .ghlink, so it has to move when .ghlink does. */
-  .acct { margin-left: auto; }
-}
-
-/* The name is 43px wider than the mark it replaced, which put 360px back into
-   the scrolling range. 360 is too common a phone to leave scrolling, so the
-   branding and the tab padding give a little more here. Nothing is dropped, and
-   375 and up keep the roomier sizing. */
-@media (max-width: 389px) {
-  .brand { margin-right: 6px; }
-  .wordmark { font-size: 14px; }
-  .tab { padding: 0 4px; }
-  .tab.on::after { left: 4px; right: 4px; }
-}
-
-/* The scroll fallback, and ONLY where it earns its keep.
- *
- * `overflow-x: auto` forces overflow-y to auto with it, so this makes the nav
- * row a scroll container in both axes. An account panel is position:fixed
- * inside it, and on iOS a fixed descendant of a touch-scrolling container is
- * the classic case that renders but will not take a tap. It was applied at
- * 470px, which is every phone; the row actually fits down to 345, so the
- * container only belongs below that.
- */
-@media (max-width: 344px) {
-  .tabs-inner { overflow-x: auto; scrollbar-width: none; }
-  .tabs-inner::-webkit-scrollbar { display: none; }
-}
-
-/* ---- LightBluePrep brand and the Support button ----
-   Support is a quiet button with a pink heart, not a pink pill: pink means
+/* Support is a quiet button with a pink heart, not a pink pill: pink means
    Reading and Writing everywhere else. */
-.wordmark-blue { color: var(--brand-700); }
 .supportlink {
-  display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; margin-left: auto;
-  border: 0; border-radius: var(--rad-sm); background: none; color: var(--fg-1); cursor: pointer;
-  font: 600 14px/20px var(--sans); letter-spacing: var(--tr-ui); text-decoration: none;
+  flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 36px; padding: 0 12px; border: 0; border-radius: var(--rad-sm);
+  background: none; color: var(--fg-1); cursor: pointer;
+  font: 600 14px/20px var(--sans); letter-spacing: var(--tr-ui); white-space: nowrap;
   transition: background-color var(--dur-fast) var(--ease-std);
 }
 .supportlink:hover { background: var(--surface-subtle); }
-.supportlink svg { color: var(--rw-600); }
-.tabs-inner .supportlink + .ghlink { margin-left: 0; }
+.supportlink svg { flex: none; color: var(--rw-600); }
 
-/* ============================================================ nav v2
-   Taller, bolder: display-font wordmark, icon + label pill tabs (the active
-   one filled ink). Phones keep the bottom tab bar, with icons. */
-.tabs { flex: none; border-bottom: 1px solid var(--hair-1); background: var(--surface); }
-.tabs-inner {
-  max-width: 1160px; margin: 0 auto; padding: 0 var(--sp-8);
-  display: flex; align-items: center; gap: var(--sp-2); height: var(--navh);
-}
-button.brand {
-  border: 0; background: none; padding: 4px 6px 4px 0; cursor: pointer; margin-right: var(--sp-6);
-  display: inline-flex; align-items: center; gap: 10px; color: var(--fg-1);
-}
-.wordmark { font-family: var(--display); font-size: 19px; font-weight: 800; letter-spacing: -.03em; color: var(--fg-1); }
-.tablinks { display: flex; gap: 4px; }
-.tabs .tab {
-  display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px;
-  border-radius: var(--rad-pill); font: 600 14px/20px var(--sans); letter-spacing: var(--tr-ui);
-  color: var(--fg-2); transition: background var(--dur-fast), color var(--dur-fast);
-}
-.tabs .tab svg { color: var(--fg-3); transition: color var(--dur-fast); }
-.tabs .tab:hover { background: var(--surface-subtle); color: var(--fg-1); }
-.tabs .tab.on { background: var(--surface-ink); color: var(--fg-inv-1); }
-/* The nav row is capped at the page width, and six labelled tabs plus the
-   right-hand controls do not fit in it. So on a desktop Settings is always just
-   its gear, and below about 1,150px every tab drops to its icon and Sync uses
-   its short label. A hidden name stays in the DOM for screen readers and shows
-   as a tooltip (title in App.tsx). The phone bar keeps every label. */
-@media (min-width: 820px) {
-  .tabs .tab { padding: 0 12px; }
-  .tabs .tab.tab-settings { padding: 0 12px; gap: 0; }
-  .tabs .tab.tab-settings span {
-    position: absolute; width: 1px; height: 1px; overflow: hidden;
-    clip-path: inset(50%); white-space: nowrap;
-  }
-}
+/* 820 to 1149px: six labelled items do not fit, so inactive tabs and Support
+   drop to their icons (the name stays for screen readers, and as a tooltip).
+   The tab you are on keeps its label: touch and keyboard get no tooltip. */
 @media (min-width: 820px) and (max-width: 1149px) {
-  .tabs .tab { padding: 0 12px; gap: 0; }
-  .tabs .tab span {
+  .tab:not(.on) { padding: 0 12px; }
+  .tab:not(.on)::after { left: 12px; right: 12px; }
+  .tab:not(.on) .tab-label, .supportlink-t {
     position: absolute; width: 1px; height: 1px; overflow: hidden;
     clip-path: inset(50%); white-space: nowrap;
   }
-  .tabs-inner .acct-label { display: none; }
-  .tabs-inner .acct-label-sm { display: inline; }
-  /* Touch and keyboard users get no tooltip, so the tab you are on keeps its
-     name. The GitHub icon steps aside to make room; About links to it. */
-  .tabs .tab.on { gap: 8px; padding: 0 14px; }
-  .tabs .tab.on span {
-    position: static; width: auto; height: auto; overflow: visible; clip-path: none;
-  }
-  .tabs-inner .ghlink { display: none; }
+  .supportlink { width: 36px; padding: 0; }
+  /* GitHub goes too: with the longest active label the row has under 20px
+     spare at 820px, and the footer links the source on every page. */
+  .navright .ghlink { display: none; }
 }
-.tabs .tab.on svg { color: var(--brand-300); }
-.tabs .tab.on::after { display: none; }
 
-/* Phone: the tabs move to a bottom bar, the top row keeps brand + sync. */
+/* Phone: a 52px header (brand, then Support, Settings, Sync as 40px icon
+   buttons) and a five-tab bottom bar. Solid fill, no blur: a backdrop-filter
+   re-blurs the page on every scroll frame. */
 @media (max-width: 819px) {
-  .shell { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
-  .tabs-inner { height: var(--navh); padding: 0 var(--sp-4); justify-content: flex-start; }
-  .brand { margin-right: auto; }
-  button.brand { margin-right: auto; }
+  .shell { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+  .tabs-inner { padding: 0 var(--sp-2) 0 var(--sp-4); }
+  .brand { margin-right: auto; gap: 8px; }
+  .brand .mark { width: 24px; height: 24px; }
   .wordmark { font-size: 18px; }
+  .navright { gap: 0; margin-left: 0; }
+  .navicon, .supportlink { width: 40px; height: 40px; padding: 0; }
+  .supportlink { order: -1; }
+  .supportlink-t { display: none; }
+  .navright .ghlink { display: none; }
+
   .tablinks {
-    display: flex; position: fixed; z-index: 50; left: 0; right: 0; bottom: 0;
-    height: calc(64px + env(safe-area-inset-bottom)); gap: 0; padding: 6px 8px env(safe-area-inset-bottom);
-    background: var(--surface); backdrop-filter: blur(10px);
-    border-top: 1px solid var(--hair-1); box-shadow: 0 -8px 24px -18px rgba(20, 50, 90, .4);
+    position: fixed; z-index: 50; left: 0; right: 0; bottom: 0;
+    height: calc(60px + env(safe-area-inset-bottom)); padding: 0 4px env(safe-area-inset-bottom);
+    background: var(--surface); border-top: 1px solid var(--hair-1);
   }
-  .tablinks .tab {
-    flex: 1; flex-direction: column; justify-content: center; gap: 3px; height: 52px; padding: 0;
-    border-radius: var(--rad-md); font: var(--type-badge); color: var(--fg-3); background: none;
+  .tab {
+    flex: 1 1 0; min-width: 0; flex-direction: column; justify-content: center; gap: 4px;
+    padding: 0; font: var(--type-badge); color: var(--fg-3);
   }
-  .tablinks .tab svg { width: 22px; height: 22px; }
-  .tablinks .tab.on { background: var(--brand-100); color: var(--fg-1); font-weight: 700; }
-  .tablinks .tab.on svg { color: var(--brand-800); }
-  .tablinks .tab.on::after { display: none; }
-  .supportlink { margin-left: 0; height: 36px; padding: 0 10px; font-size: 13px; }
-  .tabs-inner .acct { margin-left: 8px; }
+  .tab::after { content: none; }
+  .tab-ico { align-items: center; justify-content: center; width: 56px; height: 28px; border-radius: var(--rad-pill); }
+  .tab-ico svg { width: 22px; height: 22px; }
+  .tab-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .tab.on { color: var(--fg-1); font-weight: 700; }
+  .tab.on .tab-ico { background: var(--brand-100); color: var(--brand-800); }
+}
+
+/* ============================================================ footer
+   components/Footer.tsx, at the end of every page but practice. */
+.foot { flex: none; border-top: 1px solid var(--hair-1); background: var(--surface); }
+.foot-in {
+  max-width: 1160px; margin: 0 auto; padding: var(--sp-6) var(--sp-8) var(--sp-8);
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  font: 400 13px/20px var(--sans); color: var(--fg-3);
+}
+.foot-in p { margin: 0; }
+.foot-promise { font-weight: 600; color: var(--fg-2); }
+.foot-links {
+  display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-5);
+  margin: var(--sp-1) 0 0; padding: 0; list-style: none;
+}
+.foot-links a, .shell .foot-links .fb-link {
+  font: inherit; color: var(--fg-3); text-decoration: underline;
+  text-decoration-color: var(--hair-2); text-underline-offset: 3px;
+}
+.foot-links a:hover, .shell .foot-links .fb-link:hover { color: var(--fg-link-hover); text-decoration-color: currentColor; }
+@media (max-width: 819px) {
+  .foot-in { padding: var(--sp-5) var(--sp-4) var(--sp-6); }
 }
 
 /* ============================================================ page heads
@@ -554,8 +511,8 @@ button.brand {
 /* 16px above Home's start bar (12 + 48 + 12) when it is on screen. */
 body:has(.startbar2) .toast { bottom: calc(72px + 16px); }
 @media (max-width: 819px) {
-  .toast { bottom: calc(64px + 16px + env(safe-area-inset-bottom)); }
-  body:has(.startbar2) .toast { bottom: calc(64px + 64px + 16px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(60px + 16px + env(safe-area-inset-bottom)); }
+  body:has(.startbar2) .toast { bottom: calc(60px + 64px + 16px + env(safe-area-inset-bottom)); }
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 

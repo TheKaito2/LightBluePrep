@@ -5,14 +5,24 @@
    row; nothing appears at all when the build has no VITE_SYNC_API. */
 .acct { position: relative; }
 
+/* Secondary sm (spec 7.4). Signed out: cloud + "Sign in to sync". Signed in:
+   a 24px avatar and the status dot in the same frame. */
 .acct-badge {
-  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; flex: none;
+  position: relative; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; flex: none;
   height: 32px; padding: 0 12px 0 10px; border: 1px solid var(--hair-2);
   border-radius: var(--rad-sm); background: var(--surface);
-  font: 600 13px/18px var(--sans); color: var(--fg-2);
+  font: 600 13px/18px var(--sans); letter-spacing: var(--tr-ui); color: var(--fg-1);
   cursor: pointer; transition: border-color var(--dur-fast), background-color var(--dur-fast);
 }
-.acct-badge:hover { border-color: var(--hair-ctl); background: var(--surface-subtle); color: var(--fg-1); }
+.acct-badge:hover { border-color: var(--hair-ctl); background: var(--surface-subtle); }
+.acct-badge .acct-cloud { flex: none; width: 16px; height: 16px; color: var(--fg-2); }
+.acct-badge.in { gap: 8px; padding: 0 10px 0 4px; }
+.acct-badge.in .acct-cloud { display: none; }
+.acct-avatar {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--brand-100); color: var(--brand-800);
+}
 
 .acct-dot {
   width: 8px; height: 8px; border-radius: 50%; flex: none;
@@ -77,23 +87,31 @@
 .acct-link:hover { color: var(--bad-700); }
 .acct-inbox { margin-top: 10px; width: 100%; }
 
-.acct-label-sm { display: none; }
-
 @media (max-width: 640px) {
-  /* Centred on the viewport rather than hung off the badge. The badge is no
-     longer the last thing in the nav row (the GitHub link is), so anchoring the
-     panel to its right edge pushed it visibly left of centre. Fixed rather than
-     absolute because the nav does not scroll. */
+  /* Centred on the viewport rather than hung off the badge, which sits a
+     little in from the right edge. Fixed rather than absolute because the nav
+     does not scroll. */
   .acct-panel {
     position: fixed; top: calc(var(--navh) + 8px);
     left: 50%; right: auto; transform: translateX(-50%);
     width: min(340px, calc(100vw - 24px));
   }
-  /* Swap the long label for the short one rather than dropping it: a bare dot
-     says nothing about there being a sign-in at all. */
-  .acct-label { display: none; }
-  .acct-label-sm { display: inline; }
-  .acct-badge { padding: 0 10px 0 9px; gap: 6px; }
+}
+
+/* Phone header (spec 7.2): a 40px quiet icon button. The cloud always shows;
+   the dot only once signed in, pinned to the cloud's top right. */
+@media (max-width: 819px) {
+  .acct-badge, .acct-badge.in {
+    justify-content: center; width: 40px; height: 40px; padding: 0;
+    border-color: transparent; background: none;
+  }
+  .acct-badge:hover { border-color: transparent; }
+  .acct-badge .acct-cloud, .acct-badge.in .acct-cloud { display: block; width: 22px; height: 22px; }
+  .acct-label, .acct-avatar { display: none; }
+  .acct-badge .acct-dot {
+    position: absolute; top: 9px; right: 7px;
+    box-shadow: 0 0 0 2px var(--surface);
+  }
 }
 
 /* ---- feedback ---- */

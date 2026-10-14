@@ -1,6 +1,6 @@
 /**
  * "Support LightBluePrep" popup: Ko-fi, Buy Me a Coffee, and PromptPay for
- * Thai students. Same event-host pattern as Feedback.tsx, so the nav pill and
+ * Thai students. Same event-host pattern as Feedback.tsx, so the nav button and
  * the About page can both open it. The dialog itself is the shared Modal.
  */
 import { useCallback, useEffect, useState } from 'react'
@@ -75,14 +75,18 @@ export function SupportHost() {
   )
 }
 
-/** "Support" pill in the nav. Opens the popup rather than leaving the site. */
+/**
+ * Support in the nav: a quiet button with a pink heart. The word hides on
+ * tablets and phones, where the accessible name still says what it is.
+ */
 export function SupportLink() {
   if (!supportAvailable) return null
   return (
     <button type="button" className="supportlink" onClick={openSupport}
+            aria-label="Support LightBluePrep"
             title="Donations pay for the domain and hosting">
-      <Icon name="heart" size={15} strokeWidth={2.2} />
-      Support
+      <Icon name="heart" size={18} strokeWidth={2} />
+      <span className="supportlink-t">Support</span>
     </button>
   )
 }

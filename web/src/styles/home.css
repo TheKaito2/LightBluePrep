@@ -11,7 +11,7 @@
   display: flex; flex-direction: column;
   background: var(--surface);
 }
-.hwrap { flex: 1 0 auto; width: 100%; max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) 140px; }
+.hwrap { flex: 1 0 auto; width: 100%; max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) var(--sp-12); }
 /* Field and list labels: small, semibold, sentence case. */
 .side-t { margin: 0 0 var(--sp-2); font: 600 13px/18px var(--sans); color: var(--fg-2); }
 .link {
@@ -152,6 +152,7 @@
 .topics-t { margin: 0; font: var(--type-h1); letter-spacing: var(--tr-h1); color: var(--fg-1); }
 .topics-sub { margin: -4px 0 0; font: var(--type-body); color: var(--fg-3); flex: 1 1 260px; }
 .topics-head .link { margin-left: auto; }
+.topics-row { display: flex; align-items: baseline; gap: var(--sp-4); }
 
 /* Masonry: two columns that pack cards of different heights without gaps. */
 .dgrid { columns: 2; column-gap: var(--sp-3); }
@@ -201,7 +202,6 @@
 .acc.mid { color: var(--warn-700); background: var(--warn-50); }
 .acc.poor { color: var(--bad-700); background: var(--bad-50); }
 .acc.none { color: var(--fg-3); background: var(--surface-subtle); }
-.hfoot { margin-top: var(--sp-8); text-align: center; }
 
 /* Checkbox look, drawn so a domain can show "some of its skills" (spec 7.8:
    18px, 6px corners, a control-grey border that clears 3:1). */
