@@ -20,6 +20,7 @@ import * as api from '../api'
 import { QuestionDetail } from './QuestionDetail'
 import { Icon } from './Icon'
 import { PageHead } from './PageHead'
+import { Stat, StatGroup } from './Stat'
 import { Mascot } from './Mascot'
 import { TAG_LABEL } from './MistakeFields'
 import { DIFFICULTIES, DIFFICULTY_NAME, SECTION_NAME, VERDICT, describeSet, fmt, plural } from '../lib/labels'
@@ -119,7 +120,7 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
   /** Finished sets, newest first. Rendered above the per-question history. */
   const setHistory = sets?.length ? (
     <section className="review-section">
-      <h2 className="review-sectionhead">Practice sets</h2>
+      <h2 className="h1-section">Practice sets</h2>
       <ul className="setlist">
         {sets.map((s) => {
           const g = graded(s.total, s.correct)
@@ -157,8 +158,8 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
   ) : null
 
   const head = (aside?: ReactNode) => (
-    <PageHead tone="amber" eyebrow="Your history" title="Review"
-              sub="Every question you have answered, grouped by day, with the explanation one tap away.">
+    <PageHead tone="ink" title="Review"
+              sub="Every question you have answered, with its explanation.">
       {aside}
     </PageHead>
   )
@@ -230,15 +231,16 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
   return (
     <>
     {head(
-      <div className="htiles">
-        <div className="htile"><span className="htile-n">{fmt(answered.length)}</span><span className="htile-l">answered</span></div>
-        <div className="htile"><span className="htile-n">{answered.length ? Math.round((correct / answered.length) * 100) : 0}<small>%</small></span><span className="htile-l">correct</span></div>
-        <div className="htile"><span className="htile-n">{duration(total)}</span><span className="htile-l">spent</span></div>
-      </div>,
+      <StatGroup>
+        <Stat size="l" label="Answered" value={fmt(answered.length)} />
+        <Stat size="l" label="Correct"
+              value={`${answered.length ? Math.round((correct / answered.length) * 100) : 0}%`} />
+        <Stat size="l" label="Time" value={duration(total)} />
+      </StatGroup>,
     )}
     <div className="review">
       <section className="redo" aria-labelledby="redo-h">
-        <h2 id="redo-h" className="redo-h">Redo a whole pile</h2>
+        <h2 id="redo-h" className="h1-section">Redo a whole pile</h2>
         <div className="redo-grid">
           {redo.map((r) => (
             <button key={r.key} className={r.tag ? 'redo-tile is-tag' : 'redo-tile'}

@@ -31,9 +31,7 @@
 }
 /* Small text on the light-blue hero is brand-800: brand-700 is under 4.5:1 there. */
 .eyebrow {
-  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--rad-pill);
-  background: rgba(255, 255, 255, .75); border: 1px solid var(--brand-200);
-  font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--brand-800);
+  display: block; font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--brand-800);
 }
 .hero2-t {
   margin: 18px 0 0; font: var(--type-display); letter-spacing: var(--tr-display); color: var(--fg-1);
@@ -147,9 +145,9 @@
 
 /* ---- topics ---- */
 .qsets { margin-bottom: var(--sp-8); }
+.qsets-t { margin: 0 0 var(--sp-3); font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
 .topics-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-3) var(--sp-6); margin-bottom: var(--sp-5); }
 .topics-head > :first-child { flex-basis: 100%; }
-.topics-t { margin: 0; font: var(--type-h1); letter-spacing: var(--tr-h1); color: var(--fg-1); }
 .topics-sub { margin: -4px 0 0; font: var(--type-body); color: var(--fg-3); flex: 1 1 260px; }
 .topics-head .link { margin-left: auto; }
 .topics-row { display: flex; align-items: baseline; gap: var(--sp-4); }

@@ -11,7 +11,6 @@ interface Resource {
   url: string
   cta: string
   icon: 'book' | 'play'
-  tone: 'mint' | 'rose'
   tags: string[]
   what: string
   take: string
@@ -25,7 +24,6 @@ const RESOURCES: Resource[] = [
     url: 'https://www.khanacademy.org/digital-sat',
     cta: 'Open Khan Academy',
     icon: 'book',
-    tone: 'mint',
     tags: ['Free', 'Lessons', 'Practice', 'Made with College Board'],
     what: 'Video lessons, articles and practice for every skill on the Digital SAT, built with College Board.',
     take:
@@ -39,7 +37,6 @@ const RESOURCES: Resource[] = [
     url: 'https://www.youtube.com/@JamesLuSAT',
     cta: 'Watch on YouTube',
     icon: 'play',
-    tone: 'rose',
     tags: ['Free', 'Strategy', 'Desmos tricks', 'Test walkthroughs'],
     what: 'Fast, no-fluff walkthroughs of real SAT questions, grammar rules, Desmos shortcuts and full timed Bluebook test runs.',
     take:
@@ -53,11 +50,11 @@ const RESOURCES: Resource[] = [
 export function Resources() {
   return (
     <>
-      <PageHead tone="rose" eyebrow="Free · hand-picked" title="Resources"
+      <PageHead tone="ink" eyebrow="Free · hand-picked" title="Resources"
                 sub="The free stuff I actually use alongside LightBluePrep, and why." />
       <div className="resources">
         {RESOURCES.map((r) => (
-          <article key={r.name} className={`rcard tone-${r.tone}`}>
+          <article key={r.name} className="rcard">
             <div className="rcard-top">
               <span className="rcard-ico"><Icon name={r.icon} size={26} strokeWidth={2} /></span>
               <div className="rcard-id">

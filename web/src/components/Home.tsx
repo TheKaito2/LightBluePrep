@@ -281,7 +281,7 @@ export function Home({
       <div className="hwrap">
         {activeSets.length ? (
           <section className="qsets">
-            <h2 className="side-t">Sets in progress</h2>
+            <h2 className="qsets-t">Sets in progress</h2>
             <ul className="setlist">
               {activeSets.map((s) => (
                 <li key={s.id} className="setcard">
@@ -307,7 +307,7 @@ export function Home({
 
         <div className="topics-head">
           <div className="topics-row">
-            <h2 className="topics-t">Topics</h2>
+            <h2 className="h1-section">Topics</h2>
             {/* The static skill pages are the only indexable content; link them. */}
             <a className="link" href="/skills/">Browse by skill</a>
           </div>

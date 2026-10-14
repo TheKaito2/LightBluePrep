@@ -43,10 +43,12 @@ Tokens live in [`web/src/tokens.css`](web/src/tokens.css). Components read token
 | Page | Band |
 |---|---|
 | Home | light brand hero (`--surface-hero`) |
-| Review, Stats, Resources, About | ink band (`--surface-ink`) |
+| Review, Stats, Resources, About, Inbox | ink band (`--surface-ink`) |
 | Settings | grey band (`--surface-sunken`) |
 | Results | section band (`--sec-700`, ink for mixed sets) |
 | Practice | Bluebook |
+
+Every band is `PageHead`; its numbers go in one `StatGroup` of `<Stat size="l">` cells (the stat strip). Section headings below a band use `.h1-section`.
 
 ## Type
 

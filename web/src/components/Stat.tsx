@@ -8,7 +8,8 @@ import type { ReactNode } from 'react'
 
 interface Props {
   label: ReactNode
-  value: ReactNode
+  /** Omit for a meter-only tile (Stats' bank coverage): the meter takes its place. */
+  value?: ReactNode
   /** Small text after the number: "%", "/ 1600", "min". */
   unit?: ReactNode
   sub?: ReactNode
@@ -24,9 +25,11 @@ export function Stat({ label, value, unit, sub, meter, size = 'm', className }: 
   return (
     <div className={className ? `stat ${className}` : 'stat'}>
       <span className="stat-l">{label}</span>
-      <span className={size === 'l' ? 'stat-n l' : 'stat-n'}>
-        {value}{unit ? <small>{unit}</small> : null}
-      </span>
+      {value === undefined ? null : (
+        <span className={size === 'l' ? 'stat-n l' : 'stat-n'}>
+          {value}{unit ? <small>{unit}</small> : null}
+        </span>
+      )}
       {sub ? <span className="stat-sub">{sub}</span> : null}
       {meter === undefined ? null : (
         // A fill is drawn only above zero; at zero the empty track says enough.

@@ -1,8 +1,9 @@
 import { Fragment, useMemo } from 'react'
 import { Icon } from './Icon'
 import { PageHead } from './PageHead'
+import { Stat, StatGroup } from './Stat'
 import { DIFFICULTIES, DIFFICULTY_NAME, SECTIONS, SECTION_NAME, byDomain, bySkill, fmt } from '../lib/labels'
-import { MIN_ANSWERS, grade, graded } from '../lib/score'
+import { MIN_ANSWERS, graded } from '../lib/score'
 import type { Filters, Section, TaxonomyRow } from '../types'
 
 interface Props {
@@ -111,54 +112,29 @@ export function Stats({ taxonomy, onPractice }: Props) {
 
 
   const accuracy = overall.seen ? pct(overall.correct, overall.seen) : null
-  // The headline keeps its number from the first answer, but stays uncoloured
-  // until there are enough answers for the colour to mean something.
-  const accuracyClass = accuracy === null ? 'none' : graded(overall.seen, overall.correct) ? grade(accuracy) : ''
   const coverage = pct(overall.seen, overall.n)
 
   return (
     <>
-    <PageHead tone="mint" eyebrow="Your progress" title="Stats"
+    <PageHead tone="ink" title="Stats"
               sub="Where you stand, where you are losing points, and what to drill next.">
       {/* Single headlines are stat tiles, not charts. */}
-      <section className="hero-stats">
-        <div className="tile tile-lead">
-          <span className="tile-l">Accuracy</span>
-          <span className={`tile-n ${accuracyClass}`}>
-            {accuracy === null ? '—' : `${accuracy}%`}
-          </span>
-          <span className="tile-sub">
-            {fmt(overall.correct)} of {fmt(overall.seen)} correct
-          </span>
-        </div>
-        <div className="tile">
-          <span className="tile-l">Answered</span>
-          <span className="tile-n">{fmt(overall.seen)}</span>
-          <span className="tile-sub">
-            {overall.seen && coverage < 1 ? '<1' : coverage}% of the bank
-          </span>
-        </div>
-        <div className="tile">
-          <span className="tile-l">Not tried yet</span>
-          <span className="tile-n">{fmt(overall.n - overall.seen)}</span>
-          <span className="tile-sub">of {fmt(overall.n)} total</span>
-        </div>
-        <div className="tile tile-wide">
-          <span className="tile-l">Bank progress</span>
-          <span className="meter big">
-            {overall.seen > 0 ? <span className="meter-fill" style={{ width: `${coverage}%` }} /> : null}
-          </span>
-          <span className="tile-sub">
-            {fmt(overall.seen)} of {fmt(overall.n)} questions
-          </span>
-        </div>
-      </section>
+      <StatGroup>
+        <Stat size="l" label="Accuracy" value={accuracy === null ? '—' : `${accuracy}%`}
+              sub={overall.seen ? `${fmt(overall.correct)} of ${fmt(overall.seen)}` : 'none yet'} />
+        <Stat size="l" label="Attempted" value={fmt(overall.seen)}
+              sub={`${overall.seen && coverage < 1 ? '<1' : coverage}% of bank`} />
+        <Stat size="l" label="Unseen" value={fmt(overall.n - overall.seen)}
+              sub={`of ${fmt(overall.n)}`} />
+        <Stat className="stat-wide" label="Bank covered" meter={overall.n ? overall.seen / overall.n : 0}
+              sub={`${fmt(overall.seen)} of ${fmt(overall.n)}`} />
+      </StatGroup>
     </PageHead>
     <div className="stats">
 
       <section className="block">
         <div className="block-head">
-          <h2 className="h">Where to focus</h2>
+          <h2 className="h1-section">Where to focus</h2>
         </div>
         {focus.length ? (
           <ul className="focus">
@@ -208,7 +184,7 @@ export function Stats({ taxonomy, onPractice }: Props) {
           label carries identity and no legend is needed. */}
       <section className="block">
         <div className="block-head">
-          <h2 className="h">Questions by domain</h2>
+          <h2 className="h1-section">Questions by domain</h2>
         </div>
         <ul className="dbars">
           {domainList.map((d, i) => (
@@ -234,7 +210,7 @@ export function Stats({ taxonomy, onPractice }: Props) {
 
       <section className="block">
         <div className="block-head">
-          <h2 className="h">By difficulty</h2>
+          <h2 className="h1-section">By difficulty</h2>
         </div>
         <ul className="dbars">
           {DIFFICULTIES.map((f) => {

@@ -103,7 +103,7 @@ export function Settings() {
 
   return (
     <>
-      <PageHead tone="ink" eyebrow="Your data" title="Settings"
+      <PageHead tone="grey" title="Settings"
                 sub="What LightBluePrep keeps about you, and how to delete it." />
       <div className="about settings">
         <section className="about-block">

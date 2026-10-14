@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import * as fb from '../lib/feedback'
+import { PageHead } from './PageHead'
 
 type Show = 'open' | 'done' | 'all'
 
@@ -35,9 +36,14 @@ export function Inbox() {
   const openCount = (items ?? []).filter((i) => i.status === 'open').length
 
   return (
+    <>
+    <PageHead tone="ink" title="Feedback inbox" sub="Messages from the feedback form. Only the site owner can see this." />
     <div className="inbox">
       <div className="inbox-head">
-        <h1 className="about-h1" tabIndex={-1}>Feedback inbox</h1>
+        <p className="qsub">
+          {openCount} open · {(items ?? []).length} total
+          {(items ?? []).length >= 500 ? ' (showing the newest 500)' : ''}
+        </p>
         <button className="btn" onClick={load}>Refresh</button>
       </div>
       {usage ? (
@@ -53,10 +59,6 @@ export function Inbox() {
           <p className="qsub">Counted since 12 October 2026, per browser.</p>
         </>
       ) : null}
-      <p className="qsub">
-        {openCount} open · {(items ?? []).length} total
-        {(items ?? []).length >= 500 ? ' (showing the newest 500)' : ''}
-      </p>
       {(items ?? []).some((i) => i.status === 'done') ? (
         <button className="link"
                 onClick={() => { if (confirm('Delete every message marked done?')) act(fb.removeDone) }}>
@@ -105,5 +107,6 @@ export function Inbox() {
         ))}
       </ul>
     </div>
+    </>
   )
 }

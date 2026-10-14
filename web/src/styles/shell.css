@@ -213,49 +213,63 @@
 }
 
 /* ============================================================ page heads
-   One solid band per page: Review amber, Stats mint, Resources rose, About and
-   Settings ink. Flat fill only: no shapes, no gradients. */
-.phead { flex: none; }
-.phead.tone-amber { background: var(--streak-100); }
-.phead.tone-mint { background: var(--mint-100); }
-.phead.tone-ink { background: var(--surface-ink); color: var(--fg-inv-1); }
-.phead.tone-rose { background: var(--rw-100); }
+   One flat band per page (spec 7.3): ink on Review, Stats, Resources, About
+   and the inbox; grey on Settings; the set's section colour on Results. The
+   copy column is pinned to the top and the band has a floor, so the eyebrow
+   and title land at the same y on every tab whatever the strip beside them. */
+.phead { flex: none; background: var(--surface-ink); color: var(--fg-inv-1); }
+.phead.tone-grey { background: var(--surface-sunken); color: var(--fg-1); }
+/* A mixed set has no section scope, so --sec-700 falls back to ink. */
+.phead.tone-section { background: var(--sec-700, var(--surface-ink)); }
 .phead-in {
-  max-width: 1160px; margin: 0 auto; padding: 48px var(--sp-8) 44px;
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-8); align-items: end;
+  max-width: 1160px; min-height: 208px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) var(--sp-8);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-10); align-items: end;
 }
-.phead .eyebrow { background: rgba(255, 255, 255, .7); border-color: transparent; color: var(--fg-2); }
-.tone-mint .eyebrow { color: var(--mint-700); }
-.tone-amber .eyebrow { color: var(--streak-700); }
-.tone-ink .eyebrow { background: rgba(255, 255, 255, .1); color: var(--brand-300); }
-.tone-rose .eyebrow { color: var(--rw-700); }
-.phead-t {
-  margin: 12px 0 0; font: var(--type-title); letter-spacing: var(--tr-title); color: var(--fg-1);
+.phead-copy { align-self: start; min-width: 0; }
+.phead-eyebrow {
+  display: block; min-height: 16px;
+  font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-inv-3);
 }
-.tone-ink .phead-t { color: var(--fg-inv-1); }
+.phead-t { margin: 8px 0 0; font: var(--type-title); letter-spacing: var(--tr-title); color: var(--fg-inv-1); }
 .phead-blue { color: var(--brand-300); }
-.phead-sub { margin: 12px 0 0; max-width: 52ch; font: var(--type-lead); color: var(--fg-2); }
-.tone-ink .phead-sub { color: var(--fg-inv-2); }
+.phead-sub { margin: 12px 0 0; max-width: 52ch; font: var(--type-lead); color: var(--fg-inv-2); }
 .phead-aside { min-width: 0; }
+.tone-grey .phead-eyebrow { color: var(--fg-3); }
+.tone-grey .phead-t { color: var(--fg-1); }
+.tone-grey .phead-sub { color: var(--fg-2); }
 
-/* Small white number tiles that sit inside a page head. */
-.htiles { display: flex; gap: var(--sp-3); }
-.htile {
-  display: flex; flex-direction: column; gap: 4px; min-width: 120px; padding: var(--sp-4) var(--sp-5);
-  border-radius: var(--rad-md); background: var(--surface); box-shadow: var(--sh-1);
-}
-.htile-n {
-  font: 800 var(--num-l)/1 var(--display); letter-spacing: var(--tr-num-l); color: var(--fg-1);
-  font-variant-numeric: tabular-nums lining-nums;
-}
-.htile-n small { margin-left: 4px; font: 600 14px/1 var(--sans); letter-spacing: 0; color: var(--fg-3); }
-.htile-l { font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3); }
+/* The stat strip: one Stat group on ink-2, cells split by hairlines. On the
+   grey band it turns white. */
+.phead .stat-group { background: var(--surface-ink-2); border-color: var(--hair-inv); }
+/* Cells grow to fit their figure: the aside column is as wide as the strip. */
+.phead .stat-group > .stat { flex: 1 0 auto; min-width: 132px; padding: var(--sp-4) var(--sp-5); }
+.phead .stat-group > .stat + .stat { border-left-color: var(--hair-inv); }
+/* Meter-only cell: label on top, sub at the bottom in line with its
+   neighbours' subs, the meter between where their numbers sit. */
+.phead .stat-group > .stat-wide { min-width: 200px; justify-content: space-between; }
+.phead .stat-wide .meter { margin: 0; }
+.phead .stat-wide .stat-sub { order: 1; }
+.phead .stat-l, .phead .stat-sub { color: var(--fg-inv-3); }
+.phead .stat-n, .phead .stat-n small { color: var(--fg-inv-1); }
+.phead .stat .meter { background: rgba(255, 255, 255, .12); }
+.phead .stat .meter-fill { background: var(--brand-300); }
+.phead.tone-grey .stat-group { background: var(--surface); border-color: var(--hair-1); }
+.phead.tone-grey .stat-group > .stat + .stat,
+.phead.tone-grey .stat-group > .stat-wide { border-color: var(--hair-1); }
+.phead.tone-grey :is(.stat-l, .stat-sub, .stat-n small) { color: var(--fg-3); }
+.phead.tone-grey .stat-n { color: var(--fg-1); }
+.phead.tone-grey .stat .meter { background: var(--surface-sunken); }
+.phead.tone-grey .stat .meter-fill { background: var(--brand-600); }
 
 @media (max-width: 819px) {
-  .phead-in { grid-template-columns: 1fr; gap: var(--sp-5); padding: var(--sp-8) var(--sp-4) var(--sp-6); }
-  .htiles { gap: var(--sp-2); }
-  .htile { flex: 1; min-width: 0; padding: var(--sp-3); }
-  .htile-n { font-size: var(--num-m); }
+  .phead-in { min-height: 0; grid-template-columns: 1fr; gap: var(--sp-5); padding: var(--sp-6) var(--sp-4) var(--sp-5); }
+  /* One row of equal cells; labels are short enough not to truncate. */
+  .phead .stat-group > .stat { flex: 1 1 0; min-width: 0; padding: var(--sp-3); }
+  .phead .stat-n.l { font-size: var(--num-m); letter-spacing: var(--tr-num-m); }
+  /* The meter cell takes its own full-width row so the figures above keep
+     room for their labels. */
+  .phead .stat-group:has(> .stat-wide) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .phead .stat-group > .stat + .stat-wide { grid-column: 1 / -1; gap: 8px; border-left: 0; border-top: 1px solid var(--hair-inv); }
 }
 
 /* ============================================================ buttons (spec 7.4)
@@ -461,7 +475,7 @@
 .stat-l { font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3); }
 .stat-n {
   font: 800 var(--num-m)/1 var(--display); letter-spacing: var(--tr-num-m); color: var(--fg-1);
-  font-variant-numeric: tabular-nums lining-nums;
+  font-variant-numeric: tabular-nums lining-nums; white-space: nowrap;
 }
 .stat-n.l { font-size: var(--num-l); letter-spacing: var(--tr-num-l); }
 .stat-n small { margin-left: 4px; font: 600 14px/1 var(--sans); letter-spacing: 0; color: var(--fg-3); }
@@ -473,6 +487,11 @@
 @media (max-width: 819px) {
   .stat-group > .stat { padding: var(--sp-3); }
 }
+
+/* Section headings (spec 5): one size for every page-level section, so
+   "Topics", "Where to focus" and "Practice sets" read as equals. Spacing
+   belongs to the page that places it. */
+.h1-section { margin: 0; font: var(--type-h1); letter-spacing: var(--tr-h1); color: var(--fg-1); }
 
 /* Section labels: sentence case, not the all-caps tracked micro-label look,
    which is kept for eyebrows and stat labels only (--type-label). */

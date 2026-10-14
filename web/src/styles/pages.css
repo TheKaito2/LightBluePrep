@@ -3,7 +3,6 @@
 /* ---- about ---- */
 .about-block { margin-bottom: 44px; }
 .about-block:last-child { margin-bottom: 0; }
-.about-h1 { margin: 0 0 12px; font: var(--type-title); letter-spacing: var(--tr-title); color: var(--fg-1); }
 .about-h2 {
   margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--hair-1);
   font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-1);
@@ -55,23 +54,23 @@
   max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) 96px;
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-5); align-items: start;
 }
+/* Plain white cards (spec 8.5): pink is Reading and Writing, mint meant
+   nothing, so neither fills a card any more. */
 .rcard {
   display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-6);
-  border-radius: var(--rad-lg); background: var(--t-100);
+  border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface);
 }
-.rcard.tone-mint { --t-100: var(--mint-100); --t-200: var(--mint-200); --t-600: var(--mint-600); --t-700: var(--mint-700); }
-.rcard.tone-rose { --t-100: var(--rw-100); --t-200: var(--rw-200); --t-600: var(--rw-600); --t-700: var(--rw-700); }
 .rcard-top { display: flex; align-items: center; gap: var(--sp-4); }
 .rcard-ico {
   width: 48px; height: 48px; border-radius: var(--rad-md); flex: none; display: inline-flex; align-items: center; justify-content: center;
-  background: var(--t-600); color: var(--fg-inv-1);
+  background: var(--surface-subtle); color: var(--fg-1);
 }
 .rcard-id { min-width: 0; }
 .rcard-t {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0;
   font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-1);
 }
-.rcard-by { font: 600 13px/18px var(--sans); color: var(--t-700); }
+.rcard-by { font: var(--type-small); color: var(--fg-3); }
 .goat {
   display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px 0 6px; border-radius: var(--rad-pill);
   background: var(--surface-ink); color: var(--warn-500); font: var(--type-badge); letter-spacing: .04em;
@@ -83,9 +82,9 @@
   background: var(--surface-subtle); font: var(--type-badge); color: var(--fg-2);
 }
 .rcard-what { margin: 0; font: var(--type-body); color: var(--fg-2); }
-.rcard-take { margin: 0; padding: var(--sp-4) var(--sp-5); border-radius: var(--rad-md); background: var(--surface); }
-.rcard-take figcaption { font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--t-700); }
-.rcard-take blockquote { margin: 6px 0 0; font: var(--type-body); color: var(--fg-1); }
+.rcard-take { margin: 0; padding: var(--sp-4); border-radius: var(--rad-sm); background: var(--surface-subtle); }
+.rcard-take figcaption { font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3); }
+.rcard-take blockquote { margin: 6px 0 0; font: var(--type-body); color: var(--fg-2); }
 .rcard-go { align-self: flex-start; }
 .resources-note { grid-column: 1 / -1; margin: 0; text-align: center; font: var(--type-small); color: var(--fg-3); }
 @media (max-width: 819px) {
@@ -95,8 +94,12 @@
 }
 
 /* ---- feedback inbox (owner only) ---- */
-.inbox { max-width: 760px; margin: 0 auto; padding: 36px 24px 80px; }
+/* Left edge in line with the band's title; the list keeps a reading width. */
+.inbox { max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) 96px; }
+.inbox > * { max-width: 760px; }
+@media (max-width: 819px) { .inbox { padding: var(--sp-6) var(--sp-4) var(--sp-8); } }
 .inbox-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.inbox-head .qsub { margin: 0; }
 .inbox-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0 6px; }
 .inbox-stats div { border: 1px solid var(--hair-1); border-radius: var(--rad-md); padding: 12px 14px; background: var(--surface); }
 .inbox-stats b {
