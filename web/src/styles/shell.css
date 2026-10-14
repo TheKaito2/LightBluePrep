@@ -167,8 +167,8 @@
   .brand .mark { width: 24px; height: 24px; }
   .wordmark { font-size: 18px; }
   .navright { gap: 0; margin-left: 0; }
-  .navicon, .supportlink { width: 40px; height: 40px; padding: 0; }
-  .supportlink { order: -1; }
+  .navicon { width: 40px; height: 40px; padding: 0; }
+  .supportlink { width: 40px; height: 40px; padding: 0; order: -1; }
   .supportlink-t { display: none; }
   .navright .ghlink { display: none; }
 
@@ -266,6 +266,8 @@
   /* One row of equal cells; labels are short enough not to truncate. */
   .phead .stat-group > .stat { flex: 1 1 0; min-width: 0; padding: var(--sp-3); }
   .phead .stat-n.l { font-size: var(--num-m); letter-spacing: var(--tr-num-m); }
+  .phead .stat-l .long { display: none; }
+  .phead .stat-l .short { display: inline; }
   /* The meter cell takes its own full-width row so the figures above keep
      room for their labels. */
   .phead .stat-group:has(> .stat-wide) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }

@@ -27,6 +27,8 @@
 }
 .review-row:hover { background: var(--surface-subtle); }
 .review-row > svg { flex: none; color: var(--fg-3); }
+/* Correct and Incorrect share one width so the titles after them line up. */
+.review-row .review-badge { min-width: 70px; justify-content: center; }
 /* The set's question number: a small ink square. */
 .review-row .q-num {
   flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;

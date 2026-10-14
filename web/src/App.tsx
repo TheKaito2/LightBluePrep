@@ -781,11 +781,6 @@ export default function App() {
   }, [view, index, items.length, setTitle])
 
   /**
-   * A new view takes focus at its title, so a screen reader announces where it
-   * landed and Tab starts from the top of it rather than from <body>. Not on
-   * first load: the browser puts a fresh page at the top already.
-   */
-  /**
    * The nav takes a hairline shadow once the page under it has scrolled. The
    * window never scrolls here: #main does, or Home's own .home inside it, and
    * scroll does not bubble, hence the capture listener.
@@ -804,6 +799,11 @@ export default function App() {
     return () => main.removeEventListener('scroll', onScroll, { capture: true })
   }, [view])
 
+  /**
+   * A new view takes focus at its title, so a screen reader announces where it
+   * landed and Tab starts from the top of it rather than from <body>. Not on
+   * first load: the browser puts a fresh page at the top already.
+   */
   const focusedView = useRef(view)
   useEffect(() => {
     if (focusedView.current === view) return

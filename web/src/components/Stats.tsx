@@ -122,11 +122,11 @@ export function Stats({ taxonomy, onPractice }: Props) {
       <StatGroup>
         <Stat size="l" label="Accuracy" value={accuracy === null ? '—' : `${accuracy}%`}
               sub={overall.seen ? `${fmt(overall.correct)} of ${fmt(overall.seen)}` : 'none yet'} />
-        <Stat size="l" label="Attempted" value={fmt(overall.seen)}
+        <Stat size="l" label="Answered" value={fmt(overall.seen)}
               sub={`${overall.seen && coverage < 1 ? '<1' : coverage}% of bank`} />
-        <Stat size="l" label="Unseen" value={fmt(overall.n - overall.seen)}
+        <Stat size="l" label={<><span className="long">Not tried yet</span><span className="short">Not tried</span></>} value={fmt(overall.n - overall.seen)}
               sub={`of ${fmt(overall.n)}`} />
-        <Stat className="stat-wide" label="Bank covered" meter={overall.n ? overall.seen / overall.n : 0}
+        <Stat className="stat-wide" label="Bank progress" meter={overall.n ? overall.seen / overall.n : 0}
               sub={`${fmt(overall.seen)} of ${fmt(overall.n)}`} />
       </StatGroup>
     </PageHead>
