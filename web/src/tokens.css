@@ -3,10 +3,14 @@
  * shadow and motion. Components read these; nothing else should hard-code a
  * hex value. See DESIGN.md for when to use which.
  *
- * Contrast (WCAG, measured): every *-700 clears 6.5:1 on white and on its own
- * *-50 tint, so it is the text colour on tinted surfaces. *-600 clears 4.7:1
- * with white text, so it fills buttons and pills. *-500 and lighter are for
- * bars, icons and borders only, never for text.
+ * Contrast (WCAG, measured). Text on white: *-700 (brand-700 4.62, rw-700 7.1,
+ * math-700 6.76, streak-700 4.9+). Small text on brand-50/100 tints: brand-800
+ * (4.95 on brand-100); brand-700 there is 3.84, large display text only.
+ * White-text fills: brand-700 4.62, rw-600 5.24, math-600 4.72, ok-700 5.02,
+ * bad-700 5.88, warn-600 5.02. NOT white-text fills: brand-600 (3.70),
+ * mint-600 (4.38). *-500 and lighter: bars, dots, icons, never text.
+ * Bluebook names (--line, --line-2, --bg, --rule, --ink, --accent ...) live in
+ * styles.css :root and are practice-only. Never redefine them here.
  */
 :root {
   /* ---- brand: light blue ---- */
@@ -17,6 +21,8 @@
   --brand-500: #3aa3ec;
   --brand-600: #1d8ad8;
   --brand-700: #1479c2;
+  --brand-800: #0f67a8;
+  --brand-900: #0c5a93;
 
   /* ---- section: Reading and Writing (rose pink) ---- */
   --rw-50: #fdf2f7;
@@ -58,25 +64,81 @@
   --n-100: #eceff3;
   --n-200: #dde2e8;
   --n-300: #c4cbd4;
-  --n-500: #6a717b;
+  --n-500: #5b636e;     /* was #6a717b (4.59:1 on n-50); now 6.08:1 */
   --n-700: #3a3f46;
-  --n-900: #1c1f23;
+  --n-900: #11151a;     /* was #1c1f23; one ink for text, bands, start bar */
+
+  /* ---- surfaces ---- */
+  --surface: #ffffff;
+  --surface-subtle: #f6f8fa;
+  --surface-sunken: #eef1f4;
+  --surface-ink: #11151a;
+  --surface-ink-2: #1d232b;
+  --surface-hero: var(--brand-100);
+  --scrim: rgba(10, 14, 20, .52);
+
+  /* ---- text ---- */
+  --fg-1: #11151a;
+  --fg-2: #3d444d;
+  --fg-3: #5b636e;
+  --fg-4: #8b939e;
+  --fg-inv-1: #ffffff;
+  --fg-inv-2: #c4cbd4;
+  --fg-inv-3: #9aa3ae;
+  --fg-link: var(--brand-700);
+  --fg-link-hover: var(--brand-800);
+
+  /* ---- borders ---- */
+  --hair-1: #e4e8ed;
+  --hair-2: #cdd3db;
+  --hair-ctl: #8a94a3;
+  --hair-inv: rgba(255, 255, 255, .14);
+
+  /* ---- status ---- */
+  --ok-50: #ecfdf3;  --ok-200: #b7e4c7;  --ok-500: #22a35a;  --ok-700: #15803d;
+  --bad-50: #fdf2f4; --bad-200: #f2c2cb; --bad-500: #e5384f; --bad-700: #c8102e;
+  --bad-800: #a60d26; /* hover on a bad-700 fill */
+  --warn-50: #fef8e6; --warn-200: #f1dc9c; --warn-500: #eab308; --warn-600: #b45309; --warn-700: #8a5a00;
+
+  /* ---- focus ---- */
+  --focus: var(--brand-700);
+  --focus-inv: var(--brand-300);
+  --focus-ring: 0 0 0 3px rgba(20, 121, 194, .22);
 
   /* ---- type ----
      Display: Bricolage Grotesque (self-hosted, OFL) for headlines, numbers and
      brand moments. Body stays Noto Sans; the practice screen stays Bluebook. */
   --display: 'Bricolage Grotesque Variable', 'Noto Sans', system-ui, sans-serif;
-  --fs-2xs: 11px;
+  /* --fs-* are legacy aliases on the --type-* scale below. Delete each one
+     once grep shows no reference. */
+  --fs-2xs: 12px;               /* was 11px: 12px floor */
   --fs-xs: 12px;
   --fs-sm: 13px;
-  --fs-md: 14.5px;
+  --fs-md: 15px;                /* was 14.5px */
   --fs-lg: 16px;
   --fs-xl: 20px;
-  --fs-2xl: 26px;
-  --fs-3xl: 32px;
+  --fs-2xl: 28px;               /* was 26px; = --num-m */
+  --fs-3xl: 36px;               /* was 32px; = --num-l */
   --fw-medium: 550;
   --fw-semi: 650;
   --fw-bold: 750;
+  /* Shorthands for `font:`; pair each with its --tr-* letter-spacing. */
+  --type-display: 800 64px/64px var(--display);
+  --type-title:   800 44px/46px var(--display);
+  --type-h1:      800 32px/36px var(--display);
+  --type-h2:      750 20px/26px var(--display);
+  --type-h3:      700 16px/22px var(--display);
+  --type-lead:    400 17px/26px var(--sans);
+  --type-body:    400 15px/24px var(--sans);
+  --type-ui:      500 14px/20px var(--sans);
+  --type-input:   400 16px/22px var(--sans);
+  --type-small:   400 13px/18px var(--sans);
+  --type-label:   650 12px/16px var(--sans);
+  --type-badge:   600 12px/16px var(--sans);
+  --tr-display: -.042em; --tr-title: -.035em; --tr-h1: -.03em; --tr-h2: -.015em;
+  --tr-h3: -.01em; --tr-ui: -.005em; --tr-label: .06em;
+  --num-xl: 72px; --num-l: 36px; --num-m: 28px; --num-s: 20px;
+  --tr-num-xl: -.045em; --tr-num-l: -.035em; --tr-num-m: -.03em; --tr-num-s: -.02em;
 
   /* ---- space (4px grid) ---- */
   --sp-1: 4px;
@@ -87,23 +149,56 @@
   --sp-6: 24px;
   --sp-8: 32px;
   --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+  --sp-20: 80px;
+
+  /* ---- layout ---- */
+  --container: 1160px;
+  --gutter: 32px;            /* 16px under 820px */
+  --measure: 720px;
+  /* Top nav row height. The phone account panel is positioned off it. */
+  --navh: 64px;
 
   /* ---- radius ---- */
+  --rad-xs: 6px;
   --rad-sm: 8px;
   --rad-md: 12px;
   --rad-lg: 16px;
-  --rad-xl: 20px;
+  --rad-xl: var(--rad-lg);      /* legacy alias, was 20px; cards move to --rad-md, panels/dialogs to --rad-lg */
   --rad-pill: 999px;
 
-  /* ---- elevation: shadows tinted toward the page's blue, never pure black ---- */
-  --sh-1: 0 1px 2px rgba(20, 50, 90, .06);
-  --sh-2: 0 4px 14px -4px rgba(20, 50, 90, .12);
-  --sh-3: 0 18px 44px -14px rgba(20, 50, 90, .22);
+  /* ---- elevation: shadows tinted toward slate, never pure black ---- */
+  --sh-0: none;
+  --sh-1: 0 1px 2px rgba(16, 24, 40, .06);
+  --sh-2: 0 0 0 1px rgba(16, 24, 40, .06), 0 8px 24px -6px rgba(16, 24, 40, .16);
+  --sh-3: 0 0 0 1px rgba(16, 24, 40, .06), 0 24px 64px -12px rgba(16, 24, 40, .30);
+  --sh-bar: 0 -8px 24px -12px rgba(16, 24, 40, .35);
 
   /* ---- motion ---- */
   --ease-out: cubic-bezier(.16, 1, .3, 1);
-  --dur-fast: 140ms;
-  --dur-base: 260ms;
+  --ease-std: cubic-bezier(.2, 0, 0, 1);
+  --ease-in: cubic-bezier(.4, 0, 1, 1);
+  --dur-instant: 80ms;
+  --dur-fast: 120ms;    /* was 140ms */
+  --dur-2: 200ms;
+  --dur-base: 200ms;    /* was 260ms */
+  --dur-slow: 260ms;
+  --dur-data: 480ms;
+}
+
+/* Phone (under 820px; the app's one phone breakpoint is max-width: 819px). */
+@media (max-width: 819px) {
+  :root {
+    --type-display: 800 40px/42px var(--display);
+    --type-title:   800 32px/34px var(--display);
+    --type-h1:      800 24px/28px var(--display);
+    --type-h2:      750 19px/24px var(--display);
+    --type-lead:    400 16px/24px var(--sans);
+    --num-xl: 56px; --num-l: 28px; --num-m: 24px; --num-s: 18px;
+    --gutter: 16px;
+    --navh: 52px;
+  }
 }
 
 /*
