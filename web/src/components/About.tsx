@@ -105,7 +105,7 @@ export function About() {
           Tell me. Messages are anonymous and go straight to me. To report a
           problem with one question, use the link under that question.
         </p>
-        <FeedbackLink label="Send feedback" className="btn primary" ctx={{ context: 'about' }} />
+        <FeedbackLink label="Send feedback" className="btn" ctx={{ context: 'about' }} />
       </section>
 
       <section className="about-block">

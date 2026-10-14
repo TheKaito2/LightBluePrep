@@ -35,10 +35,10 @@ import { MISTAKE_TAGS, type MistakeTag, type PracticeSet, type Section, type Set
  */
 function verdict(item: SetItem): { cls: string; label: string } {
   // Marked but never answered: only the Marked filter brings these in.
-  if (item.answered_at === null) return { cls: 'skip', label: VERDICT.unanswered }
-  if (item.last_correct !== 1) return { cls: 'wrong', label: VERDICT.incorrect }
-  if (item.attempt_count > 1) return { cls: 'retry', label: VERDICT.retry }
-  return { cls: 'right', label: VERDICT.correct }
+  if (item.answered_at === null) return { cls: 'neutral', label: VERDICT.unanswered }
+  if (item.last_correct !== 1) return { cls: 'bad', label: VERDICT.incorrect }
+  if (item.attempt_count > 1) return { cls: 'warn', label: VERDICT.retry }
+  return { cls: 'ok', label: VERDICT.correct }
 }
 
 /** Day headings, so a long history reads as sittings rather than one wall. */
@@ -293,7 +293,7 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
               </p>
             </div>
             {/* Every row in this section under the current filter, in one go. */}
-            <button className="spanel-redo"
+            <button className="btn on-colour sm spanel-redo"
                     onClick={() => onPracticeMany(
                       group.days.flatMap((d) => d.rows.map((r) => r.id)),
                       `Review: ${SECTION_NAME[group.section]} · ${filterLabel}`)}>
@@ -314,7 +314,7 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet }: P
                       {/* Correct on the third go is not the same as correct
                           first time, and the navigator already says so in
                           amber. Same three states, same colours. */}
-                      <span className={`review-badge ${verdict(item).cls}`}>
+                      <span className={`review-badge badge ${verdict(item).cls}`}>
                         {verdict(item).label}
                       </span>
                       <span className="review-main">

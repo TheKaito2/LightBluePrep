@@ -108,3 +108,16 @@ button { font-family: inherit; color: inherit; }
 @media (max-width: 819px) {
   .desk-only { display: none; }
 }
+
+/* Reduced motion, once for everything: transitions and animations finish at
+   once instead of playing. Components that need a still state rather than an
+   instant one say so themselves (the sync dot turns solid, the skeleton holds
+   at .8). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

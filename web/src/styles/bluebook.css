@@ -475,3 +475,50 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
   .q-id-link, .q-id-yt { font-size: 11px; padding: 3px 8px; }
 }
 a.tool { text-decoration: none; color: inherit; }
+
+/* ---- buttons and chips on the practice screen ----
+   Bluebook's royal pills. Scoped to .app so the shell's own buttons and chips
+   (shell.css, design spec 7.4 and 7.5) never have to out-rank them. Dialogs
+   opened from practice (Feedback, Support) render inside .app and keep these. */
+.app .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 999px; padding: 9px 26px; font-size: 15px; font-weight: 700;
+  cursor: pointer; border: 1px solid transparent; transition: background .12s, border-color .12s;
+}
+.app .btn.lg { padding: 13px 26px; font-size: 15.5px; }
+.app .btn.primary { background: var(--accent); color: #fff; }
+.app .btn.primary:hover:not(:disabled) { background: var(--accent-dark); }
+.app .btn.quiet { background: var(--bg); border-color: var(--line-2); color: var(--ink-2); }
+.app .btn.quiet:hover:not(:disabled) { background: var(--bg-soft); color: var(--ink); }
+.app .btn:disabled { opacity: .38; cursor: default; }
+.app .btn.small {
+  padding: 6px 15px; border-radius: var(--rad-pill);
+  font-family: var(--display); font-size: 13px; font-weight: 700;
+  background: var(--bg); border: 1px solid var(--line-2); color: var(--ink);
+}
+.app .btn.small:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--bg); }
+@media (max-width: 819px) {
+  .app .btn { padding: 8px 14px; font-size: 13.5px; }
+  /* Full width and one line. It was 173px wide and 72px tall, ie. wrapped over
+     two lines. The bar is a space-between row, so the button has to get its own
+     row before width:100% means anything. */
+  .app .btn.lg {
+    width: 100%; justify-content: center; white-space: nowrap;
+    padding: 14px 20px; font-size: 15px;
+  }
+}
+@media (max-width: 430px) {
+  .app .btn { padding: 7px 11px; font-size: 12.5px; }
+}
+
+.app .chip {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 14px; font: inherit; font-size: 13.5px; font-weight: 500;
+  color: var(--ink-2); cursor: pointer;
+  transition: border-color .12s, background .12s, color .12s;
+}
+.app .chip:hover { border-color: var(--line-2); color: var(--ink); }
+.app .chip:active { transform: scale(.97); }
+.app .chip.on { background: var(--accent); border-color: var(--accent); color: var(--fg-inv-1); font-weight: 600; }

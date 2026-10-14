@@ -125,7 +125,7 @@ export function Settings() {
                         <button className="btn danger" disabled={busy} onClick={() => { void run('both') }}>
                           {busy ? 'Deleting…' : 'Delete here and on the server'}
                         </button>
-                        <button className="btn quiet" disabled={busy} onClick={() => { void run('local') }}>
+                        <button className="btn danger-secondary" disabled={busy} onClick={() => { void run('local') }}>
                           Delete on this device only
                         </button>
                       </>
@@ -138,7 +138,7 @@ export function Settings() {
                   </div>
                 </div>
               ) : (
-                <button className="btn quiet" onClick={() => { setConfirm('local'); setResult(null) }}>
+                <button className="btn danger-secondary" onClick={() => { setConfirm('local'); setResult(null) }}>
                   Delete my data on this device
                 </button>
               )}
@@ -180,7 +180,7 @@ export function Settings() {
                     </div>
                   </div>
                 ) : (
-                  <button className="btn quiet" onClick={() => { setConfirm('cloud'); setResult(null) }}>
+                  <button className="btn danger-secondary" onClick={() => { setConfirm('cloud'); setResult(null) }}>
                     Delete my synced data
                   </button>
                 )}

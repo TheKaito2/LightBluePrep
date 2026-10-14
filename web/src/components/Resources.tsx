@@ -80,7 +80,7 @@ export function Resources() {
               <figcaption>My take</figcaption>
               <blockquote>{r.take}</blockquote>
             </figure>
-            <a className="rcard-go" href={r.url} target="_blank" rel="noreferrer">
+            <a className="btn rcard-go" href={r.url} target="_blank" rel="noreferrer">
               {r.cta}
               <Icon name="external" size={16} strokeWidth={2.2} />
             </a>

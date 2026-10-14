@@ -101,8 +101,8 @@ export function SetResults({ set, onPractice, onPracticeMany, onRedo, onDelete, 
           const q = meta.get(item.question_id)
           // Same badge classes and words as the Review page. Unanswered is
           // neutral: amber there means right on a retry.
-          const [mark, label] = item.response === null ? ['skip', VERDICT.unanswered]
-            : item.correct ? ['right', VERDICT.correct] : ['wrong', VERDICT.incorrect]
+          const [mark, label] = item.response === null ? ['neutral', VERDICT.unanswered]
+            : item.correct ? ['ok', VERDICT.correct] : ['bad', VERDICT.incorrect]
           const isOpen = open === item.question_id
           return (
             <li key={item.question_id}
@@ -111,7 +111,7 @@ export function SetResults({ set, onPractice, onPracticeMany, onRedo, onDelete, 
                       aria-expanded={isOpen}
                       onClick={() => setOpen(isOpen ? null : item.question_id)}>
                 <span className="q-num">{i + 1}</span>
-                <span className={`review-badge ${mark}`}>{label}</span>
+                <span className={`review-badge badge ${mark}`}>{label}</span>
                 <span className="review-main">
                   <span className="review-skill">
                     {q?.skill_name ?? 'Question no longer in the bank'}

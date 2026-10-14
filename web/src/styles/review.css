@@ -2,50 +2,51 @@
    expanded) and the Results screen at the end of a set. */
 .review { max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) 96px; }
 .review-filter { margin: 22px 0 10px; }
-.review-empty { margin: 20px 0; font-size: 14.5px; line-height: 1.6; color: var(--muted); }
+.review-empty { margin: 20px 0; font: var(--type-body); color: var(--fg-3); }
 
 /* Section, then day. Reading and Maths are studied separately, so the top
    level splits them; the day says which sitting it was. */
 .review-section { margin-top: 30px; }
 .review-group { margin-top: 16px; }
+/* Day divider (spec 7.11): a label over the rows, 24px of air above. */
 .review-day {
-  margin: 0 0 2px; padding-bottom: 6px;
-  font-size: 12.5px; font-weight: 650; color: var(--muted);
-  border-bottom: 1px solid var(--line);
+  margin: var(--sp-6) 0 0; padding: 0 0 8px; border-bottom: 1px solid var(--hair-2);
+  font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3);
 }
 .review-list { list-style: none; margin: 0; padding: 0; }
-.review-item { border-bottom: 1px solid var(--line); }
-.review-item.open { background: var(--bg-soft); }
-.review-row {
-  display: flex; align-items: center; gap: 12px; width: 100%;
-  padding: 12px 8px; border: none; background: none; cursor: pointer;
-  text-align: left; color: var(--ink);
-}
-.review-row:hover { background: var(--bg-soft); }
 
-/* A word beats a coloured dot: you can read it without learning a key. */
-.review-badge {
-  flex: none; min-width: 62px; padding: 3px 9px; border-radius: 999px;
-  font-size: 11.5px; font-weight: 650; text-align: center; white-space: nowrap;
+/* Rows (spec 7.11): 56px, hairline between, a tint on hover; the open row
+   keeps the tint and a 2px bar in the section colour. */
+.review-item { border-bottom: 1px solid var(--hair-1); }
+.review-item:last-child { border-bottom: 0; }
+.review-item.open { background: var(--surface-subtle); box-shadow: inset 2px 0 0 var(--sec-500, var(--brand-600)); }
+.review-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px;
+  padding: 12px 16px; border: none; background: none; cursor: pointer;
+  text-align: left; color: var(--fg-1);
 }
-.review-badge.right { background: var(--green-soft); color: var(--green); }
-.review-badge.retry { background: var(--yellow-soft); color: var(--amber-ink); }
-.review-badge.wrong { background: var(--red-soft); color: var(--red); }
-.review-badge.skip { background: var(--n-100); color: var(--n-700); }
+.review-row:hover { background: var(--surface-subtle); }
+.review-row > svg { flex: none; color: var(--fg-3); }
+/* The set's question number: a small ink square. */
+.review-row .q-num {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
+  border-radius: var(--rad-xs); background: var(--fg-1); color: var(--fg-inv-1);
+  font: 700 13px/1 var(--sans); font-variant-numeric: tabular-nums;
+}
 .review-tags { margin: var(--sp-2) 0 var(--sp-4); }
 
 .review-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .review-skill {
-  font-size: 14.5px; font-weight: 600;
+  font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.review-meta { font-size: 12.5px; color: var(--muted); }
+.review-meta { font: var(--type-small); color: var(--fg-3); }
 .review-nums {
   flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
   font-variant-numeric: tabular-nums;
 }
-.review-time { font-size: 13.5px; color: var(--ink-2); }
-.review-tries { font-size: 11.5px; color: var(--muted); }
+.review-time { font: var(--type-ui); color: var(--fg-2); }
+.review-tries { font-size: 12px; color: var(--fg-3); }
 
 /* ---- one expanded question ---- */
 /* Roomy left and right: this is a reading panel, not a table row. */
@@ -63,8 +64,17 @@
 /* The panel already says what this is, and the rule under it read as a stray
    divider rather than a section break. */
 .review-detail .explain { border-top: none; margin-top: 18px; padding-top: 0; }
+/* The explanation and mistake log are the practice screen's own components;
+   here they wear the shell's brand blue and its 12px floor. */
+.shell .explain-full summary { color: var(--brand-800); background: var(--brand-50); }
+.shell .explain-full summary:hover { background: var(--brand-100); }
+.shell .mlog-fine { font-size: 12px; color: var(--fg-3); }
+.shell .why h4, .shell .verdict-time { font-size: 13px; }
+/* Practice drops answer text to 15.5px on phones to fit the pane; Review has
+   the room, so it stays on the type scale. */
+.review-detail .choice-text { font-size: 16px; }
 .review-h {
-  margin: 22px 0 8px; font-size: 12.5px; font-weight: 650; color: var(--muted);
+  margin: 22px 0 8px; font: 600 13px/18px var(--sans); color: var(--fg-2);
 }
 .review-toggle { margin-bottom: 12px; }
 .review-passage {
@@ -75,49 +85,49 @@
 }
 
 .review-tablewrap { overflow-x: auto; }
-.review-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.review-table { width: 100%; border-collapse: collapse; font: var(--type-small); }
 .review-table th {
   text-align: left; padding: 6px 10px 6px 0; font-weight: 600;
-  color: var(--muted); border-bottom: 1px solid var(--line); white-space: nowrap;
+  color: var(--fg-3); border-bottom: 1px solid var(--hair-2); white-space: nowrap;
 }
 .review-table td {
-  padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line);
-  color: var(--ink-2); white-space: nowrap;
+  padding: 7px 10px 7px 0; border-bottom: 1px solid var(--hair-1);
+  color: var(--fg-2); white-space: nowrap;
 }
-.review-table td.ok { color: var(--green); font-weight: 600; }
-.review-table td.no { color: var(--red); font-weight: 600; }
-.review-ans { font-size: 14px; font-weight: 600; color: var(--ink); }
+.review-table td.ok { color: var(--ok-700); font-weight: 600; }
+.review-table td.no { color: var(--bad-700); font-weight: 600; }
+.review-ans { font: 600 14px/20px var(--sans); color: var(--fg-1); }
 
 .review-mistake { margin: 0; }
 .review-note {
-  margin: 10px 0 0; padding: 10px 12px; border-left: 3px solid var(--line-2);
-  font-size: 13.5px; line-height: 1.55; color: var(--ink-2); white-space: pre-wrap;
+  margin: 10px 0 0; padding: 10px 12px; border-left: 3px solid var(--hair-2);
+  font: 400 14px/1.55 var(--sans); color: var(--fg-2); white-space: pre-wrap;
 }
-.review-anns { margin: 12px 0 0; font-size: 12.5px; color: var(--muted); }
+.review-anns { margin: 12px 0 0; font: var(--type-small); color: var(--fg-3); }
 .review-again { margin-top: 20px; }
 
 @media (max-width: 819px) {
   .review { padding: var(--sp-6) var(--sp-4) var(--sp-8); }
-  .review-row { padding: 12px 4px; gap: 9px; }
-  .review-badge { min-width: 54px; padding: 3px 7px; font-size: 10.5px; }
+  .review-row { padding: 12px 8px; gap: 10px; }
   .review-detail { padding: 10px 14px 24px; }
-  .review .review-section.spanel { margin-left: calc(var(--sp-4) * -1); margin-right: calc(var(--sp-4) * -1); }
 }
 
 /* ---- the score screen ---- */
-.setdone { text-align: center; padding: 18px 0 34px; border-bottom: 1px solid var(--line); margin-bottom: 26px; }
-.setdone-label { font-size: 12.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
-.setdone-score { font-size: 52px; font-weight: 700; letter-spacing: -.03em; margin: 0; font-variant-numeric: tabular-nums; }
-.setdone-score.good { color: var(--green); }
-.setdone-score.mid  { color: var(--amber-ink); }
-.setdone-score.poor { color: var(--red); }
-.setdone-score .dim { color: var(--muted); font-weight: 600; }
-.setdone-sub { font-size: 14px; color: var(--muted); margin: 8px 0 20px; }
+.setdone { text-align: center; padding: 18px 0 34px; border-bottom: 1px solid var(--hair-1); margin-bottom: 26px; }
+.setdone-label {
+  margin: 0 0 8px; font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3);
+}
+.setdone-score {
+  margin: 0; font: 800 var(--num-xl)/1 var(--display); letter-spacing: var(--tr-num-xl);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.setdone-score.good { color: var(--ok-700); }
+.setdone-score.mid  { color: var(--warn-700); }
+.setdone-score.poor { color: var(--bad-700); }
+.setdone-score .dim { color: var(--fg-3); }
+.setdone-sub { margin: 8px 0 20px; font: var(--type-ui); color: var(--fg-3); }
 .setdone-acts { display: flex; justify-content: center; gap: 10px; }
 .setdone .hint { text-align: center; max-width: 44ch; margin: 12px auto 0; }
-@media (max-width: 819px) {
-  .setdone-score { font-size: 42px; }
-}
 
 /* The same mistake-log controls inline in an expanded review row, where the
    drawer's own padding would double up on the panel's. */
@@ -133,46 +143,34 @@
 /* ============================================================ review v2 */
 .review .review-filter { display: inline-flex; margin: var(--sp-6) 0 var(--sp-2); }
 .review .review-section { margin-top: var(--sp-6); }
-.review .review-section.spanel { padding-bottom: var(--sp-4); }
+/* A day's rows inside the section panel: a hairline box, no fill. */
 .review .review-group {
-  margin-top: var(--sp-3); padding: var(--sp-2) var(--sp-4) var(--sp-3); border-radius: var(--rad-xl);
-  background: var(--n-0); box-shadow: 0 10px 26px -20px var(--sec-500);
+  margin-top: var(--sp-3); border: 1px solid var(--hair-1); border-radius: var(--rad-md); overflow: hidden;
 }
-.review .review-day {
-  margin: var(--sp-2) 0 var(--sp-1); padding: 0 4px 8px; border-bottom: 1px solid var(--n-100);
-  font-family: var(--display); font-size: 15px; font-weight: 750; letter-spacing: -.01em; color: var(--n-900);
-}
-.review .review-item { border-bottom-color: var(--n-100); }
-.review .review-item:last-child { border-bottom: 0; }
-.review .review-item.open { background: var(--sec-50); border-radius: var(--rad-md); }
-.review .review-row { border-radius: var(--rad-md); }
-.review .review-row:hover { background: var(--n-25); }
-.review .review-skill { font-weight: var(--fw-semi); color: var(--n-900); }
-.review .review-badge { min-width: 82px; border-radius: var(--rad-pill); font-weight: 700; text-align: center; justify-content: center; }
-.review-sectionhead {
-  margin: 0 0 4px; padding-bottom: 8px; border-bottom: 0;
-  font-family: var(--display); font-size: 30px; font-weight: 800; letter-spacing: -.035em; color: var(--n-900);
-}
+.review .review-group .review-day { margin: 0; padding: var(--sp-3) var(--sp-4) var(--sp-2); }
+.review-sectionhead { margin: 0 0 4px; padding-bottom: 8px; font: var(--type-h1); letter-spacing: var(--tr-h1); color: var(--fg-1); }
 .review .setlist { gap: var(--sp-2); }
 .review-bulb { margin: var(--sp-8) auto 0; }
 .review-bulb + .review-empty { margin-top: var(--sp-3); text-align: center; }
 
 /* ---- Review: Redo a whole pile ---- */
 .redo { margin-top: var(--sp-6); }
-.redo-h { margin: 0 0 var(--sp-3); font-family: var(--display); font-size: var(--fs-xl); font-weight: 750; letter-spacing: -.02em; color: var(--n-900); }
+.redo-h { margin: 0 0 var(--sp-3); font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-1); }
 .redo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-3); }
 .redo-tile {
   display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; align-items: end;
-  padding: 14px 16px; border: 1px solid var(--n-200); border-radius: var(--rad-lg);
-  background: var(--n-0); color: var(--n-900); text-align: left; cursor: pointer;
-  box-shadow: var(--sh-1); transition: border-color var(--dur-fast);
+  padding: 14px 16px; border: 1px solid var(--hair-1); border-radius: var(--rad-md);
+  background: var(--surface); color: var(--fg-1); text-align: left; cursor: pointer;
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
 }
 .redo-tile svg { grid-column: 2; grid-row: 1 / 3; align-self: center; color: var(--brand-700); }
-.redo-n { font-family: var(--display); font-weight: 800; font-size: 32px; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-.redo-l { margin-top: 4px; font-size: var(--fs-sm); font-weight: 650; color: var(--n-700); }
-.redo-tile:hover:not(:disabled) { border-color: var(--n-500); }
-.redo-tile:focus-visible { outline: 3px solid var(--brand-300); outline-offset: 2px; }
-.redo-tile:disabled { cursor: default; opacity: .45; box-shadow: none; }
+.redo-n {
+  font: 800 var(--num-m)/1 var(--display); letter-spacing: var(--tr-num-m);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.redo-l { margin-top: 4px; font: 600 13px/18px var(--sans); color: var(--fg-2); }
+.redo-tile:hover:not(:disabled) { border-color: var(--hair-ctl); box-shadow: var(--sh-1); }
+.redo-tile:disabled { cursor: default; opacity: .45; }
 .redo-tile.is-tag { background: var(--rw-50); border-color: var(--rw-200); }
 .redo-tile.is-tag .redo-n { color: var(--rw-700); }
 .redo-tile.is-tag svg { color: var(--rw-700); }
@@ -181,23 +179,16 @@
 }
 
 /* ---- Review: redo a whole section, practise similar ---- */
-.spanel-redo {
-  flex: none; margin-left: auto; align-self: center; display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 16px; border: 0; border-radius: var(--rad-pill); cursor: pointer;
-  background: var(--sec-600); color: var(--fg-inv-1); font-family: var(--display); font-weight: 750; font-size: var(--fs-md);
-}
-.spanel-redo:hover { background: var(--sec-700); }
-.spanel-redo:focus-visible { outline: 3px solid var(--sec-300); outline-offset: 2px; }
+.spanel-redo { margin-left: auto; align-self: center; }
 .similar {
   display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; align-items: center;
   margin: var(--sp-5) 0 var(--sp-3); padding: 14px 16px;
-  border: 1px solid var(--n-200); border-left: 4px solid var(--sec-500, var(--brand-500));
-  border-radius: var(--rad-md); background: var(--n-0);
+  border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface);
 }
-.similar-k { grid-column: 1; font-size: var(--fs-2xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--n-500); }
-.similar-t { grid-column: 1; font-family: var(--display); font-weight: 750; font-size: var(--fs-lg); color: var(--n-900); }
-.similar-how { grid-column: 1; font-size: var(--fs-sm); color: var(--n-700); }
-.similar-go { grid-column: 2; grid-row: 1 / 4; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.similar-k { grid-column: 1; font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3); }
+.similar-t { grid-column: 1; font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
+.similar-how { grid-column: 1; font: var(--type-small); color: var(--fg-2); }
+.similar-go { grid-column: 2; grid-row: 1 / 4; }
 @media (max-width: 640px) {
   .similar { grid-template-columns: 1fr; }
   .similar-go { grid-column: 1; grid-row: auto; margin-top: 10px; justify-self: start; }

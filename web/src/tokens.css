@@ -98,6 +98,9 @@
   --ok-50: #ecfdf3;  --ok-200: #b7e4c7;  --ok-500: #22a35a;  --ok-700: #15803d;
   --bad-50: #fdf2f4; --bad-200: #f2c2cb; --bad-500: #e5384f; --bad-700: #c8102e;
   --bad-800: #a60d26; /* hover on a bad-700 fill */
+  --bad-900: #8f0b21; /* pressed */
+  /* Toast icons, on ink only. */
+  --ok-on-ink: #4ade80; --bad-on-ink: #f87171;
   --warn-50: #fef8e6; --warn-200: #f1dc9c; --warn-500: #eab308; --warn-600: #b45309; --warn-700: #8a5a00;
 
   /* ---- focus ---- */

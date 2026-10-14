@@ -290,8 +290,8 @@ export function Home({
                     <span className="setcard-text">
                       <span className="setcard-t">{describeSet(s)}</span>
                       <span className="setcard-b">{fmt(s.answered)} of {fmt(s.total)} answered</span>
-                      <span className="meter"><span className="meter-fill"
-                        style={{ width: `${Math.max((s.answered / Math.max(s.total, 1)) * 100, 0.4)}%` }} /></span>
+                      <span className="meter">{s.answered > 0 ? <span className="meter-fill"
+                        style={{ width: `${(s.answered / Math.max(s.total, 1)) * 100}%` }} /> : null}</span>
                     </span>
                     <span className="setcard-go">Resume</span>
                   </button>
@@ -444,11 +444,11 @@ export function Home({
             {difficultyChips}
             {whichSelect}
           </div>
-          <button className="btn sb-opt" onClick={() => setShowOptions(true)} aria-haspopup="dialog">
+          <button className="btn on-ink-secondary sb-opt" onClick={() => setShowOptions(true)} aria-haspopup="dialog">
             <Icon name="sliders" size={16} />
             Options{optionCount ? ` · ${optionCount}` : ''}
           </button>
-          <button className="btn primary sb-go" disabled={!count || loading} onClick={start}>
+          <button className="btn primary lg sb-go" disabled={!count || loading} onClick={start}>
             {value.size
               ? `Start ${Math.min(value.size, count)}${value.speed ? ` · ${formatClock(plannedSeconds)}` : ''}`
               : pool.done && pool.firstNew > 0 ? 'Continue' : 'Start'}
@@ -514,7 +514,7 @@ export function Home({
                 </label>
               ) : null}
             </div>
-            <button className="btn primary sheet-go" onClick={() => setShowOptions(false)}>
+            <button className="btn primary lg sheet-go" onClick={() => setShowOptions(false)}>
               {loading ? 'Counting…' : `Done · ${plural(count, 'question')}`}
             </button>
           </div>

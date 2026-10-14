@@ -146,7 +146,7 @@ export function Stats({ taxonomy, onPractice }: Props) {
         <div className="tile tile-wide">
           <span className="tile-l">Bank progress</span>
           <span className="meter big">
-            <span className="meter-fill" style={{ width: `${Math.max(coverage, 0.4)}%` }} />
+            {overall.seen > 0 ? <span className="meter-fill" style={{ width: `${coverage}%` }} /> : null}
           </span>
           <span className="tile-sub">
             {fmt(overall.seen)} of {fmt(overall.n)} questions

@@ -135,8 +135,8 @@ export function ProgressStrip({ history, covered, total, accuracy }: Props) {
         <div className="pcard-big">
           {fmt(covered)}<span className="pcard-unit">/ {fmt(total)}</span>
         </div>
-        <span className="meter cover-meter"><span className="meter-fill"
-          style={{ width: `${Math.max(total ? (covered / total) * 100 : 0, 0.4)}%` }} /></span>
+        <span className="meter cover-meter">{covered > 0 && total ? <span className="meter-fill"
+          style={{ width: `${(covered / total) * 100}%` }} /> : null}</span>
         <span className="pcard-sub">
           {accuracy !== null ? `${Math.round(accuracy * 100)}% correct` : 'Nothing answered yet'}
         </span>

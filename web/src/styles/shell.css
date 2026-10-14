@@ -1,16 +1,23 @@
 /* The frame around every page that is not the practice screen: the nav, page
-   heads, buttons, chips, the shared dialog shell, Bulb.
+   heads, and the primitives every page builds from (buttons, chips, segmented
+   controls, badges, inputs, cards, section panels, meters, toasts, dialogs and
+   the focus ring). DESIGN.md says when to use which; the numbers come from the
+   design direction, sections 4 to 7.
 
-   Sans only. Proportions follow how well-made product pages handle this
-   (linear.app, stripe.com): one big confident number, everything else small and
-   quiet, tight negative tracking at display size, generous vertical rhythm. */
-.shell { height: 100%; display: flex; flex-direction: column; background: var(--bg); }
+   Everything here renders under .shell. The practice screen (.app) keeps its
+   own Bluebook buttons and chips in bluebook.css, so nothing here has to
+   out-rank them. Ink surfaces are .tone-ink (page bands) and .startbar2. */
+.shell { height: 100%; display: flex; flex-direction: column; background: var(--surface); color: var(--fg-1); }
 .page { flex: 1; min-height: 0; overflow-y: auto; }
 
 .error {
-  background: var(--red-soft); color: #991b1b; padding: 10px 22px;
-  font-size: 13.5px; cursor: pointer; border-bottom: 1px solid #fecaca;
+  background: var(--bad-50); color: var(--bad-700); padding: 10px 22px;
+  font: var(--type-small); cursor: pointer; border-bottom: 1px solid var(--bad-200);
 }
+
+/* Headlines balance their lines; running text avoids a lone last word. */
+.shell :is(h1, h2) { text-wrap: balance; }
+.shell p { text-wrap: pretty; }
 
 /* ============================================================ nav
    The first rules here are the original thin nav; "nav v2" further down
@@ -24,13 +31,13 @@
 .tab {
   position: relative; background: none; border: none; cursor: pointer;
   padding: 0 12px; font: inherit; font-size: 14px; font-weight: 550;
-  color: var(--muted);
+  color: var(--fg-3);
 }
-.tab:hover { color: var(--ink); }
-.tab.on { color: var(--ink); font-weight: 650; }
+.tab:hover { color: var(--fg-1); }
+.tab.on { color: var(--fg-1); font-weight: 650; }
 .tab.on::after {
   content: ''; position: absolute; left: 12px; right: 12px; bottom: -1px;
-  height: 2px; background: var(--ink);
+  height: 2px; background: var(--fg-1);
 }
 
 @media (max-width: 640px) {
@@ -47,9 +54,9 @@
 .ghlink {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
   width: 34px; height: 34px; margin-left: auto; margin-right: 8px;
-  border-radius: var(--r-sm); color: var(--ink-2); text-decoration: none;
+  border-radius: var(--rad-sm); color: var(--fg-2); text-decoration: none;
 }
-.ghlink:hover { background: var(--bg-soft); color: var(--ink); }
+.ghlink:hover { background: var(--surface-subtle); color: var(--fg-1); }
 
 /* The nav row runs out of width well before the practice view does. The
    wordmark, four tabs, the GitHub link and the sync badge measured 436px
@@ -105,42 +112,42 @@
   .tabs-inner::-webkit-scrollbar { display: none; }
 }
 
-/* ---- LightBluePrep brand and the Support pill ---- */
+/* ---- LightBluePrep brand and the Support button ----
+   Support is a quiet button with a pink heart, not a pink pill: pink means
+   Reading and Writing everywhere else. */
 .wordmark-blue { color: var(--brand-700); }
 .supportlink {
-  display: inline-flex; align-items: center; height: 32px; padding: 0 13px; margin-right: 6px;
-  border: 1px solid var(--brand-200); border-radius: 999px; background: var(--brand-50);
-  font-size: 13px; font-weight: 650; color: var(--brand-700); text-decoration: none;
-  transition: background .12s, border-color .12s;
+  display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; margin-left: auto;
+  border: 0; border-radius: var(--rad-sm); background: none; color: var(--fg-1); cursor: pointer;
+  font: 600 14px/20px var(--sans); letter-spacing: var(--tr-ui); text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-std);
 }
-.supportlink:hover { background: var(--brand-100); border-color: var(--brand-300); }
-.supportlink:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 2px; }
+.supportlink:hover { background: var(--surface-subtle); }
+.supportlink svg { color: var(--rw-600); }
 .tabs-inner .supportlink + .ghlink { margin-left: 0; }
-button.supportlink { font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
 
 /* ============================================================ nav v2
    Taller, bolder: display-font wordmark, icon + label pill tabs (the active
-   one filled ink), a pink Support pill. Phones keep the bottom tab bar, now
-   with icons. */
-.tabs { flex: none; border-bottom: 1px solid var(--n-100); background: var(--n-0); }
+   one filled ink). Phones keep the bottom tab bar, with icons. */
+.tabs { flex: none; border-bottom: 1px solid var(--hair-1); background: var(--surface); }
 .tabs-inner {
   max-width: 1160px; margin: 0 auto; padding: 0 var(--sp-8);
   display: flex; align-items: center; gap: var(--sp-2); height: var(--navh);
 }
 button.brand {
   border: 0; background: none; padding: 4px 6px 4px 0; cursor: pointer; margin-right: var(--sp-6);
-  display: inline-flex; align-items: center; gap: 10px; color: var(--n-900);
+  display: inline-flex; align-items: center; gap: 10px; color: var(--fg-1);
 }
-.wordmark { font-family: var(--display); font-size: 21px; font-weight: 800; letter-spacing: -.035em; color: var(--n-900); }
+.wordmark { font-family: var(--display); font-size: 19px; font-weight: 800; letter-spacing: -.03em; color: var(--fg-1); }
 .tablinks { display: flex; gap: 4px; }
 .tabs .tab {
   display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px;
-  border-radius: var(--rad-pill); font-family: var(--display); font-weight: 650; font-size: 15px;
-  color: var(--n-700); transition: background var(--dur-fast), color var(--dur-fast);
+  border-radius: var(--rad-pill); font: 600 14px/20px var(--sans); letter-spacing: var(--tr-ui);
+  color: var(--fg-2); transition: background var(--dur-fast), color var(--dur-fast);
 }
-.tabs .tab svg { color: var(--n-500); transition: color var(--dur-fast); }
-.tabs .tab:hover { background: var(--n-50); color: var(--n-900); }
-.tabs .tab.on { background: var(--n-900); color: var(--n-0); font-weight: 750; }
+.tabs .tab svg { color: var(--fg-3); transition: color var(--dur-fast); }
+.tabs .tab:hover { background: var(--surface-subtle); color: var(--fg-1); }
+.tabs .tab.on { background: var(--surface-ink); color: var(--fg-inv-1); }
 /* The nav row is capped at the page width, and six labelled tabs plus the
    right-hand controls do not fit in it. So on a desktop Settings is always just
    its gear, and below about 1,150px every tab drops to its icon and Sync uses
@@ -172,14 +179,6 @@ button.brand {
 }
 .tabs .tab.on svg { color: var(--brand-300); }
 .tabs .tab.on::after { display: none; }
-.tabs .tab:focus-visible, button.brand:focus-visible { outline: 3px solid var(--brand-300); outline-offset: 2px; }
-.tabs-inner .supportlink {
-  display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; margin-left: auto;
-  border: 0; border-radius: var(--rad-pill); background: var(--rw-100); color: var(--rw-700);
-  font-family: var(--display); font-size: 14px; font-weight: 700;
-}
-.tabs-inner .supportlink:hover { background: var(--rw-200); }
-.tabs-inner .supportlink svg { color: var(--rw-600); }
 
 /* Phone: the tabs move to a bottom bar, the top row keeps brand + sync. */
 @media (max-width: 819px) {
@@ -187,162 +186,341 @@ button.brand {
   .tabs-inner { height: var(--navh); padding: 0 var(--sp-4); justify-content: flex-start; }
   .brand { margin-right: auto; }
   button.brand { margin-right: auto; }
-  .wordmark { font-size: 19px; }
+  .wordmark { font-size: 18px; }
   .tablinks {
     display: flex; position: fixed; z-index: 50; left: 0; right: 0; bottom: 0;
     height: calc(64px + env(safe-area-inset-bottom)); gap: 0; padding: 6px 8px env(safe-area-inset-bottom);
-    background: var(--n-0); backdrop-filter: blur(10px);
-    border-top: 1px solid var(--n-100); box-shadow: 0 -8px 24px -18px rgba(20, 50, 90, .4);
+    background: var(--surface); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--hair-1); box-shadow: 0 -8px 24px -18px rgba(20, 50, 90, .4);
   }
   .tablinks .tab {
     flex: 1; flex-direction: column; justify-content: center; gap: 3px; height: 52px; padding: 0;
-    border-radius: var(--rad-md); font-size: 10.5px; font-weight: 650; color: var(--n-500); background: none;
+    border-radius: var(--rad-md); font: var(--type-badge); color: var(--fg-3); background: none;
   }
   .tablinks .tab svg { width: 22px; height: 22px; }
-  .tablinks .tab.on { background: var(--brand-100); color: var(--n-900); }
-  .tablinks .tab.on svg { color: var(--brand-700); }
+  .tablinks .tab.on { background: var(--brand-100); color: var(--fg-1); font-weight: 700; }
+  .tablinks .tab.on svg { color: var(--brand-800); }
   .tablinks .tab.on::after { display: none; }
-  .tabs-inner .supportlink { margin-left: 0; height: 34px; padding: 0 12px; font-size: 13px; }
+  .supportlink { margin-left: 0; height: 36px; padding: 0 10px; font-size: 13px; }
   .tabs-inner .acct { margin-left: 8px; }
 }
 
 /* ============================================================ page heads
-   One solid colour band per page: Home blue, Review amber, Stats mint,
-   Resources rose, About ink. Flat fill only: no shapes, no gradients. */
+   One solid band per page: Review amber, Stats mint, Resources rose, About and
+   Settings ink. Flat fill only: no shapes, no gradients. */
 .phead { flex: none; }
 .phead.tone-amber { background: var(--streak-100); }
 .phead.tone-mint { background: var(--mint-100); }
-.phead.tone-ink { background: var(--n-900); color: var(--n-0); }
+.phead.tone-ink { background: var(--surface-ink); color: var(--fg-inv-1); }
 .phead.tone-rose { background: var(--rw-100); }
 .phead-in {
   max-width: 1160px; margin: 0 auto; padding: 48px var(--sp-8) 44px;
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-8); align-items: end;
 }
-.phead .eyebrow { background: rgba(255, 255, 255, .7); border-color: transparent; color: var(--n-700); }
+.phead .eyebrow { background: rgba(255, 255, 255, .7); border-color: transparent; color: var(--fg-2); }
 .tone-mint .eyebrow { color: var(--mint-700); }
 .tone-amber .eyebrow { color: var(--streak-700); }
 .tone-ink .eyebrow { background: rgba(255, 255, 255, .1); color: var(--brand-300); }
 .tone-rose .eyebrow { color: var(--rw-700); }
 .phead-t {
-  margin: 16px 0 0; font-family: var(--display); font-size: 64px; font-weight: 800;
-  letter-spacing: -.045em; line-height: .95; color: var(--n-900);
+  margin: 12px 0 0; font: var(--type-title); letter-spacing: var(--tr-title); color: var(--fg-1);
 }
-.tone-ink .phead-t { color: var(--n-0); }
+.tone-ink .phead-t { color: var(--fg-inv-1); }
 .phead-blue { color: var(--brand-300); }
-.phead-sub { margin: 14px 0 0; max-width: 52ch; font-size: 16.5px; line-height: 1.55; color: var(--n-700); }
-.tone-ink .phead-sub { color: var(--n-300); }
+.phead-sub { margin: 12px 0 0; max-width: 52ch; font: var(--type-lead); color: var(--fg-2); }
+.tone-ink .phead-sub { color: var(--fg-inv-2); }
 .phead-aside { min-width: 0; }
 
 /* Small white number tiles that sit inside a page head. */
 .htiles { display: flex; gap: var(--sp-3); }
 .htile {
   display: flex; flex-direction: column; gap: 4px; min-width: 120px; padding: var(--sp-4) var(--sp-5);
-  border-radius: var(--rad-lg); background: var(--n-0); box-shadow: var(--sh-1);
+  border-radius: var(--rad-md); background: var(--surface); box-shadow: var(--sh-1);
 }
-.htile-n { font-family: var(--display); font-size: 32px; font-weight: 800; letter-spacing: -.04em; line-height: 1; color: var(--n-900); }
-.htile-n small { font-size: 16px; margin-left: 1px; }
-.htile-l { font-size: var(--fs-xs); font-weight: var(--fw-semi); color: var(--n-500); }
+.htile-n {
+  font: 800 var(--num-l)/1 var(--display); letter-spacing: var(--tr-num-l); color: var(--fg-1);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.htile-n small { margin-left: 4px; font: 600 14px/1 var(--sans); letter-spacing: 0; color: var(--fg-3); }
+.htile-l { font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3); }
 
 @media (max-width: 819px) {
   .phead-in { grid-template-columns: 1fr; gap: var(--sp-5); padding: var(--sp-8) var(--sp-4) var(--sp-6); }
-  .phead-t { font-size: 44px; }
-  .phead-sub { font-size: 15px; }
   .htiles { gap: var(--sp-2); }
   .htile { flex: 1; min-width: 0; padding: var(--sp-3); }
-  .htile-n { font-size: 24px; }
+  .htile-n { font-size: var(--num-m); }
 }
 
-/* ============================================================ buttons */
-.btn {
+/* ============================================================ buttons (spec 7.4)
+   Noto 600, 8px corners, never a pill; colour changes on hover and press,
+   nothing lifts. Sizes: .sm 32 (.small is its old name), default 40, .lg 48.
+   Variants: .secondary (also the default), .primary, .quiet, .danger,
+   .danger-secondary (the first click of anything destructive), .on-ink and
+   .on-ink-secondary (ink bands, the start bar), .on-colour (white on a
+   section-coloured block). */
+.shell .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  border-radius: 999px; padding: 9px 26px; font-size: 15px; font-weight: 700;
-  cursor: pointer; border: 1px solid transparent; transition: background .12s, border-color .12s;
+  min-height: 40px; padding: 0 16px; border: 1px solid var(--hair-2); border-radius: var(--rad-sm);
+  background: var(--surface); color: var(--fg-1); text-align: center; text-decoration: none; cursor: pointer;
+  font: 600 14px/20px var(--sans); letter-spacing: var(--tr-ui);
+  transition: background-color var(--dur-fast) var(--ease-std), border-color var(--dur-fast) var(--ease-std),
+    color var(--dur-fast) var(--ease-std), transform var(--dur-instant) linear;
 }
-.btn.lg { padding: 13px 26px; font-size: 15.5px; }
-.btn.primary { background: var(--accent); color: #fff; }
-.btn.primary:hover:not(:disabled) { background: var(--accent-dark); }
-.btn.quiet { background: var(--bg); border-color: var(--line-2); color: var(--ink-2); }
-.btn.quiet:hover:not(:disabled) { background: var(--bg-soft); color: var(--ink); }
-.btn:disabled { opacity: .38; cursor: default; }
-.btn.small {
-  padding: 6px 15px; border-radius: var(--rad-pill);
-  font-family: var(--display); font-size: 13px; font-weight: 700;
-  background: var(--bg); border: 1px solid var(--line-2); color: var(--ink);
-}
-.btn.small:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--bg); }
-/* Only used behind a confirm step, never as a first click. */
-.btn.danger { background: var(--bad-700); border-color: var(--bad-700); color: var(--fg-inv-1); }
-.btn.danger:hover { background: var(--bad-800); border-color: var(--bad-800); }
+.shell .btn svg { flex: none; width: 16px; height: 16px; }
+.shell .btn:is(.sm, .small) { min-height: 32px; padding: 0 12px; font-size: 13px; line-height: 18px; }
+.shell .btn.lg { min-height: 48px; padding: 0 20px; font-size: 15px; line-height: 22px; }
 
-@media (max-width: 819px) {
-  .btn { padding: 8px 14px; font-size: 13.5px; }
-  /* Full width and one line. It was 173px wide and 72px tall, ie. wrapped over
-     two lines. The bar is a space-between row, so the button has to get its own
-     row before width:100% means anything. */
-  .btn.lg {
-    width: 100%; justify-content: center; white-space: nowrap;
-    padding: 14px 20px; font-size: 15px;
-  }
+.shell .btn:hover:not(:disabled) { background: var(--surface-subtle); border-color: var(--hair-ctl); }
+.shell .btn:active:not(:disabled) { background: var(--surface-sunken); }
+
+.shell .btn:is(.primary, .on-ink) {
+  background: var(--brand-700); border-color: var(--brand-700); color: var(--fg-inv-1);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .18);
 }
-@media (max-width: 430px) {
-  .btn { padding: 7px 11px; font-size: 12.5px; }
+.shell .btn:is(.primary, .on-ink):hover:not(:disabled) { background: var(--brand-800); border-color: var(--brand-800); }
+.shell .btn:is(.primary, .on-ink):active:not(:disabled) {
+  background: var(--brand-900); border-color: var(--brand-900); transform: translateY(1px);
 }
 
-/* ============================================================ chips, labels */
+.shell .btn.quiet { background: none; border-color: transparent; color: var(--fg-2); }
+.shell .btn.quiet:hover:not(:disabled) { background: var(--surface-subtle); border-color: transparent; color: var(--fg-1); }
+.shell .btn.quiet:active:not(:disabled) { background: var(--surface-sunken); }
+
+.shell .btn.danger { background: var(--bad-700); border-color: var(--bad-700); color: var(--fg-inv-1); }
+.shell .btn.danger:hover:not(:disabled) { background: var(--bad-800); border-color: var(--bad-800); }
+.shell .btn.danger:active:not(:disabled) { background: var(--bad-900); border-color: var(--bad-900); }
+
+.shell .btn.danger-secondary { border-color: var(--bad-200); color: var(--bad-700); }
+.shell .btn.danger-secondary:is(:hover, :active):not(:disabled) { background: var(--bad-50); border-color: var(--bad-200); }
+
+.shell .btn.on-ink-secondary { background: rgba(255, 255, 255, .06); border-color: var(--hair-inv); color: var(--fg-inv-1); }
+.shell .btn.on-ink-secondary:hover:not(:disabled) { background: rgba(255, 255, 255, .12); border-color: var(--hair-inv); }
+.shell .btn.on-ink-secondary:active:not(:disabled) { background: rgba(255, 255, 255, .16); }
+
+.shell .btn.on-colour { background: var(--surface); border-color: transparent; color: var(--sec-700, var(--fg-1)); }
+.shell .btn.on-colour:hover:not(:disabled) { background: var(--sec-50, var(--surface-subtle)); border-color: transparent; }
+.shell .btn.on-colour:active:not(:disabled) { background: var(--sec-50, var(--surface-subtle)); transform: translateY(1px); }
+
+/* Disabled last, so it wins over every variant's resting fill. */
+.shell .btn:disabled { color: var(--fg-4); border-color: var(--hair-1); cursor: default; }
+.shell .btn:is(.primary, .danger):disabled {
+  background: var(--surface-sunken); border-color: var(--surface-sunken); box-shadow: none;
+}
+.shell .btn.quiet:disabled { border-color: transparent; }
+.shell .btn:is(.on-ink, .on-ink-secondary):disabled {
+  background: rgba(255, 255, 255, .08); border-color: transparent; color: var(--fg-inv-3); box-shadow: none;
+}
+
+/* ============================================================ chips (spec 7.5)
+   Filter chips: a 32px pill. On is ink (section colour inside a section).
+   Difficulty chips stay neutral when on and carry a coloured dot instead. */
 .chips { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
-.chip {
-  position: relative; overflow: hidden;
-  display: inline-flex; align-items: center; gap: 7px;
-  background: var(--bg); border: 1px solid var(--line); border-radius: 999px;
-  padding: 7px 14px; font: inherit; font-size: 13.5px; font-weight: 500;
-  color: var(--ink-2); cursor: pointer;
-  transition: border-color .12s, background .12s, color .12s;
+.shell .chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
+  border: 1px solid var(--hair-2); border-radius: var(--rad-pill); background: var(--surface);
+  font: var(--type-ui); letter-spacing: var(--tr-ui); color: var(--fg-2); white-space: nowrap; cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-std), background-color var(--dur-fast) var(--ease-std),
+    color var(--dur-fast) var(--ease-std);
 }
-.chip:hover { border-color: var(--line-2); color: var(--ink); }
-.chip:active { transform: scale(.97); }
-.chip.on { background: var(--accent); border-color: var(--accent); color: var(--fg-inv-1); font-weight: 600; }
-.chip.static { cursor: default; }
+.shell .chip:hover { border-color: var(--hair-ctl); color: var(--fg-1); }
+.shell .chip.on { background: var(--fg-1); border-color: var(--fg-1); color: var(--fg-inv-1); }
+.shell :is(.sec-RW, .sec-MATH) .chip.on { background: var(--sec-600); border-color: var(--sec-600); }
+.shell .chip.static { cursor: default; }
+.shell .chip:is(.d-E, .d-M, .d-H)::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.shell .chip.d-E::before { background: var(--ok-500); }
+.shell .chip.d-M::before { background: var(--warn-500); }
+.shell .chip.d-H::before { background: var(--bad-500); }
+/* A count inside a chip. */
+.chip-n {
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--rad-pill);
+  background: var(--surface-sunken); font: 600 12px/18px var(--sans); color: var(--fg-2); text-align: center;
+}
+.chip.on .chip-n { background: rgba(255, 255, 255, .2); color: inherit; }
+.shell :is(.tone-ink, .startbar2) .chip { background: rgba(255, 255, 255, .06); border-color: var(--hair-inv); color: var(--fg-inv-1); }
+.shell :is(.tone-ink, .startbar2) .chip:hover { border-color: rgba(255, 255, 255, .4); }
+.shell :is(.tone-ink, .startbar2) .chip.on { background: var(--fg-inv-1); border-color: var(--fg-inv-1); color: var(--fg-1); }
+
+/* ============================================================ segmented control
+   Any single choice: section, order, the Review filter, feedback kind. Also in
+   the Feedback dialog when it opens over practice. */
+.seg { display: flex; gap: 2px; padding: 3px; border-radius: var(--rad-sm); background: var(--surface-sunken); }
+.seg-b {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 32px; padding: 0 12px;
+  border: 0; border-radius: var(--rad-xs); background: none; cursor: pointer; white-space: nowrap;
+  font: 600 14px/20px var(--sans); letter-spacing: var(--tr-ui); color: var(--fg-2);
+  transition: background-color var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
+}
+.seg-b:hover { color: var(--fg-1); }
+.seg-b.on { background: var(--surface); color: var(--fg-1); box-shadow: var(--sh-1); }
+.seg-b:is(.sec-RW, .sec-MATH) svg { color: var(--sec-600); }
+.seg-n { font-weight: 500; color: var(--fg-3); }
+:is(.tone-ink, .startbar2) .seg { background: var(--surface-ink-2); }
+:is(.tone-ink, .startbar2) .seg-b { color: var(--fg-inv-2); }
+:is(.tone-ink, .startbar2) .seg-b.on { background: var(--fg-inv-1); color: var(--fg-1); }
+
+/* ============================================================ status badges
+   A word, optionally after a 12px icon, on the status's soft fill. */
+.badge {
+  flex: none; display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px;
+  border-radius: var(--rad-pill); font: var(--type-badge); white-space: nowrap;
+}
+.badge svg { flex: none; width: 12px; height: 12px; }
+.badge.ok { background: var(--ok-50); color: var(--ok-700); }
+.badge.bad { background: var(--bad-50); color: var(--bad-700); }
+.badge.warn { background: var(--warn-50); color: var(--warn-700); }
+.badge.neutral { background: var(--surface-sunken); color: var(--fg-2); }
+
+/* ============================================================ inputs (spec 7.8)
+   16px text in every field, so iOS Safari never zooms the page. :where keeps
+   these at class weight, so a component's own field rules still apply. */
+.shell :where(input:not([type=checkbox], [type=radio], [type=range], [type=hidden]), textarea, select) {
+  height: 40px; padding: 0 12px; border: 1px solid var(--hair-ctl); border-radius: var(--rad-sm);
+  background: var(--surface); font: var(--type-input); color: var(--fg-1);
+}
+.shell :where(textarea) { height: auto; min-height: 120px; padding: 10px 12px; }
+.shell :where(input, textarea)::placeholder { color: var(--fg-4); }
+.shell input[type=checkbox] { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--brand-700); cursor: pointer; }
+
+.sel {
+  height: 40px; padding: 0 36px 0 12px; border: 1px solid var(--hair-ctl); border-radius: var(--rad-sm);
+  font: var(--type-input); color: var(--fg-1); cursor: pointer; appearance: none;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b636e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;
+}
+.sel:hover { border-color: var(--fg-3); }
+:is(.tone-ink, .startbar2) .sel {
+  height: 36px; border-color: var(--hair-inv); background-color: var(--surface-ink-2); color: var(--fg-inv-1);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239aa3ae' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+:is(.tone-ink, .startbar2) .sel:hover { border-color: rgba(255, 255, 255, .4); }
+
+/* ============================================================ cards (spec 7.6)
+   Hairline, no shadow. Clickable cards darken their border and take --sh-1 on
+   hover; a selected card gets an inset section-coloured ring and tint. */
+.card { padding: var(--sp-5); border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface); }
+.ico-tile {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+  border-radius: var(--rad-sm); background: var(--surface-subtle); color: var(--fg-2);
+}
+.ico-tile svg { width: 18px; height: 18px; }
+@media (max-width: 819px) {
+  .card { padding: var(--sp-4); }
+}
+
+/* ============================================================ section panels
+   Home topics, Review and Stats breakdowns: a white panel whose header is a
+   solid block of the section's colour. White text on --sec-600 is 5.24:1 (R&W)
+   and 4.72:1 (Math), so everything in the header stays fully white. */
+.spanel {
+  margin-top: var(--sp-5); padding: 0 var(--sp-6) var(--sp-5);
+  border: 1px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); overflow: hidden;
+}
+.spanel-h {
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin: 0 calc(var(--sp-6) * -1) var(--sp-5); padding: var(--sp-5) var(--sp-6);
+  background: var(--sec-600); color: var(--fg-inv-1);
+}
+.spanel-ico {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+  border-radius: var(--rad-sm); background: rgba(255, 255, 255, .18); color: var(--fg-inv-1);
+}
+.spanel-ico svg { width: 18px; height: 18px; }
+.spanel-txt { flex: 1; min-width: 0; }
+.spanel-t { margin: 0; font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-inv-1); }
+.spanel-sub { margin: 2px 0 0; font: var(--type-small); color: var(--fg-inv-1); }
+/* Wraps between phrases, never inside one. */
+.spanel-sub > span { white-space: nowrap; }
+.spanel-pct {
+  font: 750 var(--num-s)/1 var(--display); letter-spacing: var(--tr-num-s); color: var(--fg-inv-1);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.spanel-pct small { margin-left: 2px; font: 600 13px/1 var(--sans); letter-spacing: 0; }
+@media (max-width: 819px) {
+  .spanel { padding: 0 var(--sp-4) var(--sp-4); }
+  .spanel-h { margin: 0 calc(var(--sp-4) * -1) var(--sp-4); padding: var(--sp-4); }
+}
+
+/* ============================================================ meters (spec 7.7)
+   6px, section colour inside a section, brand light blue elsewhere. A fill is
+   only rendered for a value above zero, and never thinner than 4px. */
+.meter { display: block; height: 6px; border-radius: var(--rad-pill); background: var(--surface-sunken); overflow: hidden; }
+.meter-fill {
+  display: block; height: 100%; min-width: 4px; border-radius: inherit;
+  background: var(--sec-500, var(--brand-600)); transition: width var(--dur-data) var(--ease-out);
+}
 
 /* Section labels: sentence case, not the all-caps tracked micro-label look,
-   which reads as a dashboard template rather than as this site. */
+   which is kept for eyebrows and stat labels only (--type-label). */
 .label {
   margin: 0 0 14px;
   font-size: 13px; font-weight: 650; letter-spacing: -.005em;
   color: var(--ink-2);
 }
 .hint { margin: 0 0 16px; font-size: 13.5px; line-height: 1.55; color: var(--muted); max-width: 64ch; }
+.shell .hint { font: var(--type-small); color: var(--fg-3); }
 
-.meter { display: block; height: 6px; border-radius: 999px; background: var(--bg-soft); overflow: hidden; }
-.meter-fill {
-  display: block; height: 100%; border-radius: 999px; background: var(--accent);
-  transition: width .4s ease-out;
+/* ============================================================ toasts (spec 7.13)
+   One at a time, bottom centre, on ink; clears the phone tab bar. */
+.toast {
+  position: fixed; z-index: 90; left: 50%; bottom: 24px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; min-height: 44px; max-width: min(420px, calc(100vw - 32px));
+  padding: 0 16px; border-radius: var(--rad-md); background: var(--surface-ink); color: var(--fg-inv-1);
+  font: var(--type-ui); box-shadow: var(--sh-2); animation: toast-in var(--dur-2) var(--ease-out);
 }
+.toast svg { flex: none; width: 16px; height: 16px; }
+.toast.ok svg { color: var(--ok-on-ink); }
+.toast.bad svg { color: var(--bad-on-ink); }
+.toast-undo {
+  margin-left: 4px; padding: 4px 6px; border: 0; border-radius: var(--rad-xs); background: none; cursor: pointer;
+  font: 600 14px/20px var(--sans); color: var(--brand-300);
+}
+@media (max-width: 819px) {
+  .toast { bottom: calc(64px + 16px + env(safe-area-inset-bottom)); }
+}
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 
 /* ============================================================ dialogs
    One shell for every dialog: Options, Support, Feedback. Their contents live
    with their own pages. */
-.fb-scrim { position: fixed; inset: 0; z-index: 80; background: rgba(16, 20, 30, .42); animation: fade-in .18s ease-out; }
+.fb-scrim { position: fixed; inset: 0; z-index: 80; background: var(--scrim); animation: fade-in var(--dur-2) linear; }
 .fb-dialog {
   position: fixed; z-index: 81; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: min(520px, calc(100vw - 24px)); max-height: calc(100vh - 40px); overflow-y: auto;
-  background: var(--bg); border-radius: 16px; box-shadow: var(--shadow); padding: 20px 22px 22px;
+  width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow-y: auto;
+  background: var(--surface); border-radius: var(--rad-lg); box-shadow: var(--sh-3); padding: 20px 24px 24px;
 }
 .fb-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.fb-title { margin: 0; font-family: var(--display); font-size: 19px; font-weight: 700; letter-spacing: -.015em; }
+.fb-title { margin: 0; font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-1); }
 .fb-x { display: inline-flex; }
 .fb-body { margin-top: 14px; }
+/* The close button: a 32px quiet icon button. */
+.sheet-x {
+  flex: none; display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center;
+  border: 0; border-radius: var(--rad-sm); background: none; color: var(--fg-2); cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-std);
+}
+.sheet-x:hover { background: var(--surface-subtle); color: var(--fg-1); }
 @media (max-width: 819px) {
   .fb-dialog {
-    top: auto; bottom: 0; left: 0; transform: none; width: 100%;
-    border-radius: 18px 18px 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom));
-    animation: sheet-up .22s ease-out;
+    top: auto; bottom: 0; left: 0; transform: none; width: 100%; max-height: 88dvh;
+    border-radius: var(--rad-lg) var(--rad-lg) 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    animation: sheet-up var(--dur-slow) var(--ease-out);
   }
-}
-@media (prefers-reduced-motion: reduce) {
-  .fb-dialog, .fb-scrim { animation: none; }
 }
 @keyframes sheet-up { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ============================================================ focus
+   One ring for everything outside practice: 2px brand-700 (4.62:1 on white).
+   On ink it turns light blue, on the light-blue hero ink, on a section header
+   white, so it clears 3:1 everywhere. Text fields trade the ring for a border
+   plus halo. No box-shadow ring: it would wipe the components' own shadows. */
+.shell :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.shell :is(.tone-ink, .startbar2) :focus-visible { outline-color: var(--focus-inv); }
+.shell .hero2 :focus-visible { outline-color: var(--fg-1); }
+.shell .spanel-h :focus-visible { outline-color: var(--fg-inv-1); }
+.shell :where(input:not([type=checkbox], [type=radio], [type=range], [type=hidden]), textarea, select):focus-visible {
+  outline: none; border-color: var(--brand-700); box-shadow: var(--focus-ring);
+}
+.shell :is(.tone-ink, .startbar2) .sel:focus-visible { border-color: var(--focus-inv); box-shadow: 0 0 0 3px rgba(142, 200, 240, .3); }
 
 /* ---- Bulb, the mascot (components/Mascot.tsx) ---- */
 .bulb { display: block; overflow: visible; }
