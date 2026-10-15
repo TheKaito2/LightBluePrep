@@ -454,8 +454,11 @@ export async function flag(id: string, flagged: boolean): Promise<{ flagged: boo
 
 export async function saveAnnotations(id: string, annotations: Annotation[]):
     Promise<{ annotations: Annotation[] }> {
-  // Ids are assigned here rather than by a database autoincrement.
-  const items = annotations.map((a, i) => ({ ...a, id: a.id ?? i + 1 }))
+  // Ids are assigned here rather than by a database autoincrement. Counting on
+  // from the highest, not by position: after a removal, position i + 1 could
+  // be an id still in use, and the highlight menu finds a highlight by id.
+  let last = Math.max(0, ...annotations.map((a) => a.id ?? 0))
+  const items = annotations.map((a) => ({ ...a, id: a.id ?? ++last }))
   await store.saveAnnotations(id, items)
   sync.track('annotation', id)
   return { annotations: items }

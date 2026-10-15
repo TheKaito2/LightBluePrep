@@ -3,31 +3,51 @@
    end-of-set review page, the Info popover and the Math reference sheet. */
 
 /* ---------- highlight menu ---------- */
+/* Placed by QuestionView from its measured size: `top` is its top edge, and it
+   is centred on `left`. max-content so a menu near the right edge measures at
+   its real width rather than squeezing. */
 .hl-menu {
-  position: fixed; transform: translate(-50%, -100%);
+  position: fixed; transform: translateX(-50%); width: max-content;
   display: flex; align-items: center; gap: 8px;
   background: var(--bg); border: 1px solid var(--line);
   border-radius: 999px; box-shadow: var(--shadow); padding: 7px 12px; z-index: 60;
 }
-.swatch { width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(0,0,0,.1); cursor: pointer; transition: transform .1s; }
+.swatch { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(0,0,0,.1); cursor: pointer; transition: transform .1s; }
 .swatch:hover { transform: scale(1.12); }
 .sw-yellow { background: var(--hl-yellow); }
 .sw-blue { background: var(--hl-blue); }
 .sw-pink { background: var(--hl-pink); }
+/* The colour a note will be saved in. A ring with a gap, so it reads on every
+   swatch colour and stays apart from the swatch's own edge. */
+.hl-menu .picked { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ink); }
+.hl-menu :is(.swatch, .hl-icon):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .hl-sep { width: 1px; height: 20px; background: var(--line); }
 .hl-icon {
-  display: inline-flex; align-items: center; justify-content: center;
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; border-radius: 50%; border: none;
   background: none; cursor: pointer; color: var(--ink-2);
 }
 .hl-icon:hover { background: var(--bg-soft); color: var(--ink); }
+.hl-remove:hover { background: var(--red-soft); color: var(--red); }
+.hl-actions { display: flex; align-items: center; gap: 4px; }
 /* Named -input to keep it clear of mark.hl-note, which is a different thing.
-   Sharing the class put a pill border and padding on every noted highlight. */
+   Sharing the class put a pill border and padding on every noted highlight.
+   16px so a phone does not zoom in when it takes focus. */
 .hl-note-input {
-  border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 12px;
-  font: inherit; font-size: 13px; width: 168px; color: var(--ink);
+  border: 1px solid var(--line-2); border-radius: 999px; padding: 5px 12px;
+  font: inherit; font-size: 16px; width: 188px; color: var(--ink);
 }
 .hl-note-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+/* Under the stacking breakpoint: a bar 8px above the bottom bar (QuestionView
+   sets `bottom`), thumb-sized swatches, and the note on its own full row. */
+.hl-menu.docked {
+  left: 8px; right: 8px; transform: none; width: auto;
+  flex-wrap: wrap; gap: 8px; padding: 10px 12px; border-radius: var(--r-lg);
+}
+.hl-menu.docked .swatch, .hl-menu.docked .hl-icon { width: 36px; height: 36px; }
+.hl-menu.docked .hl-sep { display: none; }
+.hl-menu.docked .hl-actions { margin-left: auto; }
+.hl-menu.docked .hl-note-input { order: 1; flex: 1 0 100%; width: auto; padding: 8px 14px; }
 
 /* ---------- navigator ---------- */
 .nav-scrim { position: fixed; inset: 0; background: rgba(16,20,30,.24); z-index: 50; }

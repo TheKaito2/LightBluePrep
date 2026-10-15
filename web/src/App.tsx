@@ -25,6 +25,7 @@ import { Inbox } from './components/Inbox'
 import { Resources } from './components/Resources'
 import { ErrorBanner } from './components/ErrorBanner'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { useToast } from './components/Toast'
 import { sample, sampleBalanced } from './lib/draw'
 import { arrange, type Order } from './lib/order'
 import { loadFilters, loadOrder, saveFilters, saveOrder } from './lib/prefs'
@@ -191,6 +192,7 @@ export default function App() {
   const [showDesmos, setShowDesmos] = useState(false)
   const [desmosSplit, setDesmosSplit] = useState<number | null>(null)
   const [error, setError] = useState<{ message: string; retry?: () => void } | null>(null)
+  const toast = useToast()
   /** Every failure the app shows goes through here, never a raw message. */
   const fail = useCallback((e: unknown, retry?: () => void) => {
     setError({ message: toUserMessage(e), retry })
@@ -823,6 +825,40 @@ export default function App() {
     } catch (e) { fail(e) }
   }
 
+  function updateAnnotation(id: number, patch: Pick<Annotation, 'color' | 'note'>) {
+    void persistAnnotations(annotations.map((a) => (a.id === id ? { ...a, ...patch } : a)))
+  }
+
+  // Read by Undo, which runs up to 4s later against whatever is current then.
+  const annotationsNow = useRef(annotations)
+  annotationsNow.current = annotations
+  const questionNow = useRef(current?.id)
+  questionNow.current = current?.id
+
+  /** Remove at once, with an Undo, since a note can go with the highlight. */
+  function removeAnnotation(id: number) {
+    if (!current) return
+    const questionId = current.id
+    const removed = annotations.find((a) => a.id === id)
+    if (!removed) return
+    const rest = annotations.filter((a) => a.id !== id)
+    void persistAnnotations(rest)
+    toast(removed.note ? 'Highlight and note removed' : 'Highlight removed', {
+      onUndo: () => {
+        if (questionNow.current !== questionId) {
+          // Moved on: nothing else can have changed that question since.
+          api.saveAnnotations(questionId, [...rest, removed]).catch(fail)
+          return
+        }
+        const now = annotationsNow.current
+        // Its id may have been handed to a highlight made since; let the save
+        // assign a fresh one rather than duplicate it.
+        const back = now.some((a) => a.id === removed.id) ? { ...removed, id: undefined } : removed
+        void persistAnnotations([...now, back])
+      },
+    })
+  }
+
   function toggleCrossOut(label: string) {
     if (!current) return
     const next = new Set(crossOut)
@@ -847,6 +883,9 @@ export default function App() {
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       // A dialog (Feedback, Support) sits over the question; keys belong to it.
       if (document.querySelector('.modal')) return
+      // Shift+Arrow extends a text selection to highlight, and arrows inside
+      // the highlight menu belong to it; neither should change the question.
+      if (event.shiftKey || (event.target as HTMLElement)?.closest?.('.hl-menu')) return
       if (event.key === 'ArrowRight') go(index + 1)
       if (event.key === 'ArrowLeft') go(index - 1)
       if (event.key === 'Escape') {
@@ -1178,8 +1217,8 @@ export default function App() {
               onToggleCrossOutMode={() => setCrossOutMode((v) => !v)}
               onToggleCrossOut={toggleCrossOut}
               onAddAnnotation={(a) => persistAnnotations([...annotations, a as Annotation])}
-              onRemoveAnnotation={(id) =>
-                persistAnnotations(annotations.filter((a) => a.id !== id))}
+              onUpdateAnnotation={updateAnnotation}
+              onRemoveAnnotation={removeAnnotation}
               mistake={mistake}
               // Returned so the mistake card can confirm "Saved"; rethrown so
               // a failed save does not.
@@ -1250,7 +1289,7 @@ export default function App() {
 
       {showNotes ? (
         <Notes annotations={annotations}
-               onRemove={(id) => persistAnnotations(annotations.filter((a) => a.id !== id))}
+               onRemove={removeAnnotation}
                onClose={() => setShowNotes(false)} />
       ) : null}
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Icon } from './Icon'
+import { compareAnnotations } from '../lib/ranges'
 import type { Annotation } from '../types'
 
 interface Props {
@@ -8,16 +9,16 @@ interface Props {
   onClose: () => void
 }
 
+const EXPLANATION = new Set(['why_wrong', 'why_right', 'rationale'])
+
 const FIELD_LABEL: Record<string, string> = {
   stimulus: 'Passage',
   stem: 'Question',
-  why_wrong: 'Explanation',
-  why_right: 'Explanation',
-  rationale: 'Explanation',
 }
 
 function fieldLabel(field: string): string {
   if (FIELD_LABEL[field]) return FIELD_LABEL[field]
+  if (EXPLANATION.has(field)) return 'Explanation'
   if (field.startsWith('option:')) return `Choice ${field.slice(7)}`
   return field
 }
@@ -31,6 +32,10 @@ function fieldLabel(field: string): string {
  * text, and RichText already tags every rendered mark with data-ann-id, so the
  * text is a query away and there is no schema change and nothing to keep in
  * sync. It re-reads whenever the panel opens or the annotation list changes.
+ * A closed explanation is not in the DOM, so its highlights say where to look
+ * instead of quoting.
+ *
+ * Remove acts at once: the caller removes it and offers Undo in a toast.
  */
 export function Notes({ annotations, onRemove, onClose }: Props) {
   const [quotes, setQuotes] = useState<Record<number, string>>({})
@@ -48,9 +53,7 @@ export function Notes({ annotations, onRemove, onClose }: Props) {
     setQuotes(found)
   }, [annotations])
 
-  const sorted = [...annotations].sort(
-    (a, b) => a.field.localeCompare(b.field) || a.start_offset - b.start_offset,
-  )
+  const sorted = [...annotations].sort(compareAnnotations)
 
   return (
     <>
@@ -70,16 +73,19 @@ export function Notes({ annotations, onRemove, onClose }: Props) {
                 <div className="note-item-head">
                   <span className={`note-swatch sw-${annotation.color}`} />
                   <span className="note-where">{fieldLabel(annotation.field)}</span>
-                  <button className="note-del"
+                  <button type="button" className="note-del"
                           onClick={() => annotation.id && onRemove(annotation.id)}
-                          title="Remove">
+                          aria-label="Remove highlight" title="Remove highlight">
                     <Icon name="trash" size={15} />
                   </button>
                 </div>
                 <blockquote className="note-quote">
                   {annotation.id !== undefined && quotes[annotation.id]
                     ? quotes[annotation.id]
-                    : <em className="note-missing">highlighted text</em>}
+                    : <em className="note-missing">
+                        {EXPLANATION.has(annotation.field)
+                          ? 'In the explanation (open it to see)' : 'highlighted text'}
+                      </em>}
                 </blockquote>
                 {annotation.note ? (
                   <p className="note-text">{annotation.note}</p>
@@ -91,8 +97,8 @@ export function Notes({ annotations, onRemove, onClose }: Props) {
           <div className="notes-empty">
             <p>Nothing marked on this question yet.</p>
             <p className="note small">
-              Select any text in the passage, the question, or an answer choice
-              to highlight it or attach a note.
+              Select any text in the passage or the question to highlight it or
+              add a note.
             </p>
           </div>
         )}

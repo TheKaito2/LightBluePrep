@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import { applyHighlights, selectionToOffsets } from '../lib/ranges'
+import { useEffect, useId, useRef } from 'react'
+import { annotationIdAt, applyHighlights, selectionToOffsets } from '../lib/ranges'
 import { typeset } from '../lib/mathjax'
 import { sanitize } from '../lib/sanitize'
 import type { Annotation } from '../types'
@@ -9,7 +9,8 @@ interface Props {
   field: string
   annotations?: Annotation[]
   onSelect?: (range: { field: string; start: number; end: number }) => void
-  onAnnotationClick?: (id: number) => void
+  /** A click on a highlight, with the clicked piece's box to anchor a menu on. */
+  onAnnotationClick?: (id: number, rect: DOMRect) => void
   className?: string
 }
 
@@ -51,6 +52,7 @@ export function RichText({
   html, field, annotations = [], onSelect, onAnnotationClick, className,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null)
+  const noteIdPrefix = useId()
 
   useEffect(() => {
     const host = ref.current
@@ -59,22 +61,87 @@ export function RichText({
     // is in the page, and by then anything that could is gone (lib/sanitize.ts).
     host.replaceChildren(sanitize(html))
     wrapTables(host)
-    applyHighlights(host, annotations.filter((a) => a.field === field))
+    applyHighlights(host, annotations.filter((a) => a.field === field), noteIdPrefix)
     void typeset(host)
-  }, [html, field, annotations])
+  }, [html, field, annotations, noteIdPrefix])
 
-  function handleMouseUp() {
-    if (!onSelect || !ref.current) return
-    const offsets = selectionToOffsets(ref.current)
-    if (!offsets) return
+  const lastReported = useRef('')
+
+  /** Hand the current selection up if it lies in this text. */
+  function report(force: boolean) {
+    const host = ref.current
+    if (!onSelect || !host) return
+    const offsets = selectionToOffsets(host)
+    if (!offsets) {
+      lastReported.current = ''
+      return
+    }
+    const key = `${offsets.start}:${offsets.end}`
+    // The debounced selectionchange also fires after a mouseup already opened
+    // the menu, and after Escape closed it; neither should reopen it.
+    if (!force && key === lastReported.current) return
+    lastReported.current = key
     onSelect({ field, start: offsets.start, end: offsets.end })
   }
+  // The latest report, so the document listeners below are added once per
+  // mount rather than on every render of the question.
+  const reportRef = useRef(report)
+  reportRef.current = report
+
+  /**
+   * Mouseup alone missed phones and keyboards: a long-press selection fires no
+   * mouseup, and a Shift+Arrow selection has no pointer at all. So also watch
+   * the selection itself, debounced so a selection still being dragged (by
+   * mouse or by the handles on a phone) does not open the menu halfway.
+   *
+   * A keyboard selection opens the menu when Shift comes up rather than on
+   * every Shift+Arrow: the menu takes focus, and taking it after the first
+   * arrow would stop you extending the selection past one character.
+   */
+  const selectable = Boolean(onSelect)
+  useEffect(() => {
+    if (!selectable) return
+    let timer: ReturnType<typeof setTimeout> | undefined
+    // Either one held means the selection is still being made.
+    let mouseDown = false
+    let shiftDown = false
+    const later = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => { if (!mouseDown && !shiftDown) reportRef.current(false) }, 300)
+    }
+    const onMouseDown = (event: MouseEvent) => { mouseDown = true; shiftDown = event.shiftKey }
+    // A drag that ends outside the text gets no mouseup here, so check then.
+    const onMouseUp = () => { mouseDown = false; later() }
+    // Read from every key rather than only Shift's own events, so a Shift
+    // released while the window was in the background cannot stick.
+    const onKeyDown = (event: KeyboardEvent) => { shiftDown = event.shiftKey }
+    const onKeyUp = (event: KeyboardEvent) => {
+      shiftDown = event.shiftKey
+      if (event.key === 'Shift') reportRef.current(false)
+    }
+    document.addEventListener('selectionchange', later)
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('mouseup', onMouseUp)
+    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('keyup', onKeyUp)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('selectionchange', later)
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('mouseup', onMouseUp)
+      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('keyup', onKeyUp)
+    }
+  }, [selectable])
 
   function handleClick(event: React.MouseEvent) {
     if (!onAnnotationClick) return
-    const mark = (event.target as HTMLElement).closest?.('mark.hl') as HTMLElement | null
-    const id = mark ? Number(mark.dataset.annId) : NaN
-    if (Number.isFinite(id) && id > 0) onAnnotationClick(id)
+    // The end of a drag that started on a highlight is a new selection, not a
+    // click on the highlight.
+    if (window.getSelection()?.isCollapsed === false) return
+    const id = annotationIdAt(event.target)
+    const mark = (event.target as HTMLElement).closest?.('mark.hl')
+    if (id !== null && mark) onAnnotationClick(id, mark.getBoundingClientRect())
   }
 
   // `richtext` is always on, so the rules for official markup (figures that have
@@ -85,7 +152,7 @@ export function RichText({
     <div
       ref={ref}
       className={className ? `richtext ${className}` : 'richtext'}
-      onMouseUp={handleMouseUp}
+      onMouseUp={onSelect ? () => report(true) : undefined}
       onClick={handleClick}
     />
   )

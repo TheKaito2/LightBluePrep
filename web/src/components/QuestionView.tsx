@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { RichText } from './RichText'
 import { Explanation } from './Explanation'
 import { BookmarkFilled, Icon, SplitHandle } from './Icon'
@@ -46,6 +46,7 @@ interface Props {
   onToggleCrossOutMode: () => void
   onToggleCrossOut: (label: string) => void
   onAddAnnotation: (a: Omit<Annotation, 'id'>) => void
+  onUpdateAnnotation: (id: number, patch: Pick<Annotation, 'color' | 'note'>) => void
   onRemoveAnnotation: (id: number) => void
   /**
    * Inside a practice set. Your answer is held and graded when the set ends,
@@ -60,26 +61,39 @@ interface Props {
   coach?: ReactNode
 }
 
-interface PendingSelection {
-  field: string
-  start: number
-  end: number
+/** What the highlight menu is anchored on, in viewport pixels. */
+interface Anchor {
   x: number
-  y: number
+  top: number
+  bottom: number
 }
 
+/** A new selection to highlight, or an existing highlight to edit. */
+type HighlightMenu =
+  | ({ mode: 'new'; field: string; start: number; end: number } & Anchor)
+  | ({ mode: 'edit'; id: number } & Anchor)
+
 const COLORS = ['yellow', 'blue', 'pink'] as const
+
+function anchorOf(rect: DOMRect | null): Anchor {
+  return rect
+    ? { x: rect.left + rect.width / 2, top: rect.top, bottom: rect.bottom }
+    : { x: window.innerWidth / 2, top: 120, bottom: 120 }
+}
 
 export function QuestionView(props: Props) {
   const {
     question, number, annotations, result, seconds, response, flagged,
     crossOutMode, crossOut, onRespond, onSubmit, onToggleFlag,
-    onToggleCrossOutMode, onToggleCrossOut, onAddAnnotation, onRemoveAnnotation,
+    onToggleCrossOutMode, onToggleCrossOut, onAddAnnotation, onUpdateAnnotation, onRemoveAnnotation,
     deferred, mistake, onSaveMistake, coach,
   } = props
 
-  const [pending, setPending] = useState<PendingSelection | null>(null)
+  const [menu, setMenu] = useState<HighlightMenu | null>(null)
   const [noteDraft, setNoteDraft] = useState('')
+  const [pickedColor, setPickedColor] = useState('yellow')
+  const [menuPlace, setMenuPlace] = useState<CSSProperties>({})
+  const menuRef = useRef<HTMLDivElement>(null)
   const [split, setSplit] = useState(50)
   const stacked = useStacked()
   const dragging = useRef(false)
@@ -95,7 +109,7 @@ export function QuestionView(props: Props) {
   const hasStimulus = Boolean(question.stimulus_html?.trim())
   const isSplit = hasStimulus && question.section === 'RW'
 
-  useEffect(() => { setPending(null); setNoteDraft('') }, [question.id])
+  useEffect(() => { setMenu(null) }, [question.id])
 
   /**
    * Dismiss the highlight menu as soon as you interact anywhere else.
@@ -109,8 +123,8 @@ export function QuestionView(props: Props) {
    * close the very menu it belongs to.
    */
   useEffect(() => {
-    if (!pending) return
-    function dismiss() { setPending(null); setNoteDraft('') }
+    if (!menu) return
+    function dismiss() { setMenu(null) }
     function onPointerDown(event: PointerEvent) {
       const target = event.target as HTMLElement | null
       if (target?.closest?.('.hl-menu')) return
@@ -125,7 +139,43 @@ export function QuestionView(props: Props) {
       document.removeEventListener('pointerdown', onPointerDown, true)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [pending])
+  }, [menu])
+
+  const menuOpen = menu !== null
+  const menuMode = menu?.mode
+  const menuId = menu?.mode === 'edit' ? menu.id : `${menu?.mode}`
+  // Focus the first swatch when a menu opens, so a keyboard selection can go
+  // straight on to choosing a colour. Not on every update of an open menu,
+  // which would pull focus out of the note while you type.
+  useEffect(() => {
+    if (menuOpen) menuRef.current?.querySelector<HTMLElement>('.swatch')?.focus()
+  }, [menuOpen, menuMode, menuId])
+
+  /**
+   * Place the menu by its measured size: above the selection when it fits
+   * under the top bar, otherwise below it, and never off either side (it was
+   * clamped for a fixed 380px, so a 360px phone lost its left edge). Under the
+   * stacking breakpoint it docks as a bar just above the bottom bar instead,
+   * clear of the phone's own selection callout.
+   */
+  const hasNote = noteDraft.trim() !== ''
+  useLayoutEffect(() => {
+    const el = menuRef.current
+    if (!menu || !el) return
+    if (stacked) {
+      const bar = document.querySelector('.bottombar')?.getBoundingClientRect()
+      setMenuPlace({ bottom: bar ? window.innerHeight - bar.top + 8 : 8 })
+      return
+    }
+    const { width, height } = el.getBoundingClientRect()
+    const floor = (document.querySelector('.topbar')?.getBoundingClientRect().bottom ?? 0) + 8
+    const above = menu.top - 12 - height
+    const top = above >= floor
+      ? above
+      : Math.max(floor, Math.min(menu.bottom + 12, window.innerHeight - height - 8))
+    const left = Math.min(window.innerWidth - width / 2 - 8, Math.max(width / 2 + 8, menu.x))
+    setMenuPlace({ left, top })
+  }, [menu, stacked, hasNote])
 
   useEffect(() => {
     function move(event: MouseEvent) {
@@ -147,34 +197,61 @@ export function QuestionView(props: Props) {
   }
 
   function handleSelect(range: { field: string; start: number; end: number }) {
+    // Already open on exactly this selection: keep the note being written.
+    if (menu?.mode === 'new' && menu.field === range.field
+        && menu.start === range.start && menu.end === range.end) return
     const selection = window.getSelection()
     const rect = selection?.rangeCount ? selection.getRangeAt(0).getBoundingClientRect() : null
-    setPending({
-      ...range,
-      x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
-      y: rect ? rect.top : 120,
-    })
+    setMenu({ mode: 'new', ...range, ...anchorOf(rect) })
     setNoteDraft('')
+    setPickedColor('yellow')
+  }
+
+  /**
+   * A click on a highlight opens it for editing. It used to delete it outright,
+   * note and all, including when the click was only the start of a new
+   * selection; removing now takes the menu's own trash button.
+   */
+  function handleAnnotationClick(id: number, rect: DOMRect) {
+    const annotation = annotations.find((a) => a.id === id)
+    if (!annotation) return
+    setMenu({ mode: 'edit', id, ...anchorOf(rect) })
+    setNoteDraft(annotation.note ?? '')
+    setPickedColor(annotation.color)
   }
 
   function commit(color: string) {
-    if (!pending) return
-    onAddAnnotation({
-      field: pending.field,
-      start_offset: pending.start,
-      end_offset: pending.end,
-      color,
-      note: noteDraft.trim() || null,
-    })
-    window.getSelection()?.removeAllRanges()
-    setPending(null)
-    setNoteDraft('')
+    if (!menu) return
+    const note = noteDraft.trim() || null
+    if (menu.mode === 'edit') {
+      onUpdateAnnotation(menu.id, { color, note })
+    } else {
+      onAddAnnotation({ field: menu.field, start_offset: menu.start, end_offset: menu.end, color, note })
+      window.getSelection()?.removeAllRanges()
+    }
+    setMenu(null)
+  }
+
+  /**
+   * One tap highlights when there is no note, as before. With a note written,
+   * a colour only picks: the note is saved with Enter or Save, in whichever
+   * colour is picked, so the order you do them in no longer matters.
+   */
+  function pick(color: string) {
+    setPickedColor(color)
+    if (!hasNote) commit(color)
+  }
+
+  function removeEdited() {
+    if (menu?.mode !== 'edit') return
+    onRemoveAnnotation(menu.id)
+    setMenu(null)
   }
 
   const stimulus = hasStimulus ? (
     <RichText className="passage" html={question.stimulus_html} field="stimulus"
               annotations={annotations} onSelect={handleSelect}
-              onAnnotationClick={onRemoveAnnotation} />
+              onAnnotationClick={handleAnnotationClick} />
   ) : null
 
   const prompt = (
@@ -205,7 +282,7 @@ export function QuestionView(props: Props) {
 
       <RichText className="stem" html={question.stem_html} field="stem"
                 annotations={annotations} onSelect={handleSelect}
-                onAnnotationClick={onRemoveAnnotation} />
+                onAnnotationClick={handleAnnotationClick} />
 
       {coach}
 
@@ -334,28 +411,44 @@ export function QuestionView(props: Props) {
         <div className="single"><div className="pane">{prompt}</div></div>
       )}
 
-      {pending ? (
-        <div className="hl-menu"
-             style={{
-               left: Math.min(window.innerWidth - 190, Math.max(190, pending.x)),
-               top: Math.max(58, pending.y - 12),
-             }}>
+      {menu ? (
+        <div ref={menuRef} className={stacked ? 'hl-menu docked' : 'hl-menu'} style={menuPlace}
+             role="group" aria-label={menu.mode === 'edit' ? 'Edit highlight' : 'Highlight'}>
           {COLORS.map((color) => (
-            <button key={color} className={`swatch sw-${color}`}
-                    title={`Highlight ${color}`} onClick={() => commit(color)} />
+            <button key={color} type="button"
+                    className={pickedColor === color ? `swatch sw-${color} picked` : `swatch sw-${color}`}
+                    aria-label={`Highlight ${color}`} title={`Highlight ${color}`}
+                    aria-pressed={pickedColor === color} onClick={() => pick(color)} />
           ))}
-          <button className="hl-icon" title="Underline" onClick={() => commit('underline')}>
+          <button type="button" className={pickedColor === 'underline' ? 'hl-icon swatch-u picked' : 'hl-icon swatch-u'}
+                  aria-label="Underline" title="Underline"
+                  aria-pressed={pickedColor === 'underline'} onClick={() => pick('underline')}>
             <Icon name="underline" size={16} />
           </button>
           <span className="hl-sep" />
           {/* 1000 is what the sync Worker keeps; longer would be cut silently. */}
           <input className="hl-note-input" placeholder="Add a note" value={noteDraft} maxLength={1000}
+                 aria-label="Note"
                  onChange={(e) => setNoteDraft(e.target.value)}
-                 onKeyDown={(e) => { if (e.key === 'Enter') commit('yellow') }} />
-          <button className="hl-icon" title="Cancel"
-                  onClick={() => { setPending(null); setNoteDraft('') }}>
-            <Icon name="close" size={16} />
-          </button>
+                 onKeyDown={(e) => { if (e.key === 'Enter') commit(pickedColor) }} />
+          <span className="hl-actions">
+            {hasNote ? (
+              <button type="button" className="hl-icon" aria-label="Save note" title="Save note"
+                      onClick={() => commit(pickedColor)}>
+                <Icon name="check" size={16} />
+              </button>
+            ) : null}
+            {menu.mode === 'edit' ? (
+              <button type="button" className="hl-icon hl-remove" aria-label="Remove highlight"
+                      title="Remove highlight" onClick={removeEdited}>
+                <Icon name="trash" size={16} />
+              </button>
+            ) : null}
+            <button type="button" className="hl-icon" aria-label="Close" title="Close"
+                    onClick={() => setMenu(null)}>
+              <Icon name="close" size={16} />
+            </button>
+          </span>
         </div>
       ) : null}
     </div>

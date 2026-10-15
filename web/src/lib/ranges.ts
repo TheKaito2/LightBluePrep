@@ -12,11 +12,18 @@ import type { Annotation } from '../types'
 /** Elements whose text is not part of the annotatable coordinate space. */
 const OPAQUE = new Set(['MATH', 'SVG', 'IMG', 'SCRIPT', 'STYLE', 'MJX-CONTAINER'])
 
+/**
+ * Marks the hidden copies of notes that highlighted text points at with
+ * aria-describedby. They are appended after the content, and keeping them out
+ * of the offset space means a selection can never be measured against them.
+ */
+const NOTE_ATTR = 'data-hl-note'
+
 function isOpaque(node: Node | null): boolean {
   for (let n = node; n; n = n.parentNode) {
-    if (n.nodeType === Node.ELEMENT_NODE && OPAQUE.has((n as Element).tagName.toUpperCase())) {
-      return true
-    }
+    if (n.nodeType !== Node.ELEMENT_NODE) continue
+    const element = n as Element
+    if (OPAQUE.has(element.tagName.toUpperCase()) || element.hasAttribute(NOTE_ATTR)) return true
   }
   return false
 }
@@ -79,9 +86,23 @@ export function selectionToOffsets(root: HTMLElement): { start: number; end: num
  * overlapping annotations and multiple ranges in one node are handled without
  * any node-splitting order to get wrong.
  */
-export function applyHighlights(root: HTMLElement, annotations: Annotation[]): void {
+export function applyHighlights(root: HTMLElement, annotations: Annotation[], idPrefix = 'hl'): void {
   if (!annotations.length) return
   const { spans } = collectSpans(root)
+  // A note is only a title tooltip otherwise, which touch and screen readers
+  // never reach. Each noted mark is described by a hidden copy of its note.
+  const noteIds = new Map<Annotation, string>()
+  annotations.forEach((annotation, i) => {
+    if (!annotation.note) return
+    const id = `${idPrefix}-note-${annotation.id ?? `i${i}`}`
+    const holder = document.createElement('span')
+    holder.id = id
+    holder.hidden = true
+    holder.setAttribute(NOTE_ATTR, '')
+    holder.textContent = annotation.note
+    root.appendChild(holder)
+    noteIds.set(annotation, id)
+  })
 
   for (const span of spans) {
     const text = span.node.nodeValue!
@@ -112,7 +133,10 @@ export function applyHighlights(root: HTMLElement, annotations: Annotation[]): v
         const mark = document.createElement('mark')
         mark.className = `hl hl-${current.color}${current.note ? ' hl-note' : ''}`
         mark.dataset.annId = String(current.id ?? '')
-        if (current.note) mark.title = current.note
+        if (current.note) {
+          mark.title = current.note
+          mark.setAttribute('aria-describedby', noteIds.get(current)!)
+        }
         mark.textContent = slice
         fragment.appendChild(mark)
       }
@@ -122,7 +146,24 @@ export function applyHighlights(root: HTMLElement, annotations: Annotation[]): v
   }
 }
 
-/** Offsets of the annotation covering a click target, if any. */
+/**
+ * Reading order for the Highlights & Notes panel: passage, question, answer
+ * choices by letter, then explanation, each by position. Sorting on the field
+ * name put "option:A" and "rationale" ahead of "stimulus".
+ */
+const FIELD_RANK: Record<string, number> = { stimulus: 0, stem: 1, why_wrong: 3, why_right: 3, rationale: 3 }
+
+function fieldRank(field: string): number {
+  return FIELD_RANK[field] ?? (field.startsWith('option:') ? 2 : 4)
+}
+
+export function compareAnnotations(a: Annotation, b: Annotation): number {
+  return fieldRank(a.field) - fieldRank(b.field)
+    || a.field.localeCompare(b.field)
+    || a.start_offset - b.start_offset
+}
+
+/** Id of the annotation covering a click target, if any. */
 export function annotationIdAt(target: EventTarget | null): number | null {
   const element = target as HTMLElement | null
   const mark = element?.closest?.('mark.hl') as HTMLElement | null

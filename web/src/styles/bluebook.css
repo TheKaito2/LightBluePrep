@@ -567,3 +567,6 @@ a.tool { text-decoration: none; color: inherit; }
 .app .chip:hover { border-color: var(--line-2); color: var(--ink); }
 .app .chip:active { transform: scale(.97); }
 .app .chip.on { background: var(--accent); border-color: var(--accent); color: var(--fg-inv-1); font-weight: 600; }
+
+/* An Undo toast (removing a highlight) clears the practice bottom bar. */
+body:has(.bottombar) .toast { bottom: calc(var(--bar) + 16px); }

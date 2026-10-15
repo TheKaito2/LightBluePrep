@@ -10,7 +10,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { QuestionView } from './QuestionView'
-import type { Question } from '../types'
+import type { Annotation, Question } from '../types'
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -42,7 +42,7 @@ it('keeps a crossed choice focusable, names the controls, and un-crosses on pick
                   response="A" flagged crossOutMode crossOut={new Set(['B'])}
                   onRespond={onRespond} onSubmit={() => {}} onToggleFlag={() => {}}
                   onToggleCrossOutMode={() => {}} onToggleCrossOut={onToggleCrossOut}
-                  onAddAnnotation={() => {}} onRemoveAnnotation={() => {}}
+                  onAddAnnotation={() => {}} onUpdateAnnotation={() => {}} onRemoveAnnotation={() => {}}
                   mistake={null} onSaveMistake={() => {}} />,
   ))
   const choices = [...host.querySelectorAll<HTMLButtonElement>('button.choice-main')]
@@ -69,4 +69,43 @@ it('keeps a crossed choice focusable, names the controls, and un-crosses on pick
   act(() => choices[2].click())
   expect(onToggleCrossOut).toHaveBeenCalledTimes(1)
   expect(onRespond).toHaveBeenLastCalledWith('C')
+})
+
+it('opens a clicked highlight for editing and only removes it from the trash button (P-28, P-30)', () => {
+  const onUpdate = vi.fn()
+  const onRemove = vi.fn()
+  const annotations: Annotation[] = [
+    { id: 3, field: 'stem', start_offset: 0, end_offset: 4, color: 'blue', note: 'check units' },
+  ]
+  act(() => root.render(
+    <QuestionView question={question} number={1} annotations={annotations} result={null} seconds={0}
+                  response={null} flagged={false} crossOutMode={false} crossOut={new Set()}
+                  onRespond={() => {}} onSubmit={() => {}} onToggleFlag={() => {}}
+                  onToggleCrossOutMode={() => {}} onToggleCrossOut={() => {}}
+                  onAddAnnotation={() => {}} onUpdateAnnotation={onUpdate} onRemoveAnnotation={onRemove}
+                  mistake={null} onSaveMistake={() => {}} />,
+  ))
+  const mark = host.querySelector<HTMLElement>('.stem mark.hl')!
+  expect(mark.getAttribute('aria-describedby')).toBeTruthy()
+  expect(document.getElementById(mark.getAttribute('aria-describedby')!)?.textContent).toBe('check units')
+
+  act(() => mark.click())
+  expect(onRemove).not.toHaveBeenCalled()
+  const menu = host.querySelector('.hl-menu')!
+  const note = menu.querySelector<HTMLInputElement>('.hl-note-input')!
+  expect(note.value).toBe('check units')
+  expect(menu.querySelector('[aria-label="Highlight blue"]')?.getAttribute('aria-pressed')).toBe('true')
+  expect(document.activeElement?.getAttribute('aria-label')).toBe('Highlight yellow')
+
+  // With a note, a swatch only picks; Enter saves in the picked colour.
+  act(() => menu.querySelector<HTMLButtonElement>('[aria-label="Highlight pink"]')!.click())
+  expect(onUpdate).not.toHaveBeenCalled()
+  expect(menu.querySelector('[aria-label="Highlight pink"]')?.getAttribute('aria-pressed')).toBe('true')
+  act(() => note.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })))
+  expect(onUpdate).toHaveBeenCalledWith(3, { color: 'pink', note: 'check units' })
+  expect(host.querySelector('.hl-menu')).toBeNull()
+
+  act(() => mark.click())
+  act(() => host.querySelector<HTMLButtonElement>('[aria-label="Remove highlight"]')!.click())
+  expect(onRemove).toHaveBeenCalledWith(3)
 })

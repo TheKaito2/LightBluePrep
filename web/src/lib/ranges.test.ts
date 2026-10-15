@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { applyHighlights, collectSpans } from './ranges'
+import { applyHighlights, collectSpans, compareAnnotations } from './ranges'
 import type { Annotation } from '../types'
 
 function mount(html: string): HTMLElement {
@@ -103,6 +103,19 @@ describe('applyHighlights', () => {
     expect(mark.dataset.annId).toBe('7')
   })
 
+  it('describes a noted mark with a hidden copy of the note, outside the offset space', () => {
+    const host = mount('<p>Hello <em>brave</em> world</p>')
+    const before = space(host)
+    applyHighlights(host, [annotation(3, 14, { note: 'tone shift', id: 4 })], 'q1')
+    const marks = [...host.querySelectorAll('mark.hl')]
+    expect(marks.length).toBeGreaterThan(1)
+    for (const mark of marks) expect(mark.getAttribute('aria-describedby')).toBe('q1-note-4')
+    const holder = document.getElementById('q1-note-4')!
+    expect(holder.hidden).toBe(true)
+    expect(holder.textContent).toBe('tone shift')
+    expect(space(host)).toBe(before)
+  })
+
   it('is a no-op when there is nothing to highlight', () => {
     const host = mount('<p>untouched</p>')
     applyHighlights(host, [])
@@ -114,5 +127,21 @@ describe('applyHighlights', () => {
     const host = mount('<p>short</p>')
     applyHighlights(host, [annotation(100, 120)])
     expect(host.querySelector('mark')).toBeNull()
+  })
+})
+
+describe('compareAnnotations', () => {
+  it('orders passage, question, choices by letter, then explanation, each by offset', () => {
+    const list = [
+      annotation(5, 9, { field: 'rationale' }),
+      annotation(0, 3, { field: 'option:B' }),
+      annotation(8, 12, { field: 'stimulus' }),
+      annotation(0, 3, { field: 'option:A' }),
+      annotation(2, 4, { field: 'stem' }),
+      annotation(1, 4, { field: 'stimulus' }),
+    ]
+    expect(list.sort(compareAnnotations).map((a) => `${a.field}@${a.start_offset}`)).toEqual([
+      'stimulus@1', 'stimulus@8', 'stem@2', 'option:A@0', 'option:B@0', 'rationale@5',
+    ])
   })
 })
