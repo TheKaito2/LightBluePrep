@@ -23,13 +23,25 @@ export interface TopicPicks {
 }
 
 /**
- * Graded accuracy, and only from enough answers to judge: one lucky question
- * is not "100%". Below that the row's count says all there is to say.
+ * Accuracy pill. Graded colour only from enough answers to judge: one lucky
+ * question is not "100%", so under that the figure stays grey. A skill with no
+ * answers yet says "new".
  */
-function Acc({ seen, correct }: { seen: number; correct: number }) {
+function Acc({ seen, correct, fresh = false }: { seen: number; correct: number; fresh?: boolean }) {
+  if (!seen) return fresh ? <span className="acc none" aria-hidden="true">new</span> : null
   const g = graded(seen, correct)
-  if (!g) return null
-  return <span className={`acc ${g.grade}`} title={`${fmt(correct)} of ${fmt(seen)} correct`}>{g.pct}%</span>
+  const pct = g ? g.pct : Math.round((correct / seen) * 100)
+  return (
+    <span className={`acc ${g ? g.grade : 'none'}`} aria-hidden="true"
+          title={`${fmt(correct)} of ${fmt(seen)} correct${g ? '' : ', too few to grade yet'}`}>{pct}%</span>
+  )
+}
+
+/** What the compact count and pill say, for screen readers. */
+function srTally(seen: number, n: number, correct: number) {
+  if (!seen) return `, 0 of ${fmt(n)} answered, not started`
+  const g = graded(seen, correct)
+  return `, ${fmt(seen)} of ${fmt(n)} answered${g ? `, ${g.pct}% correct` : ''}`
 }
 
 /** One domain: a checkbox for the whole of it, then a checkbox per skill. */
@@ -44,8 +56,10 @@ export function DomainCard({ d, picks }: { d: DomainTally; picks: TopicPicks }) 
         <span className={`box is-${state}`}><Icon name="check" size={12} strokeWidth={3} /></span>
         <span className="dcard-t">{d.name}</span>
         <span className="dcard-stat">
-          {fmt(d.seen)} of {fmt(d.n)} answered
+          {/* Compact on screen; spelled out for screen readers. */}
+          <span aria-hidden="true">{fmt(d.seen)}/{fmt(d.n)}</span>
           <Acc seen={d.seen} correct={d.correct} />
+          <span className="sr-only">{srTally(d.seen, d.n, d.correct)}</span>
         </span>
       </button>
       <span className="dmeter" aria-hidden="true">
@@ -54,7 +68,6 @@ export function DomainCard({ d, picks }: { d: DomainTally; picks: TopicPicks }) 
       <ul className="sklist">
         {d.skills.map((s) => {
           const sOn = ticked.has(s.code)
-          const g = graded(s.seen, s.correct)
           const left = facetCounts ? facetCounts.get(s.code) ?? 0 : null
           return (
             <li key={s.code}>
@@ -67,20 +80,13 @@ export function DomainCard({ d, picks }: { d: DomainTally; picks: TopicPicks }) 
                 <span className="skrow-end">
                   {left !== null ? <span className="skrow-f">{fmt(left)} {facetWord}</span> : null}
                   {/* Compact on screen; spelled out for screen readers below. */}
-                  <span className="skrow-n" aria-hidden="true">
-                    {s.seen ? `${fmt(s.seen)}/${fmt(s.n)}` : fmt(s.n)}
-                  </span>
-                  <Acc seen={s.seen} correct={s.correct} />
+                  <span className="skrow-n" aria-hidden="true">{fmt(s.seen)}/{fmt(s.n)}</span>
+                  <Acc seen={s.seen} correct={s.correct} fresh />
                 </span>
-                <span className="sr-only">
-                  {`, ${fmt(s.seen)} of ${fmt(s.n)} answered`}
-                  {!s.seen ? ', not started' : g ? `, ${g.pct}% correct` : ''}
+                <span className="sr-only">{srTally(s.seen, s.n, s.correct)}</span>
+                <span className="skbar" aria-hidden="true">
+                  <span style={{ transform: `scaleX(${s.n ? s.seen / s.n : 0})` }} />
                 </span>
-                {s.seen ? (
-                  <span className="skbar" aria-hidden="true">
-                    <span style={{ transform: `scaleX(${s.seen / s.n})` }} />
-                  </span>
-                ) : null}
               </button>
               {sOn ? <SkillTypes skill={s} picks={picks} /> : null}
             </li>

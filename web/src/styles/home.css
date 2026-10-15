@@ -39,7 +39,7 @@
 /* A brand-200 line is a glare stripe under the dark hero. */
 :root[data-theme=dark] .hero2 { border-bottom-color: var(--hair-1); }
 .hero2-in {
-  max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8);
+  max-width: 1160px; margin: 0 auto; padding: var(--sp-16) var(--sp-8);
   display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--sp-12); align-items: center;
 }
 .hero2-copy { position: relative; min-width: 0; }
@@ -47,23 +47,23 @@
 .hero2-eyebrow {
   display: block; font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--brand-800);
 }
-.hero2-t { margin: var(--sp-2) 0 0; font: var(--type-display); letter-spacing: var(--tr-display); color: var(--fg-1); }
+.hero2-t { margin: var(--sp-3) 0 0; font: var(--type-display); letter-spacing: var(--tr-display); color: var(--fg-1); }
 .hero2-t:focus { outline: none; }
 /* brand-700 is 3.84:1 on brand-100: allowed only because this is 40px and up. */
 .hero2-hl { color: var(--brand-700); }
 @supports (overflow: clip) { .hero2 { overflow: clip visible; } }
 /* Level with the headline, clear of its longest line. */
 .hero2-bulb { position: absolute; top: 20px; right: 0; }
-.hero2-sub { margin: var(--sp-3) 0 0; max-width: 44ch; font: var(--type-lead); color: var(--fg-2); }
+.hero2-sub { margin: var(--sp-4) 0 0; max-width: 44ch; font: var(--type-lead); color: var(--fg-2); }
 .hero2 .phone { display: none; }
-.hero2-go { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-5); }
+.hero2-go { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-8); }
 .shell .hero2-main { min-width: 0; max-width: 100%; }
 .shell .hero2-main .hero2-main-n { margin-left: -4px; }
 .hero2-main-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hero2-main-n { flex: none; font-variant-numeric: tabular-nums; }
 
 /* ---- ID search (spec 7.8): a real input, results as a popover ---- */
-.qsearch-f { position: relative; max-width: 440px; margin-top: var(--sp-4); }
+.qsearch-f { position: relative; max-width: 440px; margin-top: var(--sp-8); }
 .qsearch-l { display: block; margin-bottom: 6px; font: 600 13px/18px var(--sans); color: var(--fg-2); }
 .qsearch {
   display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 var(--sp-3) 0 var(--sp-4);
@@ -118,7 +118,7 @@
 
 /* ---- score card (right side of the hero) ---- */
 .scard {
-  display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; padding: var(--sp-6);
+  display: flex; flex-direction: column; gap: var(--sp-5); min-width: 0; padding: var(--sp-8);
   border: 1px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: var(--sh-2);
   /* Between 820px and about 1140px the card's column is too narrow for three
      footer cells side by side: see the @container rule further down. */
@@ -227,7 +227,7 @@
 .day.on { background: var(--streak-500); color: var(--surface-ink); box-shadow: none; }
 .at-risk .day.today { box-shadow: 0 0 0 2px var(--streak-500); }
 .streak-risk { max-width: 152px; margin-top: 2px; color: var(--streak-700); }
-.scard-note { margin: var(--sp-2) 0 0; font: var(--type-small); color: var(--fg-3); }
+.scard-note { margin: var(--sp-3) 0 0; font: var(--type-small); color: var(--fg-3); }
 /* Between 820px and about 1140px the card's column is too narrow for three
    footer cells side by side: the streak takes its own row. Phones keep one
    row (their cells are tighter and the fold matters more there). */
@@ -254,62 +254,90 @@
 .qsets-t { margin: 0 0 var(--sp-3); font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
 .qsets-more { margin-top: var(--sp-2); }
 
-/* ---- topics ---- */
+/* ---- topics ----
+   The October 2026 overhaul made this a white panel with a solid header; the
+   tinted panel holding white cards came back on request. Review and Stats keep
+   the solid header from shell.css, so the panel rules here sit under .home. */
 .topics-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-4) var(--sp-6); margin-bottom: var(--sp-5); }
 .topics-title { min-width: 0; }
-.topics-sub { margin: var(--sp-1) 0 0; font: var(--type-small); color: var(--fg-3); }
+.home .topics-head .h1-section { font: 800 48px/1 var(--display); letter-spacing: -.045em; }
+.topics-sub { margin: var(--sp-2) 0 0; font: 400 14.5px/20px var(--sans); color: var(--fg-3); }
 .topics-sub .link { font: inherit; font-weight: 600; }
+/* Section switch: pills, ink when on, the section's colour for a section. */
 .sectabs { flex: none; }
-
-/* Two plain grid columns: row-major tab order, and a card that grows only
-   pushes the cards below it. */
-.dgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); align-items: start; }
-/* Topic cards sit inside the white panel, so a hairline and no fill. Picked:
-   an inset ring in the section colour (no layout shift) and its tint. The card
-   is not one target, so it never lifts; only its rows answer the pointer. */
-.dcard {
-  position: relative; border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface); overflow: hidden;
-  transition: box-shadow var(--dur-fast), background-color var(--dur-fast);
+.home .sectabs { gap: 4px; padding: 4px; border-radius: var(--rad-pill); background: var(--surface-subtle); }
+.home .sectabs .seg-b {
+  height: 40px; padding: 0 18px; border-radius: var(--rad-pill);
+  font: 650 15px/20px var(--display); letter-spacing: 0; color: var(--fg-2);
+  transition: background-color var(--dur-fast), color var(--dur-fast), transform var(--dur-fast);
 }
-.dcard.is-mixed { box-shadow: inset 0 0 0 2px var(--sec-600); }
-.dcard.is-on { box-shadow: inset 0 0 0 2px var(--sec-600); background: var(--sec-50); }
+.home .sectabs .seg-b:hover { background: var(--surface-sunken); color: var(--fg-1); }
+.home .sectabs .seg-b:active { transform: scale(.97); }
+.home .sectabs .seg-b.on { background: var(--fg-1); color: var(--surface); box-shadow: none; }
+.home .sectabs .seg-b.on:is(.sec-RW, .sec-MATH) { background: var(--sec-600); color: var(--fg-inv-1); }
+.home .sectabs .seg-b.on svg { color: inherit; }
+
+/* Each section is a tinted panel holding white topic cards. */
+.home .spanel { padding: var(--sp-6); border: 0; border-radius: 28px; background: var(--sec-100); overflow: visible; }
+.home .spanel-h { gap: var(--sp-4); margin: 4px 4px var(--sp-5); padding: 0; background: none; color: var(--fg-1); }
+.home .spanel-ico {
+  width: 56px; height: 56px; border-radius: 18px; background: var(--sec-600); color: var(--fg-inv-1);
+  box-shadow: 0 8px 18px -8px var(--sec-600);
+}
+.home .spanel-ico svg { width: 24px; height: 24px; }
+.home .spanel-t { font: 800 36px/1 var(--display); letter-spacing: -.04em; color: var(--sec-700); }
+.home .spanel-sub { margin-top: 6px; color: var(--fg-2); }
+.home .spanel-pct { font: 800 52px/1 var(--display); letter-spacing: -.05em; color: var(--sec-600); }
+.home .spanel-pct small { margin-left: 2px; font: 800 22px/1 var(--display); letter-spacing: 0; }
+/* -600 on the dark tint is under 3:1; the lighter -700 clears it. */
+:root[data-theme=dark] .home .spanel-pct { color: var(--sec-700); }
+
+/* Two fixed columns (SectionPanel splits the domains), each a stack, so cards
+   of different heights pack without gaps. */
+.dgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); align-items: start; }
+.dcol { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.dcard {
+  position: relative; border-radius: 20px; background: var(--surface); overflow: hidden;
+  box-shadow: 0 1px 2px rgba(20, 50, 90, .05), 0 10px 26px -18px var(--sec-500, var(--brand-600));
+  transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+}
+.dcard:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(20, 50, 90, .05), 0 18px 34px -18px var(--sec-500, var(--brand-600)); }
+.dcard:is(.is-on, .is-mixed) { box-shadow: 0 0 0 2.5px var(--sec-500), 0 18px 34px -18px var(--sec-500); }
 .dcard-h {
-  display: flex; align-items: center; gap: var(--sp-3); width: 100%; padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  display: flex; align-items: center; gap: var(--sp-3); width: 100%; padding: var(--sp-5) var(--sp-5) var(--sp-3);
   border: 0; background: none; font: inherit; text-align: left; color: var(--fg-1); cursor: pointer;
 }
 /* The card clips its corners, so the ring goes inside the header. */
 .shell .dcard-h:focus-visible { outline-offset: -2px; }
-.dcard-t { flex: 1; min-width: 0; font: var(--type-h3); letter-spacing: var(--tr-h3); }
+.dcard-t { flex: 1; min-width: 0; font: 750 21px/1.15 var(--display); letter-spacing: -.025em; }
 .dcard-stat {
   display: inline-flex; align-items: center; gap: var(--sp-2); flex: none;
-  font: var(--type-small); color: var(--fg-3); font-variant-numeric: tabular-nums; white-space: nowrap;
+  font: 400 12px/16px var(--sans); color: var(--fg-3); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-.dmeter { display: block; height: 6px; margin: 0 var(--sp-4); background: var(--sec-50); border-radius: var(--rad-pill); overflow: hidden; }
-.dcard.is-on .dmeter { background: var(--surface); }
+.dmeter { display: block; height: 5px; margin: 0 var(--sp-5); background: var(--sec-50); border-radius: var(--rad-pill); overflow: hidden; }
 .dmeter > span { display: block; height: 100%; border-radius: inherit; background: var(--sec-500); transform-origin: left center; transition: transform var(--dur-data) var(--ease-out); }
-/* Skill rows: 44px, edge to edge, split by hairlines. */
-.sklist { list-style: none; margin: var(--sp-3) 0 0; padding: 0; }
-.sklist > li { border-top: 1px solid var(--hair-1); }
+/* Skill rows: rounded, inset from the card's edge, a hairline meter under each. */
+.sklist { list-style: none; margin: var(--sp-2) 0 var(--sp-3); padding: 0 var(--sp-3); }
 .skrow {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: var(--sp-3);
-  width: 100%; min-height: 44px; padding: 10px var(--sp-4); border: 0; border-radius: 0;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 5px var(--sp-3);
+  width: 100%; min-height: 44px; padding: 10px var(--sp-2); border: 0; border-radius: var(--rad-md);
   background: none; font: inherit; text-align: left; color: var(--fg-2); cursor: pointer;
-  transition: background-color var(--dur-fast);
+  transition: background-color var(--dur-fast), transform var(--dur-fast);
 }
 .shell .skrow:focus-visible { outline-offset: -2px; }
 .skrow:hover { background: var(--surface-subtle); color: var(--fg-1); }
+.skrow:active { transform: scale(.99); }
 .skrow.on { background: var(--sec-50); color: var(--fg-1); }
-.dcard.is-on .skrow.on { background: none; }
-.skrow-name { font: 500 14px/20px var(--sans); }
+.skrow-name { font: 500 14.5px/1.3 var(--sans); }
 .skrow.on .skrow-name { font-weight: 600; color: var(--sec-700); }
 .skrow-end { display: inline-flex; align-items: center; gap: var(--sp-2); justify-self: end; }
-.skrow-n { min-width: 4ch; text-align: right; font: var(--type-small); color: var(--fg-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.skrow-n { min-width: 4ch; text-align: right; font: 400 12px/16px var(--sans); color: var(--fg-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* The count the active difficulty or status filter leaves ("87 hard"). */
 .skrow-f { font: 600 12px/16px var(--sans); color: var(--sec-700); font-variant-numeric: tabular-nums; white-space: nowrap; }
-/* Only drawn once a skill has an answer, under the name. */
-.skbar { grid-column: 2 / -1; display: block; height: 3px; margin-top: 6px; border-radius: var(--rad-pill); background: var(--surface-sunken); overflow: hidden; }
-.skbar > span { display: block; height: 100%; border-radius: inherit; background: var(--sec-500); transform-origin: left center; transition: transform var(--dur-data) var(--ease-out); }
-.skrow.on .skbar { background: var(--surface); }
+.skbar { grid-column: 2 / -1; display: block; height: 3px; border-radius: var(--rad-pill); background: var(--surface-sunken); overflow: hidden; }
+.skbar > span { display: block; height: 100%; border-radius: inherit; background: var(--sec-300); transform-origin: left center; transition: transform var(--dur-data) var(--ease-out); }
+.skrow.on .skbar { background: var(--sec-100); }
+.skrow.on .skbar > span { background: var(--sec-500); }
 /* Accuracy: text tokens only, never a series colour. */
 .acc {
   min-width: 46px; text-align: right; padding: 2px 8px; border-radius: var(--rad-pill); white-space: nowrap;
@@ -319,6 +347,7 @@
 .acc.mid { color: var(--warn-700); background: var(--warn-50); }
 .acc.poor { color: var(--bad-700); background: var(--bad-50); }
 .acc.none { color: var(--fg-3); background: var(--surface-subtle); }
+.dcard .acc { text-align: center; }
 
 /* Checkbox look, drawn so a domain can show "some of its skills" (spec 7.8:
    18px, 6px corners, a control-grey border that clears 3:1). */
@@ -333,6 +362,10 @@
 .box.is-mixed { border-color: var(--sec-600, var(--brand-700)); background: var(--sec-50, var(--brand-50)); position: relative; }
 .box.is-mixed::after { content: ''; position: absolute; width: 8px; height: 2px; border-radius: 1px; background: var(--sec-600, var(--brand-700)); }
 .dcard-h:hover .box.is-off, .skrow:hover .box.is-off { border-color: var(--sec-600, var(--brand-700)); }
+/* Topic cards: a 2px border, and a 22px box for the whole domain. */
+.dcard .box { border-width: 2px; }
+.dcard-h .box { width: 22px; height: 22px; border-radius: 7px; }
+.dcard-h .box.is-mixed::after { width: 10px; height: 2.5px; }
 
 /* First load: what is happening and why it takes a moment, over the shape of
    the cards. The words wait a beat, so a quick load from this device's own
@@ -442,19 +475,19 @@
 
 @media (max-width: 819px) {
   .hwrap { padding: var(--sp-6) var(--sp-4) var(--sp-6); }
-  .hero2-in { grid-template-columns: 1fr; gap: var(--sp-4); padding: var(--sp-6) var(--sp-4); }
+  .hero2-in { grid-template-columns: 1fr; gap: var(--sp-8); padding: var(--sp-8) var(--sp-4); }
   /* Under 820px the headline needs the full width. */
   .hero2-bulb { display: none; }
-  .hero2-sub { margin-top: var(--sp-2); }
+  .hero2-sub { margin-top: var(--sp-3); }
   .hero2 .desk { display: none; }
   .hero2 .phone { display: inline; }
   /* One row: the primary takes what the short secondary leaves. */
-  .hero2-go { flex-wrap: nowrap; margin-top: var(--sp-4); gap: var(--sp-2); }
+  .hero2-go { flex-wrap: nowrap; margin-top: var(--sp-6); gap: var(--sp-2); }
   .shell .hero2-go .btn { flex: none; }
   .shell .hero2-go .hero2-main { flex: 1 1 auto; }
-  .qsearch-f { max-width: none; margin-top: var(--sp-4); }
+  .qsearch-f { max-width: none; margin-top: var(--sp-6); }
   .qsearch-kbd { display: none; }
-  .scard { padding: var(--sp-4); gap: 10px; }
+  .scard { padding: var(--sp-5); gap: var(--sp-4); }
   .scard-lock-sub, .scard-lock-ico { display: none; }
   .shell .scard-go { align-self: stretch; }
   .secscore { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; }
@@ -462,21 +495,27 @@
   .secscore-l .short { display: inline; }
   .scard-stats > .stat { padding: 0 10px; }
   .scard-stats .stat-l { letter-spacing: .03em; }
-  .scard-note { margin-top: 6px; }
+  .scard-note { margin-top: var(--sp-2); }
   /* One line on a 390px phone: the figures carry the meaning without icons. */
   .scard-goal { column-gap: var(--sp-3); }
   .scard-goal-i svg { display: none; }
   .hwrap:has(> .qsets) { padding-top: var(--sp-4); }
   .qsets { margin-bottom: var(--sp-10); }
   .topics-head { flex-direction: column; align-items: stretch; margin-bottom: var(--sp-4); }
+  .home .topics-head .h1-section { font-size: 38px; }
   .seg-b { padding: 0 8px; }
+  .home .sectabs .seg-b { padding: 0 10px; font-size: 14px; }
+  /* The panel runs to the screen edges; its cards keep the page gutter. */
+  .home .spanel { margin-inline: calc(var(--sp-4) * -1); padding: var(--sp-5) var(--sp-3); border-radius: 24px; }
+  .home .spanel-h { gap: var(--sp-3); margin: 0 4px var(--sp-4); padding: 0; }
+  .home .spanel-ico { width: 44px; height: 44px; border-radius: 14px; }
+  .home .spanel-t { font-size: 27px; }
+  .home .spanel-pct { font-size: 34px; }
+  .home .spanel-pct small { font-size: 15px; }
   .dgrid { grid-template-columns: minmax(0, 1fr); }
-  .skrow { padding-inline: var(--sp-3); }
-  /* No room beside a two-line title: the figures take their own line under it. */
-  .dcard-h { flex-wrap: wrap; row-gap: 6px; padding: var(--sp-3) var(--sp-3) 10px; }
-  .dcard-t { flex-basis: calc(100% - 30px); }
-  .dcard-stat { margin-left: 30px; }
-  .dmeter { margin: 0 var(--sp-3); }
+  .dgrid, .dcol { gap: var(--sp-3); }
+  .dcard-t { font-size: 19px; }
+  .skrow { padding: 11px var(--sp-2); }
   /* Pinned to the viewport now, so it rides on the fixed tab bar. */
   .startbar2 { bottom: calc(60px + env(safe-area-inset-bottom)); }
   /* 64px: the title alone, Options as a 40px icon button, Start at md (H-45). */
@@ -498,6 +537,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .skel { animation: none; opacity: .8; }
+  .dcard:hover, .skrow:active { transform: none; }
 }
 
 /* ==================================================== practice sets

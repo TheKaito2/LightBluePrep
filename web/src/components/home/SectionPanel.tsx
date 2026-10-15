@@ -14,6 +14,10 @@ export function SectionPanel({ sec, tally, domains, picks }: {
   picks: TopicPicks
 }) {
   const g = graded(tally.seen, tally.correct)
+  const covered = tally.n ? Math.round((tally.seen / tally.n) * 100) : 0
+  // Two fixed columns rather than CSS columns: a card that opens its question
+  // types only pushes the cards under it, never hops to the other column.
+  const half = Math.ceil(domains.length / 2)
   return (
     <section className={`spanel sec-${sec}`} aria-labelledby={`spanel-${sec}`}>
       <header className="spanel-h">
@@ -22,12 +26,19 @@ export function SectionPanel({ sec, tally, domains, picks }: {
           <h3 className="spanel-t" id={`spanel-${sec}`}>{SECTION_NAME[sec]}</h3>
           <p className="spanel-sub">
             <span>{plural(tally.n, 'question')}</span> · <span>{fmt(tally.seen)} answered</span>
+            {g ? <> · <span>{g.pct}% correct</span></> : null}
           </p>
         </div>
-        {g ? <span className="spanel-pct">{g.pct}<small>% correct</small></span> : null}
+        <span className="spanel-pct" title="Share of this section answered">
+          {covered}<small>%</small><span className="sr-only"> covered</span>
+        </span>
       </header>
       <div className="dgrid">
-        {domains.map((d) => <DomainCard key={d.code} d={d} picks={picks} />)}
+        {[domains.slice(0, half), domains.slice(half)].map((col, i) => (
+          <div className="dcol" key={i}>
+            {col.map((d) => <DomainCard key={d.code} d={d} picks={picks} />)}
+          </div>
+        ))}
       </div>
     </section>
   )

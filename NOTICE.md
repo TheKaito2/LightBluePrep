@@ -105,5 +105,7 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   the Worker (migration in worker/migrations/).
 - 2026-10-15: Settings, Appearance: System, Light or Dark, saved on this
   device and applied before the first paint (static pages too).
+- 2026-10-15: Home topics back to the earlier look (tinted section panels,
+  white cards, a pill on every skill); more room in the hero.
 
 The full history of changes is in the git log.
