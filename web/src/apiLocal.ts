@@ -24,6 +24,7 @@
  */
 import type { HistoryRow } from './lib/progress'
 import { grade } from './lib/grading'
+import { nowSec } from './lib/sets'
 import { normaliseQuestion, type Stub } from './lib/normalize'
 import { byShuffleKey } from './lib/shuffle'
 import * as cb from './lib/cbApi'
@@ -469,7 +470,7 @@ export async function answer(
   const attempt: store.Attempt = {
     id: crypto.randomUUID(),
     question_id: id,
-    answered_at: Math.floor(Date.now() / 1000),
+    answered_at: nowSec(),
     response,
     correct: result.correct ? 1 : 0,
     seconds,

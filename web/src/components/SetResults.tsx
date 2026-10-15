@@ -15,6 +15,7 @@ import { QuestionDetail } from './QuestionDetail'
 import { duration } from '../lib/pacing'
 import { DIFFICULTY_NAME, VERDICT, describeSet, fmt, plural, setSection } from '../lib/labels'
 import { dayKey, setGains, streak, type HistoryRow } from '../lib/progress'
+import { nowSec } from '../lib/sets'
 import type { PracticeSet, SetAnswer, SetItem } from '../types'
 
 interface Props {
@@ -65,7 +66,7 @@ export function SetResults({ set, history, onPractice, onPracticeMany, onRedo, o
   const mood = pct >= 70 ? 'cheer' : pct >= 40 ? 'neutral' : 'oops'
   const section = setSection(set.filters)
   const topic = describeSet(set, false)
-  const finished = set.finished_at ?? Math.floor(Date.now() / 1000)
+  const finished = set.finished_at ?? nowSec()
   const span = { from: set.created_at, to: finished }
   // Older sets split the clock evenly across their questions; a column of
   // identical times says nothing true, so it goes.
