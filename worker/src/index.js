@@ -1,27 +1,31 @@
 /**
  * LightBluePrep cloud sync (from Bluebank).
  *
- * PLAIN JAVASCRIPT, ONE FILE, ON PURPOSE. Setup is done through the Cloudflare
- * dashboard rather than wrangler, and the dashboard's Edit Code editor runs
- * JavaScript: TypeScript syntax (interfaces, type annotations, generics) is a
- * syntax error there. So this file has to paste in and run as-is, with no
- * imports, no bundler, no npm and no build step. Do not convert it to .ts
- * without also changing the deploy method in HANDOFF 7d.
+ * Deploy with `cd worker && npx wrangler deploy`, which carries the rate limits,
+ * the D1 binding and the logging setting in wrangler.jsonc. A paste into the
+ * dashboard's code editor also runs, but without rate limits: wrangler.jsonc is
+ * the only place they are bound.
  *
- * Editor support comes from worker/jsconfig.json plus worker/types.d.ts, which
- * declare the D1 surface locally. That is why no @cloudflare/workers-types
- * dependency is needed.
+ * Plain JavaScript in one file, with no imports and no build step, so nothing
+ * stands between this file and what runs. Editor support comes from
+ * worker/jsconfig.json plus worker/types.d.ts, which declare the D1 surface
+ * locally, so no @cloudflare/workers-types dependency is needed.
  *
- * Bindings expected (Worker -> Settings -> Bindings / Variables and Secrets):
+ * Bindings and variables:
  *   DB                D1 database binding, named exactly `DB`
  *   GOOGLE_CLIENT_ID  secret, the OAuth client id ending .apps.googleusercontent.com
  *   ALLOWED_SUBS      secret, OPTIONAL. Comma-separated Google subs. Unset means
  *                     anyone may sign in; setting it makes the site single-user
  *                     again, which is the kill switch.
  *   ADMIN_SUBS        secret. Subs allowed to read the feedback inbox.
+ *   DEV_ORIGINS       OPTIONAL. Comma-separated extra origins, for local work
+ *                     (`npx wrangler dev --var DEV_ORIGINS:http://localhost:5173`).
+ *                     Never set in production, so a page on someone's localhost
+ *                     cannot call the live Worker with a visitor's session.
  *   AUTH_LIMITER, SYNC_LIMITER, FEEDBACK_LIMITER, MILESTONE_LIMITER
- *                     rate limit bindings (wrangler.jsonc). Each is optional:
- *                     unbound means unlimited, so a dashboard paste still runs.
+ *                     rate limit bindings (wrangler.jsonc). An unbound one means
+ *                     no limit, which is why /health counts them and the
+ *                     watchdog fails when the count is short.
  *
  * Data policy, enforced here and not just documented: the only identifier
  * stored is the Google `sub`. The email in the verified token is read to check
@@ -60,6 +64,12 @@
  *                deletion syncs to every device like any other change.
  *   milestones   One total per day per step (see handleMilestone). No id of any
  *                kind: it cannot say who was counted, only how many.
+ *   feedback_daily  Feedback rows accepted per UTC day, plus one row whose day
+ *                is 'total': the inbox size. Both are checked with a guarded
+ *                upsert on every message, so no message ever runs a COUNT(*)
+ *                over the inbox (see handleFeedback).
+ *   idx_feedback_status  Lets the full-inbox cleanup find the oldest handled
+ *                messages without reading the open ones.
  *
  * Existing databases: run each file in worker/migrations/ once.
  * ---------------------------------------------------------------------------
@@ -67,16 +77,19 @@
 
 /**
  * Exact origins allowed to call this. Scheme + host + port, never a path.
- * Add the custom domain here when the frontend moves off GitHub Pages; that
- * plus the same string in Google's Authorized JavaScript origins is the whole
- * migration.
+ * Add a custom domain here if the site gets one; that plus the same string in
+ * Google's Authorized JavaScript origins is the whole migration. Local origins
+ * come from DEV_ORIGINS instead, so production accepts none.
  */
 const ALLOWED_ORIGINS = [
   'https://lightblueprep.pages.dev',
-  'http://localhost:5173',
-  'http://localhost:8000',
-  'http://localhost:8010',
 ]
+
+/** @param {string} origin @param {Env} env */
+function originAllowed(origin, env) {
+  if (ALLOWED_ORIGINS.includes(origin)) return true
+  return (env.DEV_ORIGINS || '').split(',').map((s) => s.trim()).includes(origin)
+}
 
 const SESSION_DAYS = 90
 /** A session used with fewer days than this left is extended (subForRequest). */
@@ -147,13 +160,15 @@ const TABLES = [
 
 // ---------------------------------------------------------------- http helpers
 
-/** @param {string | null} origin */
+/**
+ * @param {string | null} origin An origin already checked with originAllowed
+ * (the router refuses any other), or null.
+ */
 function corsHeaders(origin) {
   // Echo the matched origin rather than '*': required the moment this moves to
   // cookies, and harmless now.
-  const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ''
   return {
-    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Origin': origin || '',
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400',
@@ -178,20 +193,50 @@ function json(body, status, origin) {
 
 /**
  * Parse a JSON body of at most `max` bytes. Checked on the declared length
- * before reading, and again after, since a chunked body declares none.
- * @param {Request} request @param {number} max
- * @returns {Promise<{ tooBig: boolean, body: any }>}
+ * before reading, and on the bytes after, since a chunked body declares none.
+ * Bytes, not characters: a string's length undercounts anything outside ASCII.
+ * `sized` refuses a body with no Content-Length at all, for the endpoint whose
+ * limit is large enough that buffering an unchecked body first would matter.
+ * @param {Request} request @param {number} max @param {boolean} [sized]
+ * @returns {Promise<{ tooBig: boolean, unsized: boolean, body: any }>}
  */
-async function readJson(request, max) {
-  if (Number(request.headers.get('Content-Length') || 0) > max) return { tooBig: true, body: null }
-  const text = await request.text()
-  if (text.length > max) return { tooBig: true, body: null }
-  try { return { tooBig: false, body: JSON.parse(text) } } catch { return { tooBig: false, body: null } }
+async function readJson(request, max, sized = false) {
+  const declared = request.headers.get('Content-Length')
+  if (sized && declared === null) return { tooBig: false, unsized: true, body: null }
+  if (Number(declared || 0) > max) return { tooBig: true, unsized: false, body: null }
+  const bytes = await request.arrayBuffer()
+  if (bytes.byteLength > max) return { tooBig: true, unsized: false, body: null }
+  try {
+    return { tooBig: false, unsized: false, body: JSON.parse(new TextDecoder().decode(bytes)) }
+  } catch {
+    return { tooBig: false, unsized: false, body: null }
+  }
+}
+
+/**
+ * The rate-limit key for a visitor: the IP, never stored. An IPv6 address is
+ * cut to its /64, the block one connection is handed, because a single
+ * machine can rotate through the rest of it and get a fresh budget each time.
+ * @param {Request} request
+ */
+function ipKey(request) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown'
+  // IPv4, or IPv4 written inside IPv6 (::ffff:1.2.3.4): the whole address.
+  if (!ip.includes(':') || ip.includes('.')) return ip
+  // Expand a `::` to its zero groups so equal prefixes give equal keys.
+  const [head, tail] = ip.toLowerCase().split('::')
+  let groups = head ? head.split(':') : []
+  if (tail !== undefined) {
+    const back = tail ? tail.split(':') : []
+    groups = [...groups, ...Array(Math.max(0, 8 - groups.length - back.length)).fill('0'), ...back]
+  }
+  return groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, '')).join(':') + '::/64'
 }
 
 /**
  * True when `key` is still under `limiter`'s budget. An unbound limiter means
- * no limit, so the file still runs pasted into a dashboard with no bindings.
+ * no limit, so the file still runs without bindings; /health counts them so
+ * the watchdog notices.
  * @param {RateLimiter | undefined} limiter @param {string} key
  */
 async function allowed(limiter, key) {
@@ -306,6 +351,27 @@ const isStr = (v) => typeof v === 'string' && ID.test(v)
 /** @param {unknown} v @returns {boolean} */
 const isInt = (v) => typeof v === 'number' && Number.isFinite(v)
 
+/**
+ * Time on one question or one set, in seconds, held to 0..one day. Stats and
+ * pacing add these up, so one negative or absurd value would skew them on
+ * every device the account syncs to.
+ * @param {number} v
+ */
+const clampSeconds = (v) => Math.min(86400, Math.max(0, Math.trunc(v)))
+
+/**
+ * False for a timestamp more than a day past the server clock. answered_at is
+ * in seconds and updated_at in milliseconds (web/src/lib/store.ts). A future
+ * updated_at would win every last-write-wins comparison until that date, so
+ * such a row is dropped like any other malformed one; a day of slack covers
+ * any honest clock.
+ */
+const DAY = 86400
+/** @param {number} sec */
+const notFutureSec = (sec) => sec <= Math.floor(Date.now() / 1000) + DAY
+/** @param {number} ms */
+const notFutureMs = (ms) => ms <= Date.now() + DAY * 1000
+
 const HIGHLIGHT_COLORS = ['yellow', 'blue', 'pink', 'underline']
 const MAX_HIGHLIGHTS = 100
 
@@ -319,14 +385,14 @@ function cleanAttempts(raw) {
   const out = []
   for (const r of raw.slice(0, MAX_ITEMS_PER_REQUEST)) {
     if (!r || !isStr(r.id) || !isStr(r.question_id) || !isInt(r.answered_at)) continue
-    if (!isInt(r.correct)) continue
+    if (!isInt(r.correct) || !notFutureSec(r.answered_at)) continue
     out.push({
       id: r.id,
       question_id: r.question_id,
       answered_at: Math.trunc(r.answered_at),
       response: typeof r.response === 'string' ? r.response.slice(0, 200) : null,
       correct: r.correct ? 1 : 0,
-      seconds: isInt(r.seconds) ? Math.trunc(r.seconds) : null,
+      seconds: isInt(r.seconds) ? clampSeconds(r.seconds) : null,
     })
   }
   return out
@@ -337,7 +403,7 @@ function cleanMarks(raw) {
   if (!Array.isArray(raw)) return []
   const out = []
   for (const r of raw.slice(0, MAX_ITEMS_PER_REQUEST)) {
-    if (!r || !isStr(r.question_id) || !isInt(r.updated_at)) continue
+    if (!r || !isStr(r.question_id) || !isInt(r.updated_at) || !notFutureMs(r.updated_at)) continue
     out.push({
       question_id: r.question_id,
       flagged: r.flagged ? 1 : 0,
@@ -353,7 +419,7 @@ function cleanMistakes(raw) {
   const allowed = ['process', 'silly', 'knowledge', 'other']
   const out = []
   for (const r of raw.slice(0, MAX_ITEMS_PER_REQUEST)) {
-    if (!r || !isStr(r.question_id) || !isInt(r.updated_at)) continue
+    if (!r || !isStr(r.question_id) || !isInt(r.updated_at) || !notFutureMs(r.updated_at)) continue
     // Drop unknown tags rather than storing them. A stale client cannot invent
     // a category the review page has no label for.
     const tags = Array.isArray(r.tags) ? r.tags.filter((t) => allowed.includes(t)) : []
@@ -377,6 +443,7 @@ function cleanSets(raw) {
   const out = []
   for (const r of raw.slice(0, MAX_ITEMS_PER_REQUEST)) {
     if (!r || !isStr(r.id) || !isInt(r.created_at) || !isInt(r.updated_at)) continue
+    if (!notFutureMs(r.updated_at)) continue
     if (!Array.isArray(r.items)) continue
     // The app makes sets of up to 50; anything past this is not one.
     if (r.items.length > 200) continue
@@ -387,7 +454,7 @@ function cleanSets(raw) {
         question_id: i.question_id,
         response: typeof i.response === 'string' ? i.response.slice(0, 200) : null,
         correct: i.correct ? 1 : 0,
-        seconds: isInt(i.seconds) ? Math.trunc(i.seconds) : 0,
+        seconds: isInt(i.seconds) ? clampSeconds(i.seconds) : 0,
       })
     }
     const filters = r.filters && typeof r.filters === 'object' ? r.filters : {}
@@ -399,7 +466,7 @@ function cleanSets(raw) {
       // Null is meaningful here: it is what "still active" looks like.
       finished_at: isInt(r.finished_at) ? Math.trunc(r.finished_at) : null,
       updated_at: Math.trunc(r.updated_at),
-      seconds: isInt(r.seconds) ? Math.trunc(r.seconds) : 0,
+      seconds: isInt(r.seconds) ? clampSeconds(r.seconds) : 0,
       // A tombstone carries no content: the row only exists to say "gone".
       filters: deleted ? {} : filters,
       items: deleted ? [] : items,
@@ -414,7 +481,7 @@ function cleanAnnotations(raw) {
   if (!Array.isArray(raw)) return []
   const out = []
   for (const r of raw.slice(0, MAX_ITEMS_PER_REQUEST)) {
-    if (!r || !isStr(r.question_id) || !isInt(r.updated_at)) continue
+    if (!r || !isStr(r.question_id) || !isInt(r.updated_at) || !notFutureMs(r.updated_at)) continue
     if (!Array.isArray(r.items) || r.items.length > MAX_HIGHLIGHTS) continue
     // Rebuilt field by field rather than stored as sent, so a row is always a
     // list of highlights and never an arbitrary blob of someone's JSON.
@@ -453,28 +520,28 @@ function cleanAnnotations(raw) {
 async function handleAuth(request, env, origin) {
   // Every call costs a request to Google and, on success, a D1 write, so it is
   // limited per IP like feedback. The IP is only a key and is never stored.
-  if (!(await allowed(env.AUTH_LIMITER, request.headers.get('CF-Connecting-IP') || 'unknown'))) {
-    return fail('too many sign-in attempts, try again in a minute', 429, origin)
+  if (!(await allowed(env.AUTH_LIMITER, ipKey(request)))) {
+    return fail('Too many sign-in attempts. Try again in a minute.', 429, origin)
   }
   const { tooBig, body } = await readJson(request, BODY_LIMIT.auth)
-  if (tooBig) return fail('request too large', 413, origin)
+  if (tooBig) return fail('Request too large.', 413, origin)
   // A Google ID token is a JWT of a couple of kilobytes; anything else is junk.
   if (!body || typeof body.credential !== 'string' || body.credential.length > 4096) {
-    return fail('missing credential', 400, origin)
+    return fail('Missing sign-in credential.', 400, origin)
   }
 
   if (!env.GOOGLE_CLIENT_ID) {
     // The detail is for the owner's logs; a student only needs to know it is down.
     console.error('GOOGLE_CLIENT_ID is not set on the Worker. Check GET /health.')
-    return fail('sign-in is not available right now', 500, origin)
+    return fail('Sign-in is temporarily unavailable.', 500, origin)
   }
 
   const sub = await verifyGoogleToken(body.credential, env.GOOGLE_CLIENT_ID)
-  if (!sub) return fail('invalid token', 401, origin)
+  if (!sub) return fail('Sign-in failed. Try again.', 401, origin)
 
   const allowList = (env.ALLOWED_SUBS || '').split(',').map((s) => s.trim()).filter(Boolean)
   if (allowList.length && !allowList.includes(sub)) {
-    return fail('this account is not allowed to sign in', 403, origin)
+    return fail('This account is not allowed to sign in.', 403, origin)
   }
   // No log of the sub here any more: it used to print on every sign-in so the
   // owner could find theirs. `SELECT sub FROM users` in the D1 console does that
@@ -536,17 +603,20 @@ async function existingKeys(env, sub, table, column, keys) {
  */
 async function handleSync(request, env, origin) {
   const sub = await subForRequest(request, env)
-  if (!sub) return fail('not signed in', 401, origin)
+  if (!sub) return fail('Not signed in.', 401, origin)
   // Per account, so one signed-in user cannot spend the database's daily read
   // and write allowance for everyone else. A real client syncs a few times a
   // minute at most; the client backs off on 429 and nothing is lost.
   if (!(await allowed(env.SYNC_LIMITER, sub))) {
-    return fail('syncing too fast, will retry shortly', 429, origin)
+    return fail('Syncing too fast. Will retry shortly.', 429, origin)
   }
 
-  const { tooBig, body } = await readJson(request, BODY_LIMIT.sync)
-  if (tooBig) return fail('sync request too large', 413, origin)
-  if (!body) return fail('bad body', 400, origin)
+  // Sized: up to 4 MB is allowed here, so the declared length is checked
+  // before anything is buffered. Browsers always declare it for a string body.
+  const { tooBig, unsized, body } = await readJson(request, BODY_LIMIT.sync, true)
+  if (unsized) return fail('Content-Length required.', 411, origin)
+  if (tooBig) return fail('Sync request too large.', 413, origin)
+  if (!body) return fail('Bad request.', 400, origin)
 
   let since = isInt(body.since) ? Math.trunc(body.since) : 0
   const incoming = {
@@ -723,7 +793,7 @@ async function handleSync(request, env, origin) {
   const head = (results[results.length - 1].results || [])[0]
   // No cursor row means no user row: the account was deleted while this was in
   // flight, so every write above was a no-op and the session is gone too.
-  if (!head) return fail('not signed in', 401, origin)
+  if (!head) return fail('Not signed in.', 401, origin)
 
   // A full page may end partway through a seq group, so its last group is held
   // back for the next page and the cursor stops just below it. Tables that were
@@ -788,16 +858,27 @@ async function handleSync(request, env, origin) {
 }
 
 /**
+ * Ends this session, or with ?all=1 every session of the same account: the way
+ * to cut off a device that is lost or a token that leaked, short of deleting
+ * the account's data.
  * @param {Request} request
  * @param {Env} env
  * @param {string | null} origin
+ * @param {URL} url
  * @returns {Promise<Response>}
  */
-async function handleSignOut(request, env, origin) {
+async function handleSignOut(request, env, origin, url) {
   const header = request.headers.get('Authorization') || ''
   if (header.startsWith('Bearer ')) {
     const hashed = await hashToken(header.slice(7))
-    await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(hashed).run()
+    if (url.searchParams.get('all') === '1') {
+      // An unknown token matches no sub, so this deletes nothing.
+      await env.DB.prepare(
+        'DELETE FROM sessions WHERE sub = (SELECT sub FROM sessions WHERE token = ?)',
+      ).bind(hashed).run()
+    } else {
+      await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(hashed).run()
+    }
   }
   // Always 200: signing out of an already-dead session is not an error, and the
   // client clears its token either way.
@@ -809,44 +890,87 @@ async function handleSignOut(request, env, origin) {
 // Bug reports and comments from the site. Anonymous on purpose: no sub, no IP,
 // no email is stored, so this table never holds anything that identifies a
 // person and account deletion has nothing to do here. Abuse stops are a
-// per-IP rate limit (the IP is used as a key and never stored) and a hard cap
-// on rows. Only subs listed in ADMIN_SUBS can read or change the inbox.
+// per-IP rate limit (the IP is used as a key and never stored), a ceiling per
+// UTC day and a ceiling on the inbox. Only subs listed in ADMIN_SUBS can read
+// or change the inbox.
+//
+// Both ceilings are counter rows in feedback_daily, raised by an upsert that
+// refuses at the ceiling. They used to be a COUNT(*) over the inbox on every
+// message: up to 5,000 rows read per POST, which a script rotating addresses
+// could turn into the whole free plan's daily read allowance, and then sync
+// and sign-in failed for everyone until midnight UTC. Now a message reads a
+// couple of rows whatever the inbox holds.
 
 const FEEDBACK_KINDS = ['bug', 'comment']
 const FEEDBACK_MAX_CHARS = 2000
 const FEEDBACK_MAX_ROWS = 5000
+/** Far above any real day's messages, far below what fills the inbox. */
+const FEEDBACK_PER_DAY = 300
+/** The feedback_daily row that holds the inbox size rather than a day's count. */
+const FEEDBACK_TOTAL = 'total'
 
 /** @param {unknown} v @param {number} max */
 const optStr = (v, max) => (typeof v === 'string' && v.length > 0 && v.length <= max ? v : null)
 
+/**
+ * Count one more message against `key` if it is under `max`. Null means the
+ * ceiling is reached and nothing changed.
+ * @param {Env} env @param {string} key @param {number} max
+ */
+const bumpFeedbackCounter = (env, key, max) => env.DB.prepare(
+  'INSERT INTO feedback_daily (day, n) VALUES (?, 1)'
+  + ' ON CONFLICT(day) DO UPDATE SET n = n + 1 WHERE n < ? RETURNING n',
+).bind(key, max).first()
+
+/**
+ * Bring the inbox-size counter back to the true count. Only the owner's
+ * deletes call this, a few times a week at most, so the COUNT(*) is affordable
+ * here, and it also heals any drift (a message whose INSERT failed after its
+ * count went up).
+ * @param {Env} env
+ */
+const recountFeedback = (env) => env.DB.prepare(
+  'INSERT INTO feedback_daily (day, n) SELECT ?, COUNT(*) FROM feedback WHERE 1'
+  + ' ON CONFLICT(day) DO UPDATE SET n = excluded.n',
+).bind(FEEDBACK_TOTAL)
+
 /** @param {Request} request @param {Env} env @param {string | null} origin */
 async function handleFeedback(request, env, origin) {
-  if (!(await allowed(env.FEEDBACK_LIMITER, request.headers.get('CF-Connecting-IP') || 'unknown'))) {
-    return fail('too many messages, try again in a minute', 429, origin)
+  if (!(await allowed(env.FEEDBACK_LIMITER, ipKey(request)))) {
+    return fail('Too many messages. Try again in a minute.', 429, origin)
   }
   const { tooBig, body } = await readJson(request, BODY_LIMIT.feedback)
-  if (tooBig) return fail('message too large', 413, origin)
-  if (!body || typeof body !== 'object') return fail('bad request', 400, origin)
+  if (tooBig) return fail('Message too large.', 413, origin)
+  if (!body || typeof body !== 'object') return fail('Bad request.', 400, origin)
   // Honeypot: a field people never see. Bots that fill every input get a fake
   // success and nothing is written.
   if (body.fax_ref) return json({ ok: true }, 200, origin)
 
   const kind = FEEDBACK_KINDS.includes(body.kind) ? body.kind : null
   const message = typeof body.message === 'string' ? body.message.trim() : ''
-  if (!kind) return fail('kind must be bug or comment', 400, origin)
+  if (!kind) return fail('Kind must be bug or comment.', 400, origin)
   if (!message || message.length > FEEDBACK_MAX_CHARS) {
-    return fail(`message must be 1-${FEEDBACK_MAX_CHARS} characters`, 400, origin)
+    return fail(`Message must be 1 to ${FEEDBACK_MAX_CHARS} characters.`, 400, origin)
   }
 
-  const count = await env.DB.prepare('SELECT COUNT(*) AS n FROM feedback').first()
-  if (count && Number(count.n) >= FEEDBACK_MAX_ROWS) {
+  const day = new Date().toISOString().slice(0, 10)
+  if (!(await bumpFeedbackCounter(env, day, FEEDBACK_PER_DAY))) {
+    return fail('Feedback is full for today. Try again tomorrow.', 429, origin)
+  }
+  if (!(await bumpFeedbackCounter(env, FEEDBACK_TOTAL, FEEDBACK_MAX_ROWS))) {
     // Make room by dropping the oldest handled messages; refuse only if the
-    // inbox is full of open ones.
+    // inbox is full of open ones. idx_feedback_status keeps this to the rows
+    // it deletes, so a flood against a full inbox reads next to nothing.
     const freed = await env.DB.prepare(
       "DELETE FROM feedback WHERE id IN (SELECT id FROM feedback WHERE status = 'done'"
       + ' ORDER BY created_at LIMIT 100)').run()
-    if (!freed.meta || !freed.meta.changes) {
-      return fail('feedback inbox is full, try again later', 503, origin)
+    const changes = (freed.meta && freed.meta.changes) || 0
+    if (changes) {
+      await env.DB.prepare('UPDATE feedback_daily SET n = MAX(0, n - ?) WHERE day = ?')
+        .bind(changes, FEEDBACK_TOTAL).run()
+    }
+    if (!changes || !(await bumpFeedbackCounter(env, FEEDBACK_TOTAL, FEEDBACK_MAX_ROWS))) {
+      return fail('The feedback inbox is full. Try again later.', 503, origin)
     }
   }
 
@@ -871,20 +995,32 @@ async function handleFeedback(request, env, origin) {
 // ponytail: anyone can POST here, so a determined script can inflate the count;
 // the per-IP limit only slows it. Sanity-check the totals against Web
 // Analytics visits. If it ever gets gamed, put Turnstile in front of it.
+//
+// What a script cannot do is spend the database's write allowance: each step
+// stops counting at MILESTONE_DAY_CAP a day, and from there a POST writes
+// nothing. The inbox shows "capped" when a day hits it, since that day's
+// number is then a floor rather than a count.
+
+/**
+ * Far above a real day's new browsers. Two steps at this cap are a tenth of the
+ * free plan's 100,000 daily writes.
+ */
+const MILESTONE_DAY_CAP = 5000
 
 /** @param {Request} request @param {Env} env @param {string | null} origin @param {number} step */
 async function handleMilestone(request, env, origin, step) {
   // The site's fetch is cross-origin, so a browser always sends Origin. One
   // without it is a script, not the site.
-  if (!origin) return fail('origin required', 403, origin)
-  if (!(await allowed(env.MILESTONE_LIMITER, request.headers.get('CF-Connecting-IP') || 'unknown'))) {
-    return fail('too many requests, try again in a minute', 429, origin)
+  if (!origin) return fail('Origin required.', 403, origin)
+  if (!(await allowed(env.MILESTONE_LIMITER, ipKey(request)))) {
+    return fail('Too many requests. Try again in a minute.', 429, origin)
   }
   const day = new Date().toISOString().slice(0, 10)
+  // Still a 200 at the cap: the browser has nothing to retry or report.
   await env.DB.prepare(
     'INSERT INTO milestones (day, step, n) VALUES (?, ?, 1)'
-    + ' ON CONFLICT(day, step) DO UPDATE SET n = n + 1',
-  ).bind(day, step).run()
+    + ' ON CONFLICT(day, step) DO UPDATE SET n = n + 1 WHERE n < ?',
+  ).bind(day, step, MILESTONE_DAY_CAP).run()
   return json({ ok: true }, 200, origin)
 }
 
@@ -893,49 +1029,79 @@ async function handleAdmin(request, env, origin, url) {
   const sentToken = (request.headers.get('Authorization') || '').startsWith('Bearer ')
   const sub = await subForRequest(request, env)
   // A token that no longer matches a session is a 401, so the client drops it.
-  if (sentToken && !sub) return fail('not signed in', 401, origin)
+  if (sentToken && !sub) return fail('Not signed in.', 401, origin)
   const admins = (env.ADMIN_SUBS || '').split(',').map((s) => s.trim()).filter(Boolean)
   const admin = Boolean(sub && admins.includes(sub))
   if (url.pathname === '/admin/me' && request.method === 'GET') {
     return json({ admin }, 200, origin)
   }
-  if (!admin) return fail('not allowed', 403, origin)
+  if (!admin) return fail('Not allowed.', 403, origin)
 
-  if (url.pathname === '/admin/feedback' && request.method === 'DELETE'
-      && url.searchParams.get('status') === 'done') {
-    await env.DB.prepare("DELETE FROM feedback WHERE status = 'done'").run()
+  if (url.pathname === '/admin/feedback' && request.method === 'DELETE') {
+    const status = url.searchParams.get('status')
+    const since = Number(url.searchParams.get('since'))
+    let purge
+    if (status === 'done') {
+      purge = env.DB.prepare("DELETE FROM feedback WHERE status = 'done'")
+    } else if (status === 'open' && Number.isInteger(since) && since > 0) {
+      // Spam cleanup: a flood arrives together, so "every open message since
+      // the first junk one" takes it out without touching older real ones.
+      purge = env.DB.prepare("DELETE FROM feedback WHERE status = 'open' AND created_at >= ?").bind(since)
+    } else {
+      return fail('Status must be done, or open with since.', 400, origin)
+    }
+    await env.DB.batch([purge, recountFeedback(env)])
     return json({ ok: true }, 200, origin)
   }
   if (url.pathname === '/admin/stats' && request.method === 'GET') {
     // The usage scoreboard for the inbox: totals only, nothing per person.
+    // `capped` is 1 when a step hit MILESTONE_DAY_CAP today, so today's
+    // figures stopped counting.
+    const today = new Date().toISOString().slice(0, 10)
     const stats = await env.DB.prepare(
       'SELECT'
       + ' (SELECT COALESCE(SUM(n), 0) FROM milestones WHERE step = 1) AS tried,'
       + ' (SELECT COALESCE(SUM(n), 0) FROM milestones WHERE step = 10) AS used,'
       + ' (SELECT COALESCE(SUM(n), 0) FROM milestones WHERE step = 1 AND day = ?) AS tried_today,'
+      + ' (SELECT COUNT(*) FROM milestones WHERE day = ? AND n >= ?) AS capped,'
       + ' (SELECT COUNT(*) FROM users) AS accounts',
-    ).bind(new Date().toISOString().slice(0, 10)).first()
-    return json(stats, 200, origin)
+    ).bind(today, today, MILESTONE_DAY_CAP).first()
+    return json({ ...stats, capped: Boolean(stats && stats.capped) }, 200, origin)
   }
   if (url.pathname === '/admin/feedback' && request.method === 'GET') {
-    const { results } = await env.DB.prepare(
-      'SELECT id, created_at, kind, message, question_id, cb_id, context, status'
-      + ' FROM feedback ORDER BY created_at DESC LIMIT 500').all()
-    return json({ feedback: results }, 200, origin)
+    // A page of 500, newest first. `before` is the created_at of the oldest
+    // message the inbox already has; <= rather than < so messages sharing that
+    // second are not skipped, and the inbox drops the ones it already holds.
+    const before = Number(url.searchParams.get('before'))
+    const paged = Number.isInteger(before) && before > 0
+    const [page, counts] = await env.DB.batch([
+      env.DB.prepare(
+        'SELECT id, created_at, kind, message, question_id, cb_id, context, status'
+        + ' FROM feedback' + (paged ? ' WHERE created_at <= ?' : '')
+        + ' ORDER BY created_at DESC LIMIT 500',
+      ).bind(...(paged ? [before] : [])),
+      env.DB.prepare(
+        "SELECT COUNT(*) AS total, COALESCE(SUM(status = 'open'), 0) AS open FROM feedback"),
+    ])
+    const totals = (counts.results || [])[0] || { total: 0, open: 0 }
+    return json({ feedback: page.results || [], total: totals.total, open: totals.open }, 200, origin)
   }
   const m = url.pathname.match(/^\/admin\/feedback\/([0-9a-f-]{36})$/)
   if (m && request.method === 'POST') {
     const { body } = await readJson(request, BODY_LIMIT.admin)
     const status = body && (body.status === 'open' || body.status === 'done') ? body.status : null
-    if (!status) return fail('status must be open or done', 400, origin)
+    if (!status) return fail('Status must be open or done.', 400, origin)
     await env.DB.prepare('UPDATE feedback SET status = ? WHERE id = ?').bind(status, m[1]).run()
     return json({ ok: true }, 200, origin)
   }
   if (m && request.method === 'DELETE') {
-    await env.DB.prepare('DELETE FROM feedback WHERE id = ?').bind(m[1]).run()
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM feedback WHERE id = ?').bind(m[1]),
+      recountFeedback(env),
+    ])
     return json({ ok: true }, 200, origin)
   }
-  return fail('not found', 404, origin)
+  return fail('Not found.', 404, origin)
 }
 
 /**
@@ -946,7 +1112,7 @@ async function handleAdmin(request, env, origin, url) {
  */
 async function handleDelete(request, env, origin) {
   const sub = await subForRequest(request, env)
-  if (!sub) return fail('not signed in', 401, origin)
+  if (!sub) return fail('Not signed in.', 401, origin)
 
   // Everything, across every table. This is the GDPR/CCPA erasure path and it
   // must leave nothing behind. It does NOT touch the caller's IndexedDB, so
@@ -971,29 +1137,45 @@ export default {
    * @returns {Promise<Response>}
    */
   async fetch(request, env) {
-    const origin = request.headers.get('Origin')
+    const sent = request.headers.get('Origin')
+    // From here on `origin` is either null or one this Worker accepts, so
+    // every reply can echo it in CORS without checking again.
+    const origin = sent && originAllowed(sent, env) ? sent : null
     const url = new URL(request.url)
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders(origin) })
     }
-    if (origin && !ALLOWED_ORIGINS.includes(origin)) {
-      return fail('origin not allowed', 403, origin)
+    if (sent && !origin) {
+      return fail('Origin not allowed.', 403, null)
     }
 
     try {
       if (url.pathname === '/health' && request.method === 'GET') {
-        // Booleans and the client id only. The client id is public by
+        // Booleans, counts and the client id only. The client id is public by
         // definition (it ships in the frontend bundle), so echoing it is how
         // you confirm the Worker and the site agree on it. ALLOWED_SUBS is
         // reported as a count, never a value: a sub identifies a person.
+        //
+        // `limiters` and `d1Ok` are what the watchdog checks. An unbound
+        // limiter is no limit at all, which nothing else would notice, and a
+        // bound database can still be unreachable.
         const subs = (env.ALLOWED_SUBS || '').split(',').map((s) => s.trim()).filter(Boolean)
+        const limiters = [env.AUTH_LIMITER, env.SYNC_LIMITER, env.FEEDBACK_LIMITER, env.MILESTONE_LIMITER]
+          .filter(Boolean).length
+        let d1Ok = false
+        try {
+          d1Ok = Boolean(env.DB && await env.DB.prepare('SELECT 1 AS ok').first())
+        } catch (e) {
+          console.error('health: D1 query failed', e && e.message)
+        }
         return json({
           ok: true,
           d1Bound: Boolean(env.DB),
+          d1Ok,
+          limiters,
           googleClientId: env.GOOGLE_CLIENT_ID || null,
           allowedSubsCount: subs.length,
-          allowedOrigins: ALLOWED_ORIGINS,
         }, 200, origin)
       }
       if (url.pathname === '/auth/google' && request.method === 'POST') {
@@ -1003,7 +1185,7 @@ export default {
         return await handleSync(request, env, origin)
       }
       if (url.pathname === '/signout' && request.method === 'POST') {
-        return await handleSignOut(request, env, origin)
+        return await handleSignOut(request, env, origin, url)
       }
       if (url.pathname === '/me' && request.method === 'DELETE') {
         return await handleDelete(request, env, origin)
@@ -1018,12 +1200,12 @@ export default {
       if (url.pathname.startsWith('/admin/')) {
         return await handleAdmin(request, env, origin, url)
       }
-      return fail('not found', 404, origin)
+      return fail('Not found.', 404, origin)
     } catch (e) {
       // Log the message only. Never log a request body: annotations are the
       // user's own free text.
       console.error('unhandled', e && e.message)
-      return fail('server error', 500, origin)
+      return fail('Server error.', 500, origin)
     }
   },
 }

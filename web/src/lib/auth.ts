@@ -144,11 +144,22 @@ async function exchange(credential: string): Promise<void> {
 }
 
 /**
- * Ends the session. Local practice history is deliberately untouched: signing
- * out stops syncing, it does not cost you your work.
+ * Ends the session, or with `everywhere` every session of this account, on
+ * every device. Local practice history is deliberately untouched: signing out
+ * stops syncing, it does not cost you your work.
  */
-export async function signOut(): Promise<void> {
-  try { await request('/signout', { method: 'POST' }) } catch { /* leaving anyway */ }
+export async function signOut(everywhere = false): Promise<void> {
+  if (everywhere) {
+    // Unlike a plain sign-out, the point is what happens on the server, so a
+    // failure is reported and this device stays signed in to try again.
+    const res = await request('/signout?all=1', { method: 'POST' })
+    if (!res.ok && res.status !== 401) {
+      const body = await res.json().catch(() => ({})) as { error?: string }
+      throw new Error(body.error || `Sign-out failed (${res.status})`)
+    }
+  } else {
+    try { await request('/signout', { method: 'POST' }) } catch { /* leaving anyway */ }
+  }
   setToken(null)
   try { (await loadGis()).disableAutoSelect() } catch { /* nothing to disable */ }
 }

@@ -2,10 +2,10 @@
  * The slice of the Cloudflare Workers D1 API that src/index.js actually uses,
  * declared locally.
  *
- * Why not @cloudflare/workers-types: the Worker is deployed by pasting one file
- * into the dashboard, so there is no npm install, no package.json and no build
- * step in this directory. Adding a dependency purely so an editor stops
- * underlining things would be the tail wagging the dog. The runtime globals
+ * Why not @cloudflare/workers-types: the Worker is one plain file deployed with
+ * `npx wrangler deploy`, and there is no package.json and no build step in this
+ * directory. Adding a dependency purely so an editor stops underlining things
+ * would be the tail wagging the dog. The runtime globals
  * (Request, Response, fetch, crypto, console, URL) come from the WebWorker lib
  * in jsconfig.json instead.
  *
@@ -19,7 +19,7 @@
  * A .js file cannot pass a type argument to `first()`, so an `unknown` default
  * makes every column access an error and the only cure is a JSDoc cast at each
  * call site. That trades four real errors for a dozen lines of ceremony in a
- * file whose whole point is pasting into a dashboard. The SQL right above each
+ * file whose whole point is staying plain JavaScript. The SQL right above each
  * call already says what the columns are.
  */
 interface D1Result<T = any> {
@@ -50,6 +50,8 @@ interface Env {
   ALLOWED_SUBS?: string
   /** Comma-separated Google subs allowed to read the feedback inbox. */
   ADMIN_SUBS?: string
+  /** Comma-separated extra CORS origins for local work. Unset in production. */
+  DEV_ORIGINS?: string
   /** Workers rate-limit bindings, all optional: per IP for /feedback,
    * /auth/google and /milestone, per account for /sync. */
   FEEDBACK_LIMITER?: RateLimiter

@@ -230,7 +230,9 @@
   .phead .stat-group.inbox-strip > .stat:nth-child(3) { border-left: 0; }
   .phead .stat-group.inbox-strip > .stat:nth-child(n+3) { border-top: 1px solid var(--hair-inv); }
 }
-.inbox-purge { display: flex; align-items: center; gap: 4px; margin-top: 12px; font: var(--type-small); color: var(--fg-3); }
+.inbox-purge { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 12px; font: var(--type-small); color: var(--fg-3); }
+.inbox-purge .sel.inbox-span { height: 32px; margin-left: 4px; padding-right: 32px; font: var(--type-small); }
+.inbox-older { margin-top: 16px; }
 .inbox-seg { display: inline-flex; margin: 16px 0 6px; }
 .inbox-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .inbox-item { border: 1px solid var(--hair-1); border-radius: var(--rad-md); padding: 14px 16px; background: var(--surface); }

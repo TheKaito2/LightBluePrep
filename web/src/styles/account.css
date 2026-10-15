@@ -106,13 +106,17 @@
   color: var(--fg-3); text-decoration: underline; text-underline-offset: 2px;
   cursor: pointer;
 }
-.acct-link:hover { color: var(--bad-700); }
+.acct-link:hover:not(:disabled) { color: var(--fg-1); }
+.acct-link.danger:hover { color: var(--bad-700); }
+.acct-link:disabled { color: var(--fg-4); cursor: default; }
+.acct-links { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .acct-inbox { margin-top: 10px; width: 100%; }
 
 /* Phone: the panel is the shared bottom sheet (Modal). Its two actions share
    the row and grow to a 44px touch height. */
 .acct-sheet .acct-actions > .acct-btn { flex: 1 1 0; min-height: 44px; }
 .acct-sheet .acct-inbox { min-height: 44px; }
+.acct-sheet .acct-link { min-height: 44px; }
 
 /* Phone header (spec 7.2): a 40px quiet icon button. The cloud always shows;
    the dot only once signed in, pinned to the cloud's top right. */

@@ -221,10 +221,10 @@ function SignedInPanel({ frame, onSignedOut }: { frame: FrameProps; onSignedOut:
   const [admin, setAdmin] = useState(false)
   useEffect(() => { fb.isAdmin().then(setAdmin).catch(() => setAdmin(false)) }, [])
 
-  const handleSignOut = useCallback(async () => {
+  const handleSignOut = useCallback(async (everywhere = false) => {
     setBusy(true)
     try {
-      await auth.signOut()
+      await auth.signOut(everywhere)
       await sync.reset()
       onSignedOut()
       onClose()
@@ -300,9 +300,16 @@ function SignedInPanel({ frame, onSignedOut }: { frame: FrameProps; onSignedOut:
             </div>
           </>
         ) : (
-          <button className="acct-link" onClick={() => setConfirmDelete(true)}>
-            Delete my synced data
-          </button>
+          <div className="acct-links">
+            {/* For a lost device or a shared computer: ends every session of
+                this account, this one included. Nothing is deleted anywhere. */}
+            <button className="acct-link" disabled={busy} onClick={() => { void handleSignOut(true) }}>
+              Sign out on all devices
+            </button>
+            <button className="acct-link danger" onClick={() => setConfirmDelete(true)}>
+              Delete my synced data
+            </button>
+          </div>
         )}
       </div>
     </Frame>

@@ -20,10 +20,16 @@ jobs:
   live:
     runs-on: ubuntu-latest
     steps:
+      # d1Ok is a real query, not just a binding. limiters is how many of the
+      # four rate limits are bound: an unbound one means no limit, which
+      # nothing else would notice (a dashboard paste deploys without them).
       - name: Site and sync Worker answer
         run: |
           curl -fsS -o /dev/null https://lightblueprep.pages.dev/
-          curl -fsS https://lightblueprep-sync.kristpaulm.workers.dev/health | grep -q '"d1Bound":true'
+          health=$(curl -fsS https://lightblueprep-sync.kristpaulm.workers.dev/health)
+          echo "$health"
+          echo "$health" | grep -q '"d1Ok":true'
+          echo "$health" | grep -q '"limiters":4'
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:

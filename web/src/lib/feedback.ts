@@ -55,17 +55,32 @@ export async function isAdmin(): Promise<boolean> {
   return Boolean(body.admin)
 }
 
-/** The usage scoreboard: totals from the Worker's milestones table, and accounts. */
-export interface UsageStats { tried: number; used: number; tried_today: number; accounts: number }
+/**
+ * The usage scoreboard: totals from the Worker's milestones table, and accounts.
+ * `capped` is true when today's count hit the Worker's daily ceiling, so today
+ * is a floor rather than a count. Missing from a Worker older than the ceiling.
+ */
+export interface UsageStats {
+  tried: number; used: number; tried_today: number; accounts: number; capped?: boolean
+}
 
 export async function stats(): Promise<UsageStats> {
   const res = await ok(await request('/admin/stats'))
   return await res.json() as UsageStats
 }
 
-export async function list(): Promise<FeedbackItem[]> {
-  const res = await ok(await request('/admin/feedback'))
-  return ((await res.json()) as { feedback: FeedbackItem[] }).feedback
+/** One page of the inbox, newest first, plus the counts for the whole inbox. */
+export interface FeedbackPage {
+  feedback: FeedbackItem[]
+  /** Absent from a Worker that predates paging; the page is then everything shown. */
+  total?: number
+  open?: number
+}
+
+/** The newest page, or with `before` (a created_at) the page from there back. */
+export async function list(before?: number): Promise<FeedbackPage> {
+  const res = await ok(await request(before ? `/admin/feedback?before=${before}` : '/admin/feedback'))
+  return await res.json() as FeedbackPage
 }
 
 export async function setStatus(id: string, status: 'open' | 'done'): Promise<void> {
@@ -76,6 +91,11 @@ export async function setStatus(id: string, status: 'open' | 'done'): Promise<vo
 
 export async function removeDone(): Promise<void> {
   await ok(await request('/admin/feedback?status=done', { method: 'DELETE' }))
+}
+
+/** Spam cleanup: every open message received at or after `since` (unix seconds). */
+export async function removeOpenSince(since: number): Promise<void> {
+  await ok(await request(`/admin/feedback?status=open&since=${since}`, { method: 'DELETE' }))
 }
 
 export async function remove(id: string): Promise<void> {

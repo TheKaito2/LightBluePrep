@@ -35,10 +35,27 @@ describe('toUserMessage', () => {
   it('rewrites the other Worker strings a student can hit', () => {
     expect(toUserMessage(new Error('feedback inbox is full, try again later'), 'server'))
       .toBe(MESSAGES.inboxFull)
+    expect(toUserMessage(new Error('Feedback is full for today. Try again tomorrow.'), 'server'))
+      .toBe(MESSAGES.feedbackDay)
     expect(toUserMessage(new Error('storage limit reached for attempts on this account'), 'server'))
       .toBe(MESSAGES.storage)
     expect(toUserMessage(new Error('this account is not allowed to sign in'), 'signin'))
       .toBe(MESSAGES.notAllowed)
+  })
+
+  it('maps the sentence-case Worker strings the same as the old ones', () => {
+    expect(toUserMessage(new Error('Too many messages. Try again in a minute.'), 'server'))
+      .toBe(MESSAGES.feedbackLimit)
+    expect(toUserMessage(new Error('Syncing too fast. Will retry shortly.'), 'server'))
+      .toBe(MESSAGES.syncLimit)
+    expect(toUserMessage(new Error('Too many sign-in attempts. Try again in a minute.'), 'signin'))
+      .toBe(MESSAGES.rateLimit)
+    expect(toUserMessage(new Error('The feedback inbox is full. Try again later.'), 'server'))
+      .toBe(MESSAGES.inboxFull)
+    expect(toUserMessage(new Error('This account is not allowed to sign in.'), 'signin'))
+      .toBe(MESSAGES.notAllowed)
+    expect(toUserMessage(new Error('Sign-in is temporarily unavailable.'), 'signin'))
+      .toBe(MESSAGES.signin)
   })
 
   it('never shows sign-in configuration', () => {
