@@ -188,6 +188,17 @@ export function PracticeScreen({
 
   const seconds = useQuestionTimer(current?.id ?? null, question !== null && result === null)
 
+  // Practice stays light in the dark theme, so the phone's browser bar does
+  // too: switch off index.html's dark theme-color tag while practice is open,
+  // which leaves the plain white one.
+  useEffect(() => {
+    const dark = document.querySelector<HTMLMetaElement>('meta[name="theme-color"][media]')
+    if (!dark) return
+    const media = dark.media
+    dark.media = 'not all'
+    return () => { dark.media = media }
+  }, [])
+
   /** The question the one-time tip is showing on, if any. */
   const [coachOn, setCoachOn] = useState<string | null>(null)
   useEffect(() => {
