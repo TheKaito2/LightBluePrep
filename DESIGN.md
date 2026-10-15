@@ -5,7 +5,7 @@ Tokens live in [`web/src/tokens.css`](web/src/tokens.css). Components read token
 ## Principles
 
 - **One blue acts.** Outside practice, `--brand-700` (#1479c2) with white text is the only interactive fill.
-- **No decoration. Colour is data.** Pink means Reading and Writing, blue means Math, green, amber and red mean correct, partly and incorrect, orange means streak. Surfaces are white, near-white or ink. No discs, stripes, tinted shadows or coloured borders used as ornament.
+- **No decoration. Color is data.** Pink means Reading and Writing, blue means Math, green, amber and red mean correct, partly and incorrect, orange means streak. Surfaces are white, near-white or ink. No discs, stripes, tinted shadows or colored borders used as ornament.
 - **Type carries the boldness.** Heavy Bricolage at a few fixed sizes against quiet Noto. One loud headline and one hero number per screen.
 - **Hairlines over shadows.** Structure comes from 1px borders. Shadows are only for things that float. Nothing lifts on hover.
 - **No gradients.** Flat fills only. The single exception is `--rule`, the dashed Bluebook rule on the practice screen.
@@ -17,7 +17,7 @@ Tokens live in [`web/src/tokens.css`](web/src/tokens.css). Components read token
 - The Bluebook names `--sans`, `--serif`, `--ink`, `--ink-2`, `--muted`, `--line`, `--line-2`, `--bg`, `--bg-soft`, `--chrome*`, `--band`, `--accent*`, `--green`, `--red`, `--yellow`, `--amber-ink`, `--r-*`, `--shadow` and `--rule` belong to practice. Never redefine them in `tokens.css`, and do not use them under `.shell`: use the `--surface-*`, `--fg-*`, `--hair-*`, `--ok-*`, `--warn-*`, `--bad-*` roles instead.
 - College Board royal blue (`--accent`) appears only on the practice screen. Practice buttons and chips are `.app .btn` and `.app .chip` in `bluebook.css`.
 
-## Colour
+## Color
 
 | Role | Tokens | Use |
 |---|---|---|
@@ -36,7 +36,7 @@ Tokens live in [`web/src/tokens.css`](web/src/tokens.css). Components read token
 - `*-500` and lighter: bars, dots, icons. Never text.
 - On `--brand-50`/`--brand-100`, small text is `--brand-800`; `--brand-700` there only at 24px and above.
 
-**Section scope:** add `.sec-RW` or `.sec-MATH` to a container and use `var(--sec-500)` and friends inside it. The same component then colours itself for either section, with no props or conditionals.
+**Section scope:** add `.sec-RW` or `.sec-MATH` to a container and use `var(--sec-500)` and friends inside it. The same component then colors itself for either section, with no props or conditionals.
 
 ## Bands
 
@@ -44,7 +44,7 @@ Tokens live in [`web/src/tokens.css`](web/src/tokens.css). Components read token
 |---|---|
 | Home | light brand hero (`--surface-hero`) |
 | Review, Stats, Resources, About, Inbox | ink band (`--surface-ink`) |
-| Settings | grey band (`--surface-sunken`) |
+| Settings | gray band (`--surface-sunken`) |
 | Results | section band (`--sec-700`, ink for mixed sets) |
 | Practice | Bluebook |
 
@@ -86,8 +86,8 @@ Rules:
 
 - **Space:** 4px grid, `--sp-1` (4) to `--sp-20` (80). Page gutter 32 (16 on phone); cards 12 apart; rows touch, divided by a hairline.
 - **Radius:** `--rad-xs` 6 (badges, checkboxes, kbd), `--rad-sm` 8 (buttons, inputs, tabs, segmented items, icon tiles), `--rad-md` 12 (cards, popovers, toasts), `--rad-lg` 16 (dialogs, section panels, sheets), `--rad-pill` (chips, status badges, dots, meters). **Buttons are never pills.**
-- **Elevation:** `--sh-0` every resting card; `--sh-1` a hovered clickable card or sticky chrome; `--sh-2` popovers and menus; `--sh-3` dialogs and sheets; `--sh-bar` the sticky start bar. Hover changes border, background or colour only, never position.
-- **Motion:** colour changes 120ms (`--dur-fast`, `--ease-std`); press `translateY(1px)` 80ms; animate only `transform` and `opacity`. One global `prefers-reduced-motion` rule (end of `base.css`) makes every transition and animation finish at once; the sync dot turns solid and the skeleton holds at .8.
+- **Elevation:** `--sh-0` every resting card; `--sh-1` a hovered clickable card or sticky chrome; `--sh-2` popovers and menus; `--sh-3` dialogs and sheets; `--sh-bar` the sticky start bar. Hover changes border, background or color only, never position.
+- **Motion:** color changes 120ms (`--dur-fast`, `--ease-std`); press `translateY(1px)` 80ms; animate only `transform` and `opacity`. One global `prefers-reduced-motion` rule (end of `base.css`) makes every transition and animation finish at once; the sync dot turns solid and the skeleton holds at .8.
 
 ## Breakpoints
 
@@ -126,7 +126,7 @@ Rules:
 
 **Segmented control** (`.seg` / `.seg-b`) for any single choice: `--surface-sunken` track, 32px items, the active one `--surface` with `--sh-1`.
 
-**Status badge** (`.badge.ok | .bad | .warn | .neutral`): 22px pill, optional 12px icon, `--type-badge`, the status's soft fill and text colour. Words: Correct, Incorrect, Partly. No fixed width.
+**Status badge** (`.badge.ok | .bad | .warn | .neutral`): 22px pill, optional 12px icon, `--type-badge`, the status's soft fill and text color. Words: Correct, Incorrect, Partly. No fixed width.
 
 **Inputs:** 40px, `--rad-sm`, `1px --hair-ctl`, 16px text, `--fg-4` placeholder; focus is a `--brand-700` border plus `--focus-ring`. Selects (`.sel`) use a 12px stroke chevron in `--fg-3`. Checkboxes are 18px with `accent-color: var(--brand-700)`, always beside their label.
 
@@ -136,17 +136,17 @@ Rules:
 
 **Rows** (Review, Results): at least 56px, padding 12 16, hairline between, `--surface-subtle` on hover; the open row keeps the tint and a 2px `--sec-500` bar. Index squares are 28px ink with white numerals. Day dividers are `--type-label` in `--fg-3`.
 
-**Meters** (`.meter` / `.meter-fill`): 6px pill on `--surface-sunken`, filled in the section colour (brand elsewhere). Render a fill only above zero; it is never thinner than 4px.
+**Meters** (`.meter` / `.meter-fill`): 6px pill on `--surface-sunken`, filled in the section color (brand elsewhere). Render a fill only above zero; it is never thinner than 4px.
 
 **Skeleton** (`.skel`): flat `--surface-sunken`, pulsing opacity 1 to .55 over 1.2s.
 
-**Toasts** (`Toast.tsx`, `useToast()`): ink, `--rad-md`, 44px, bottom centre 16px above any bar, one at a time, `role="status"`. Confirmations clear after 4s; errors stay until dismissed. Optional Undo in `--brand-300`.
+**Toasts** (`Toast.tsx`, `useToast()`): ink, `--rad-md`, 44px, bottom center 16px above any bar, one at a time, `role="status"`. Confirmations clear after 4s; errors stay until dismissed. Optional Undo in `--brand-300`.
 
 **Dialogs** (`Modal.tsx`, `.modal`): every dialog goes through it. `--rad-lg`, `--sh-3` over `--scrim`, width 520 (Options 560). Header padding 20 24 with a `--type-h2` title and a 32px quiet close (`.modal-x`, `aria-label="Close"`); a hairline appears under it once the body scrolls. Body padding 0 24 24, scrolls on its own with `overscroll-behavior: contain`. Footer padding 16 24 over a hairline, primary last. Focus goes to Close (or a field marked `autoFocus`), Tab stays inside, Escape closes, focus returns to the opener. Phones get a bottom sheet: 36x4 `--hair-2` grab handle, top radius 16, `max-height: 88dvh`, stacked full-width footer buttons with the primary first.
 
 **Stat tiles** (`Stat.tsx`): label (`--type-label`), number (`--num-m`, `--num-l` in a band), optional sub and meter. Grouped tiles share one bordered `StatGroup` with hairline dividers.
 
-**Empty states** (`EmptyState.tsx`): centred, 380 wide: Bulb 72px, `--type-h3` title, one `--fg-3` sentence, at most one primary button.
+**Empty states** (`EmptyState.tsx`): centered, 380 wide: Bulb 72px, `--type-h3` title, one `--fg-3` sentence, at most one primary button.
 
 **Destructive actions** (`ConfirmDelete.tsx`): a quiet trash icon button; the first click swaps it for a danger-secondary "Delete?" and a quiet "Keep", with focus on Keep.
 
@@ -158,9 +158,37 @@ Bulb appears only where it means something, at most once per screen: the Home he
 
 ## Icons
 - **Source:** hand-drawn 24×24 stroke icons in [`web/src/components/Icon.tsx`](web/src/components/Icon.tsx). There is no icon dependency.
-- **Stroke:** 2 in the UI, 2.2 to 3 for tiny glyphs like the checkbox tick.
+- **Stroke:** 2 in the UI, 2.2 to 3 for tiny glyphs like the checkbox check mark.
 - **Section icons:** `book` for Reading and Writing, `sigma` for Math. Use them wherever a section is named.
 
 ## Patterns
 - **States:** loading shows skeletons shaped like the content, not spinners. Empty states say how to fill the space ("Unlocks after 10 questions in each section").
 - **Phone:** tabs move to a bottom bar. The progress strip shrinks to one row of numbers so the topics stay on the first screen.
+
+## Voice and words
+
+The interface talks like a helpful older student: short, plain, and direct. These rules cover every string a student reads, in the app, the skill pages, `llms.txt`, and the error messages.
+
+- **Voice:** _the owner picks one voice (DS-52)._ The choice is "I" (a solo student project) or "we". Until then, About, Feedback, and Resources say "I", and Settings and the privacy policy say "our server".
+- **American English.** practice (noun and verb), initialize, color, center, gray, behavior, neighbor. Never "practise", "initialise", "colour", or "maths".
+- **Device-neutral verbs.** Select, pick, choose, or open. Never "tap", which reads wrong on a desktop, and never "tick", which is British for checking a box. "One click away" is fine where it describes effort, not a gesture.
+- **Contractions.** Write "you're", "can't", "doesn't", "isn't", and "it's", the way a person talks. Keep the full forms only in the legal sentences of `privacy.html`, the College Board disclaimer, and text that mirrors College Board's official directions.
+- **Oxford comma.** Always: "filter, track, and re-drill". It matches College Board's own names ("Ratios, Rates, Proportional Relationships, and Units"). Code that joins a list does the same (`describe()` in Settings).
+- **Section names.** "Reading and Writing" and "Math", in full. "R&W" only where the full name cannot fit (`SECTION_SHORT`). Never "Reading & Writing", "English", or "Maths".
+- **Capitalization.** Sentence case for headings, buttons, tabs, and labels. Title Case only for labels that mirror Bluebook ("Mark for Review", "Check Your Work", "Go to Review Page") and for College Board's domain and skill names.
+- **Numbers.** Counts go through `fmt()` ("1,107"); plurals through `plural()` and `noun()` in `lib/labels.ts`. Time spent goes through `duration()`: "45s", "1m 05s", "2m", "1h 28m"; the running clock is `m:ss`. Speed uses the multiplication sign: "1×", "0.75×", never "x".
+
+**Glossary.** The words for an answer's outcome and for progress. The source of truth is `VERDICT` and `TAG_LABEL` in [`web/src/lib/labels.ts`](web/src/lib/labels.ts); every screen uses these words and no others.
+
+| Say | Meaning | Never |
+|---|---|---|
+| Correct | Right on the first try | Right, First try |
+| Incorrect | Wrong answer | Wrong |
+| Unanswered | No answer submitted | Blank, Skipped |
+| Correct on retry | Wrong first, right later | Retried |
+| answered | Has at least one submitted answer ("64 answered") | seen, attempted |
+| Not tried yet | A skill or type with no answers | Never seen |
+| Bank progress | New questions answered, out of the whole bank | Bank covered |
+| All questions | No status filter | Everything |
+| Process, Careless, Knowledge, Other | Mistake log tags | Silly |
+| Easy, Medium, Hard | Difficulty | E/M/H in prose |

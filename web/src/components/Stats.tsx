@@ -24,7 +24,7 @@ const UNLOCK = 10
 
 const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0)
 
-const SUB = 'Where you stand, where you are losing points, and what to drill next.'
+const SUB = "Where you stand, where you're losing points, and what to drill next."
 
 /**
  * Accuracy, graded only once there are enough answers to judge: one unlucky
@@ -160,7 +160,7 @@ export function Stats({ taxonomy, onPractice, onStart }: Props) {
         <PageHead tone="ink" title="Stats" sub={SUB} />
         <div className="stats">
           <EmptyState className="stats-locked" heading="h2" title={`Stats unlock at ${UNLOCK} answers per section`}
-                      body="Answer a few questions in each section and this page shows where you are losing points."
+                      body="Answer a few questions in each section and this page shows where you're losing points."
                       action={{ label: `Start a ${UNLOCK}-question set`, onClick: onStart }}>
             <ul className="unlock">
               {SECTIONS.map((s) => {

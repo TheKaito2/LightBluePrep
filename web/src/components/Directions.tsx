@@ -17,7 +17,7 @@ const SPR_RULES = [
   'Positive answers can be up to 5 characters long, and negative answers up to 6, counting the minus sign.',
   'Enter a fraction such as 3/4 or a decimal such as 0.75.',
   'Mixed numbers are not accepted: enter 3 1/2 as 7/2 or 3.5.',
-  'Type only digits, a decimal point, a slash and a minus sign. Leave out $, % and commas.',
+  'Type only digits, a decimal point, a slash, and a minus sign. Leave out $, %, and commas.',
   'If more than one answer is correct, enter just one of them.',
 ] as const
 

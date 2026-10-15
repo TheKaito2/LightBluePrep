@@ -33,7 +33,7 @@ interface Props {
 const SAVED_MS = 2000
 
 export function MistakeFields({ mistake, onSave, lead, id = 'mlog-note', rows = 6, fine }: Props) {
-  // Initialised from the prop and then owned locally, so callers key this by
+  // Initialized from the prop and then owned locally, so callers key this by
   // question id rather than copying the prop back into state on every change.
   const [tags, setTags] = useState<MistakeTag[]>(mistake?.tags ?? [])
   const [note, setNote] = useState(mistake?.note ?? '')

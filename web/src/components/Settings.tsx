@@ -27,8 +27,8 @@ type Action = 'local' | 'both' | 'cloud'
 
 const DONE: Record<Action, string> = {
   local: 'Deleted from this device.',
-  both: 'Deleted from this device and from our server. You are signed out.',
-  cloud: 'Deleted from our server. You are signed out.',
+  both: "Deleted from this device and from our server. You're signed out.",
+  cloud: "Deleted from our server. You're signed out.",
 }
 
 /** The whole summary as one sentence, for screen readers; the eye gets the stat row. */
@@ -41,7 +41,8 @@ function describe(s: Summary): string {
     s.sets ? plural(s.sets, 'practice set') : '',
   ].filter(Boolean)
   if (!parts.length) return 'Nothing is saved on this device.'
-  const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts[0]
+  // Oxford comma from three parts on: "a and b", but "a, b, and c".
+  const list = parts.length < 3 ? parts.join(' and ') : `${parts.slice(0, -1).join(', ')}, and ${parts.at(-1)}`
   return `Saved in this browser: ${list}.`
 }
 
@@ -173,9 +174,9 @@ export function Settings() {
               {status('local')}
               <p className="settings-fine">
                 Questions you've opened stay cached, so they work offline.
-                They are College Board's questions, not your data.
+                They're College Board's questions, not your data.
                 {countsPeople ? ' A single flag that you were already counted as a visitor'
-                  + ' also stays, so starting over does not count you twice. It holds no ID.' : ''}
+                  + " also stays, so starting over doesn't count you twice. It holds no ID." : ''}
                 {' '}Full details are in the <a className="about-link" href={PRIVACY_URL}>privacy policy</a>.
               </p>
             </>
@@ -193,7 +194,7 @@ export function Settings() {
             {signedIn ? (
               <>
                 <p className="about-p">
-                  You are signed in, so your practice history is also stored on our
+                  You're signed in, so your practice history is also stored on our
                   server under an anonymous account ID, never your name or email.
                 </p>
                 <button className="btn danger-secondary" onClick={() => { setConfirm('cloud'); setResult(null) }}>
@@ -204,7 +205,7 @@ export function Settings() {
             ) : (
               <p className="about-p">
                 {result && !result.error && result.action !== 'local'
-                  ? 'You are not signed in here, and your synced copy is deleted.'
+                  ? "You're not signed in here, and your synced copy is deleted."
                   : "You're not signed in, so nothing from this device is on our server."
                     + ' If you synced before, sign in to see and delete that copy. Signing in'
                     + " uploads this browser's history too, and Delete removes both."}
@@ -229,12 +230,12 @@ export function Settings() {
           <div className="settings-dialog">
             <p className="fb-p">
               This permanently deletes your answers, marks, highlights and notes,
-              mistake log and practice sets from this browser. It cannot be undone.
+              mistake log, and practice sets from this browser. It can't be undone.
             </p>
             {signedIn ? (
               <>
                 <p className="fb-p">
-                  You are signed in, so you will be signed out here. Signing in again
+                  You're signed in, so you'll be signed out here. Signing in again
                   would bring back whatever is still on our server.
                 </p>
                 <label className="settings-check">
@@ -261,7 +262,7 @@ export function Settings() {
           <div className="settings-dialog">
             <p className="fb-p">
               This permanently deletes everything stored on our server for your
-              account and signs you out. What is on this device is kept.
+              account and signs you out. What's on this device is kept.
             </p>
             <p className="fb-p">
               Other devices you signed in on keep their own copy and are signed out.

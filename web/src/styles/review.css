@@ -264,7 +264,7 @@
   .review-sets .setcard-t { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 }
 
-/* ---- Review: redo a whole section, practise similar ---- */
+/* ---- Review: redo a whole section, practice similar ---- */
 .spanel-redo { margin-left: auto; align-self: center; }
 .similar {
   display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; align-items: center;

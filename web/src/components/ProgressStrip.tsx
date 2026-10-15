@@ -124,7 +124,7 @@ export function ProgressStrip({ history, covered, total, attempts, correct, onSc
                   <li key={i} className={on ? 'day on' : today ? 'day today' : 'day'}>
                     <span aria-hidden="true">{DAY_SHORT[d.getDay()]}</span>
                     <span className="sr-only">
-                      {today ? `Today, ${day}` : day}: {on ? 'practised' : today ? 'not yet' : 'missed'}
+                      {today ? `Today, ${day}` : day}: {on ? 'practiced' : today ? 'not yet' : 'missed'}
                     </span>
                   </li>
                 )

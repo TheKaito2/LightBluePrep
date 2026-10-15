@@ -113,7 +113,7 @@ const setTone = (pct: number) => (pct >= 70 ? 'ok' : pct >= 40 ? 'warn' : 'bad')
 
 interface Props {
   onPractice: (id: string) => void
-  /** Practise a whole category in one go, in the order given. */
+  /** Practice a whole category in one go, in the order given. */
   onPracticeMany: (ids: string[], title: string) => void
   /** Open a finished set's score screen. */
   onOpenSet: (id: string) => void

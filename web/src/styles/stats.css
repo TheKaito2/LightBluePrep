@@ -95,7 +95,7 @@
   align-items: center; padding: 6px 0;
 }
 .row-item .acc { justify-self: end; }
-/* The domain row is one button: it practises the whole domain. */
+/* The domain row is one button: it practices the whole domain. */
 button.row-item.is-domain {
   width: calc(100% + 16px); margin: 0 -8px; padding: 10px 8px; border: 0; border-radius: var(--rad-sm);
   background: none; color: inherit; text-align: left; cursor: pointer; font: inherit;

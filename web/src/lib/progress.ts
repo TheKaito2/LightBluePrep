@@ -3,7 +3,7 @@
  *
  * Pure functions so they can be tested without a browser. Times are unix
  * seconds; days are the viewer's LOCAL calendar days, because a streak is about
- * "did I practise today" where the student lives.
+ * "did I practice today" where the student lives.
  */
 import type { Difficulty, Section } from '../types'
 

@@ -289,7 +289,7 @@ export function QuestionView(props: Props) {
   }
 
   /**
-   * One tap highlights when there is no note, as before. With a note written,
+   * One click highlights when there is no note, as before. With a note written,
    * a colour only picks: the note is saved with Enter or Save, in whichever
    * colour is picked, so the order you do them in no longer matters.
    */

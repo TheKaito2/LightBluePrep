@@ -45,7 +45,7 @@ interface Props {
    * you got it right, and so the first place logging one means anything.
    */
   editable?: boolean
-  /** Practise questions solved the same way. Absent hides the block. */
+  /** Practice questions solved the same way. Absent hides the block. */
   onPracticeMany?: (ids: string[], title: string) => void
   /**
    * Read back from a finished set: its start and finish, unix seconds. The

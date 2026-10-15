@@ -57,7 +57,7 @@
 .backbtn:hover { background: rgba(0, 0, 0, .07); color: var(--ink); }
 
 /* Touch targets without touching the layout: a transparent ::before 10px
-   past each edge takes the tap, so the glyphs and the bar keep Bluebook's
+   past each edge takes the touch, so the glyphs and the bar keep Bluebook's
    geometry. Measured at 390px they were 17 to 25px across. The cross-out
    circle already draws its strike with ::after. */
 .tool:not(.static), .backbtn, .hide-btn, .crossbtn { position: relative; }
@@ -566,8 +566,8 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
   .tool { font-size: 9.5px; padding: 2px; gap: 1px; line-height: 1.2; max-width: 58px; }
   .tool-glyphs { height: 18px; }
   /* Tools sit 6 to 9px apart here, so the hit area grows up and down only as
-     far as 10px and sideways only into its half of the gap: a tap near a glyph
-     never lands on its neighbour. */
+     far as 10px and sideways only into its half of the gap: a touch near a glyph
+     never lands on its neighbor. */
   .tool:not(.static)::before { inset: -10px -4px; }
 
   /* Question band and choices. */

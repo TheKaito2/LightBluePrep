@@ -100,7 +100,7 @@ export default function App() {
   }, [items, setItems, setIndex, viewRef, fail, navigate])
 
   /**
-   * Practise a filter straight from Stats. The list is loaded first and then
+   * Practice a filter straight from Stats. The list is loaded first and then
    * shown, rather than switching to practice while `items` still held the
    * previous list, which flashed an unrelated question for a moment.
    */

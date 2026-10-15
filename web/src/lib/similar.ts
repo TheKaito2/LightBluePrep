@@ -1,5 +1,5 @@
 /**
- * "Practise similar": questions solved the same way as this one.
+ * "Practice similar": questions solved the same way as this one.
  *
  * College Board's skills are too coarse for that, so every question carries a
  * finer process type from public/process-types.json (built by

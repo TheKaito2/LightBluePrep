@@ -20,7 +20,7 @@ const WHICH: { key: string; label: string }[] = [
   { key: 'correct', label: 'Correct' },
 ]
 
-/** 0 is "no limit": practise the whole pool, open-ended. */
+/** 0 is "no limit": practice the whole pool, open-ended. */
 const LENGTHS = SIZES.map((n) => ({ value: n, label: n ? String(n) : 'No limit' }))
 
 /** Test pace first, then easier, with the harder drill last. 0 is untimed. */

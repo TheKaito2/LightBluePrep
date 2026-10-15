@@ -76,6 +76,7 @@ describe('duration', () => {
     expect(duration(45)).toBe('45s')
     expect(duration(60)).toBe('1m')
     expect(duration(105)).toBe('1m 45s')
+    expect(duration(65)).toBe('1m 05s')
     expect(duration(120)).toBe('2m')
     expect(duration(3599)).toBe('59m 59s')
     expect(duration(3600)).toBe('1h')

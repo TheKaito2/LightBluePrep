@@ -1,6 +1,6 @@
 """Build web/public/process-types.json: one solving-process type per question.
 
-College Board's 29 skills are too coarse for "practise similar" (Nonlinear
+College Board's 29 skills are too coarse for "practice similar" (Nonlinear
 functions alone is 258 questions solved in very different ways), so each
 question gets a finer type named by HOW you solve it. The types and labels are
 written by AI agents reading an export of the bank; this script does the two

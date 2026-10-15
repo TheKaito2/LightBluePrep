@@ -179,7 +179,7 @@ function SignedOutPanel({ frame, onSignedIn }: { frame: FrameProps; onSignedIn: 
       slot.current,
       async () => {
         onSignedIn()
-        // Everything practised anonymously goes up on the first sync. Safe
+        // Everything practiced anonymously goes up on the first sync. Safe
         // because attempts are a grow-only set: re-sending is a no-op.
         await sync.seedOutbox()
         await sync.syncNow()

@@ -25,7 +25,7 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
   /** Bumped by a sync that pulled rows, which can change Home's queue of sets. */
   dataVersion: number
 }) {
-  const practising = view === 'practice'
+  const inPractice = view === 'practice'
   /**
    * The set being worked through, if this is a set rather than open practice.
    *
@@ -107,7 +107,7 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
     } catch (e) { fail(e) }
   }, [enter, setItems, setIndex, fail, navigate])
 
-  /** The hero's one-tap start: 10 questions from the whole bank, whatever the topic picker says. */
+  /** The hero's one-click start: 10 questions from the whole bank, whatever the topic picker says. */
   const quick = useCallback(() => {
     api.questionsById()
       .then((byId) => start(sample([...byId.values()], 10), { size: 10 }))
@@ -237,7 +237,7 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
    * the real thing does at the end of a module.
    */
   useEffect(() => {
-    if (!practising || !activeSet?.filters?.speed) { setRemaining(null); return }
+    if (!inPractice || !activeSet?.filters?.speed) { setRemaining(null); return }
     const sections = items.map((i) => i.section)
     const total = setSeconds(sections, activeSet.filters.speed)
     const left = Math.max(0, total - (activeSet.seconds ?? 0))
@@ -253,7 +253,7 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
     // activeSet.id rather than activeSet: re-running this on every answer would
     // restart the clock from the top each time.
   // oxlint-disable-next-line react-hooks/exhaustive-deps -- activeSet.seconds is read once per set: see above
-  }, [practising, activeSet?.id, activeSet?.filters?.speed, items])
+  }, [inPractice, activeSet?.id, activeSet?.filters?.speed, items])
 
   useEffect(() => {
     if (remaining === 0 && activeSet) void finish()

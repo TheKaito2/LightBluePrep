@@ -93,7 +93,7 @@ export function useRoute(beforePop: RefObject<(from: View) => boolean>) {
 
 /**
  * Links into the app: ?q=<College Board ID> opens that question, ?skill=<code>
- * practises a skill and ?type=<skill.key> one question type. They come from
+ * practices a skill and ?type=<skill.key> one question type. They come from
  * Info's Link button, video descriptions and the static /skills pages. Read
  * once on load, then dropped from the address bar (with any hash) so a reload
  * lands on Home, and so does Back: Home is the entry practice is pushed over.

@@ -17,7 +17,7 @@ export function SkillTypes({ skill, picks }: { skill: SkillTally; picks: TopicPi
   return (
     <div className="sktypes">
       <span className="sktypes-cap">
-        {picked ? `${picked} of ${types.length} types` : 'All types · tap to narrow'}
+        {picked ? `${picked} of ${types.length} types` : 'All question types · pick to narrow'}
       </span>
       <ul className="sktypes-list" aria-label={`${skill.name}: question types`}>
         {types.map(([key, t]) => {

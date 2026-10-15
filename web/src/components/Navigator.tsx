@@ -120,7 +120,7 @@ export const Navigator = memo(function Navigator({
             <span><i className="key key-answered" /> Answered</span>
           ) : (
             <>
-              <span><i className="key key-first"><Icon name="check" size={10} strokeWidth={3.4} /></i> Correct first try</span>
+              <span><i className="key key-first"><Icon name="check" size={10} strokeWidth={3.4} /></i> {VERDICT.correct}</span>
               <span><i className="key key-retry"><Icon name="check" size={10} strokeWidth={3.4} /></i> {VERDICT.retry}</span>
               <span><i className="key key-wrong"><Icon name="close" size={10} strokeWidth={3.4} /></i> {VERDICT.incorrect}</span>
             </>

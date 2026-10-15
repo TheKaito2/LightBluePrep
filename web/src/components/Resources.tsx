@@ -27,10 +27,10 @@ const RESOURCES: Resource[] = [
     cta: 'Open Khan Academy',
     icon: 'book',
     tags: ['Lessons', 'Practice', 'Made with College Board'],
-    what: 'Video lessons, articles and practice for every skill on the Digital SAT, built with College Board.',
+    what: 'Video lessons, articles, and practice for every skill on the Digital SAT, built with College Board.',
     take:
       'When a skill keeps showing up red on my Stats page, this is where I go to actually learn it. '
-      + 'It is slow and thorough and explains things from zero, which is exactly what you want for a '
+      + "It's slow and thorough and explains things from zero, which is exactly what you want for a "
       + 'topic you never really understood.',
   },
   {
@@ -40,7 +40,7 @@ const RESOURCES: Resource[] = [
     cta: 'Watch on YouTube',
     icon: 'play',
     tags: ['Strategy', 'Desmos tricks', 'Test walkthroughs'],
-    what: 'Fast, no-fluff walkthroughs of real SAT questions, grammar rules, Desmos shortcuts and full timed Bluebook test runs.',
+    what: 'Fast, no-fluff walkthroughs of real SAT questions, grammar rules, Desmos shortcuts, and full timed Bluebook test runs.',
     take:
       'James Lu is the GOAT. No filler, he just shows you the fastest way to get real questions right. '
       + 'Watch one of his timed test walkthroughs to see how a top scorer actually thinks, then come '

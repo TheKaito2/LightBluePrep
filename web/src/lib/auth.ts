@@ -8,7 +8,7 @@
  *      never opens the account page makes zero requests to accounts.google.com.
  *      That is why loadGis() is lazy instead of a <script> tag in index.html.
  *
- *   2. No One Tap, ever. `prompt()` is never called and auto_select is off, so
+ *   2. No automatic sign-in prompt, ever. `prompt()` is never called and auto_select is off, so
  *      nothing appears unless a button is deliberately clicked.
  *
  * What comes back from Google is an ID token. It is swapped once for our own
@@ -76,9 +76,9 @@ export function loadGis(): Promise<GisIdApi> {
     script.onload = () => {
       const api = window.google?.accounts?.id
       if (api) resolve(api)
-      else reject(new Error('Google sign-in failed to initialise'))
+      else reject(new Error('Google sign-in failed to initialize'))
     }
-    script.onerror = () => reject(new Error('Could not reach Google sign-in'))
+    script.onerror = () => reject(new Error("Couldn't reach Google sign-in"))
     document.head.appendChild(script)
   })
   // A failed load must not be cached, or a flaky network disables sign-in for
@@ -158,7 +158,7 @@ export async function deleteRemoteData(): Promise<void> {
   const res = await request('/me', { method: 'DELETE' })
   if (!res.ok) {
     const body = await res.json().catch(() => ({})) as { error?: string }
-    throw new Error(body.error || 'Could not delete your data')
+    throw new Error(body.error || "Couldn't delete your data")
   }
   setToken(null)
 }

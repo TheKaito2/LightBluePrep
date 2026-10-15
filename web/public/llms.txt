@@ -8,7 +8,7 @@ What it does:
 - Shuffled or ordered practice, and timed practice sets that grade at the end like Bluebook
 - Remembers your progress in the browser; optional Google sign-in syncs it across devices
 - Look up any question by its College Board question ID, with a YouTube search for walkthroughs
-- Mistake log (silly, process, or knowledge) and a Review page to redo whole categories at once
+- Mistake log (process, careless, knowledge, or other) and a Review page to redo whole categories at once
 - Embedded Desmos graphing calculator and a math reference sheet, like the real test
 - Estimated score per section, streaks, and accuracy stats per skill
 

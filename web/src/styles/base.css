@@ -74,7 +74,7 @@ body.dragging { cursor: col-resize; user-select: none; }
 
 /* Phones (and short landscape screens): the document scrolls, not a div inside
    it. Mobile browsers only collapse their URL bar, and only scroll to the top
-   on a status-bar tap, when the document itself scrolls (DS-35). Practice
+   when the status bar is touched, if the document itself scrolls (DS-35). Practice
    keeps its fixed-height frame through .app's own 100dvh. Keep this query in
    step with the matching blocks in shell.css and home.css. */
 @media (max-width: 819px), (max-height: 500px) and (orientation: landscape) {

@@ -28,7 +28,7 @@ type IconName = Parameters<typeof Icon>[0]['name']
 const STEPS: { icon: IconName; title: string; body: string }[] = [
   { icon: 'grid', title: 'Pick topics', body: 'Select skills on Practice, or narrow one down to a single question type.' },
   { icon: 'clock', title: 'Practice like test day', body: 'A Bluebook-style screen with Desmos built in, and timed sets when you want them.' },
-  { icon: 'history', title: 'Review and redo', body: 'Every answer is saved, so you can redo any pile: wrong ones, marked ones, a whole topic.' },
+  { icon: 'history', title: 'Review and redo', body: 'Every answer is saved, so you can redo any pile: incorrect ones, marked ones, or a whole topic.' },
 ]
 
 function Sec({ icon, title, children }: { icon: IconName; title: string; children: ReactNode }) {
@@ -53,7 +53,7 @@ export function About({ taxonomy }: { taxonomy: TaxonomyRow[] }) {
   return (
     <>
     <PageHead tone="ink" eyebrow="Free · open source · no ads" title={<>About Light<span className="phead-blue">Blue</span>Prep</>}
-              sub="Every question in College Board's official SAT Question Bank, free, in one place you can filter, track and re-drill.">
+              sub="Every question in College Board's official SAT Question Bank, free, in one place you can filter, track, and re-drill.">
       <StatGroup>
         <Stat size="l" label="Questions" value={count(questions)} />
         <Stat size="l" label="Skills" value={count(skills)} />
@@ -80,9 +80,9 @@ export function About({ taxonomy }: { taxonomy: TaxonomyRow[] }) {
           </p>
         ) : null}
         <p className="about-p">
-          LightBluePrep does not host the questions. Your browser downloads them
+          LightBluePrep doesn't host the questions. Your browser downloads them
           straight from College Board and keeps a copy, so the first visit takes
-          a few seconds and after that it is fast. Questions you've opened work
+          a few seconds, and after that it's fast. Questions you've opened work
           offline.
         </p>
       </Sec>
@@ -93,9 +93,9 @@ export function About({ taxonomy }: { taxonomy: TaxonomyRow[] }) {
           <strong>
             {countsVisits || countsPeople ? 'No ads, no tracking cookies.' : 'No ads, no analytics, no tracking.'}
           </strong>{' '}
-          Your answers, notes and marks are saved in your own browser and never
+          Your answers, notes, and marks are saved in your own browser and never
           leave it{canSignIn ? ' unless you sign in' : ''}. Feedback you send is
-          stored anonymously, with no name, email or account attached.
+          stored anonymously, with no name, email, or account attached.
         </p>
         {countsVisits || countsPeople ? (
           <p className="about-p">
@@ -112,7 +112,7 @@ export function About({ taxonomy }: { taxonomy: TaxonomyRow[] }) {
           <p className="about-p">
             Signing in with Google syncs your practice history between devices.
             We keep only an anonymous account ID from Google, never your email,
-            name or photo, and you can delete everything on the server from the
+            name, or photo, and you can delete everything on the server from the
             sync panel.
           </p>
         ) : null}
@@ -144,14 +144,14 @@ export function About({ taxonomy }: { taxonomy: TaxonomyRow[] }) {
           <a className="about-link" href={UPSTREAM} target="_blank" rel="noreferrer">
             Bluebank<span className="sr-only"> (opens in a new tab)</span></a>{' '}
           by jackwangxyw, and changes it with a new question browser, College
-          Board question IDs and more. Both are free software under the GNU
-          General Public License v3, so you can read, copy and change the
+          Board question IDs, and more. Both are free software under the GNU
+          General Public License v3, so you can read, copy, and change the
           code. The full source is on{' '}
           <a className="about-link" href={REPO} target="_blank" rel="noreferrer">GitHub<span className="sr-only"> (opens in a new tab)</span></a>.
         </p>
         <p className="about-p">
-          It ships React and MathJax, the Bricolage Grotesque and Noto fonts
-          (SIL Open Font License) and embeds the Desmos calculator.{' '}
+          It ships React, MathJax, and the Bricolage Grotesque and Noto fonts
+          (SIL Open Font License), and it embeds the Desmos calculator.{' '}
           <a className="about-link about-nowrap" href="/third-party-licenses.txt" target="_blank" rel="noreferrer">
             Open-source licenses<span className="sr-only"> (opens in a new tab)</span></a>
         </p>

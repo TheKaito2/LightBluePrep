@@ -17,7 +17,7 @@ export const MESSAGES = {
   missing: "That question isn't in the bank anymore.",
   feedbackLimit: 'Too many messages. Try again in a minute.',
   rateLimit: 'Too many tries. Try again in a minute.',
-  syncLimit: 'Syncing paused for a moment. It will retry.',
+  syncLimit: "Syncing paused for a moment. It'll retry.",
   inboxFull: 'The feedback inbox is full. Try again later.',
   storage: 'This account has reached its sync storage limit.',
   notAllowed: "This Google account can't sign in here.",
