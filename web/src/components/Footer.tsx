@@ -23,7 +23,7 @@ export function Footer({ context }: { context: string }) {
         <ul className="foot-links">
           <li><a href="/skills/">All SAT skills</a></li>
           <li><a href={PRIVACY_URL}>Privacy</a></li>
-          <li><a href={REPO} target="_blank" rel="noreferrer">Source</a></li>
+          <li><a href={REPO} target="_blank" rel="noreferrer">Source<span className="sr-only"> (opens in a new tab)</span></a></li>
           {feedbackAvailable ? <li><FeedbackLink label="Send feedback" ctx={{ context }} /></li> : null}
         </ul>
       </div>

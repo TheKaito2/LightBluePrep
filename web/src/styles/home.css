@@ -124,7 +124,7 @@
 }
 .scard-top { display: flex; align-items: center; gap: var(--sp-2); min-height: 22px; }
 .scard-l {
-  font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3); cursor: default;
+  font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3);
 }
 .scard-mid { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-4); margin-top: -8px; }
 .scard-big {
@@ -540,6 +540,10 @@
 .sktype-name { font: var(--type-small); }
 .sktype.on .sktype-name { font-weight: 600; }
 .sktype-n { font-size: 12px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+/* How to solve this type: a muted second line on the picked or focused type,
+   in place of the title tooltip that touch and keyboard never showed. */
+.sktype-how { display: none; grid-column: 2 / -1; margin-top: -4px; font: var(--type-small); color: var(--fg-3); }
+.sktype.on .sktype-how, .sktype:focus-visible .sktype-how { display: block; }
 .box.xs { width: 16px; height: 16px; }
 @media (max-width: 380px) {
   .sectabs .long { display: none; }

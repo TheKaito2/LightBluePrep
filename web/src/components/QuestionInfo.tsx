@@ -84,7 +84,11 @@ function QuestionId({ id }: { id: string }) {
         {copied === 'link' ? 'Copied' : 'Link'}
       </button>
       <a className="q-id-yt" href={search} target="_blank" rel="noreferrer"
-         title="Search YouTube for this question">YouTube</a>
+         title="Search YouTube for this question">
+        YouTube<span className="sr-only"> search for this question (opens in a new tab)</span>
+      </a>
+      {/* The buttons' own text swaps to "Copied", which is not announced. */}
+      <span className="sr-only" role="status">{copied === 'id' ? 'Question ID copied to clipboard' : copied === 'link' ? 'Link copied to clipboard' : ''}</span>
     </span>
   )
 }

@@ -42,8 +42,14 @@ export function Stat({ label, value, unit, sub, meter, size = 'm', className }: 
   )
 }
 
-export function StatGroup({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={className ? `stat-group ${className}` : 'stat-group'}>{children}</div>
+/** `label` makes the box a named group, for tiles that need a heading said aloud. */
+export function StatGroup({ children, className, label }: { children: ReactNode; className?: string; label?: string }) {
+  return (
+    <div className={className ? `stat-group ${className}` : 'stat-group'}
+         role={label ? 'group' : undefined} aria-label={label}>
+      {children}
+    </div>
+  )
 }
 
 /**

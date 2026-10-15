@@ -211,7 +211,9 @@
 /* Unit: 0.4 of the numeral (spec 4). */
 .setres-score small {
   margin-left: 4px; font: 600 calc(var(--num-xl) * .4)/1 var(--sans); letter-spacing: 0;
-  color: rgba(255, 255, 255, .7); white-space: pre;
+  /* .86, as the band's sub line: .7 is 4.2:1 on --rw-700 at the phone size,
+     where 22px semibold no longer counts as large text. */
+  color: rgba(255, 255, 255, .86); white-space: pre;
 }
 .setres-back { margin-left: -12px; }
 .setres-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-2); }

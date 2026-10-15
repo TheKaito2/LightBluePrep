@@ -47,9 +47,14 @@ const SPOKEN: Record<CellState, string> = {
   wrong: VERDICT.incorrect,
 }
 
-/** What a cell says to a screen reader: "Question 7, incorrect, marked for review". */
-export function cellLabel(index: number, state: CellState, flagged: boolean) {
-  return `Question ${index + 1}, ${SPOKEN[state].toLowerCase()}${flagged ? ', marked for review' : ''}`
+/**
+ * What a cell says to a screen reader: "Question 7, incorrect, marked for
+ * review. Words in Context, Hard". The skill and difficulty used to sit in a
+ * title tooltip that keyboard, touch and screen readers never got.
+ */
+export function cellLabel(index: number, state: CellState, item: SetItem) {
+  return `Question ${index + 1}, ${SPOKEN[state].toLowerCase()}${item.flagged ? ', marked for review' : ''}`
+    + `. ${item.skill_name}, ${DIFFICULTY_NAME[item.difficulty] ?? item.difficulty}`
 }
 
 /**
@@ -67,9 +72,8 @@ export function NavCell({ item, index, state, isCurrent, onPick }: {
     <button
       className={`nav-cell is-${state}${isCurrent ? ' is-current' : ''}${item.flagged ? ' is-flagged' : ''}`}
       onClick={() => onPick(index)}
-      aria-label={cellLabel(index, state, Boolean(item.flagged))}
+      aria-label={cellLabel(index, state, item)}
       aria-current={isCurrent ? 'step' : undefined}
-      title={`${item.skill_name} · ${DIFFICULTY_NAME[item.difficulty]}`}
     >
       {glyph ? <Icon name={glyph} size={12} strokeWidth={3} className="nav-cell-glyph" /> : null}
       {index + 1}

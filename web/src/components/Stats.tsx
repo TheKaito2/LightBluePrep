@@ -159,7 +159,7 @@ export function Stats({ taxonomy, onPractice, onStart }: Props) {
       <>
         <PageHead tone="ink" title="Stats" sub={SUB} />
         <div className="stats">
-          <EmptyState className="stats-locked" title={`Stats unlock at ${UNLOCK} answers per section`}
+          <EmptyState className="stats-locked" heading="h2" title={`Stats unlock at ${UNLOCK} answers per section`}
                       body="Answer a few questions in each section and this page shows where you are losing points."
                       action={{ label: `Start a ${UNLOCK}-question set`, onClick: onStart }}>
             <ul className="unlock">

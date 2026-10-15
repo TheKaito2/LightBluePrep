@@ -47,7 +47,7 @@ export function Inbox() {
       {/* The anonymous counts from lib/usage.ts. Browsers, not people: one
           person on two devices counts twice. The Worker's day is UTC. */}
       {usage ? (
-        <StatGroup className="inbox-strip">
+        <StatGroup className="inbox-strip" label="Usage counts">
           <Stat size="l" label="Tried it" value={usage.tried.toLocaleString('en-US')} sub="1+ question" />
           <Stat size="l" label="Used it" value={usage.used.toLocaleString('en-US')} sub="10+ questions" />
           <Stat size="l" label="New" value={usage.tried_today.toLocaleString('en-US')} sub="today (UTC)" />
@@ -88,7 +88,7 @@ export function Inbox() {
           {error === 'not allowed' ? 'This inbox is only for the site owner. Sign in with the owner account.' : error}
         </p>
       ) : null}
-      {items === null && !error ? <p className="qsub">Loading…</p> : null}
+      {items === null && !error ? <p className="qsub" role="status">Loading…</p> : null}
       {items && !shown.length ? <p className="qsub">Nothing here.</p> : null}
 
       <ul className="inbox-list">

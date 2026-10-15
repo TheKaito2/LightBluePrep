@@ -142,18 +142,18 @@ export function About({ taxonomy }: { taxonomy: TaxonomyRow[] }) {
         <p className="about-p">
           LightBluePrep is built on{' '}
           <a className="about-link" href={UPSTREAM} target="_blank" rel="noreferrer">
-            Bluebank</a>{' '}
+            Bluebank<span className="sr-only"> (opens in a new tab)</span></a>{' '}
           by jackwangxyw, and changes it with a new question browser, College
           Board question IDs and more. Both are free software under the GNU
           General Public License v3, so you can read, copy and change the
           code. The full source is on{' '}
-          <a className="about-link" href={REPO} target="_blank" rel="noreferrer">GitHub</a>.
+          <a className="about-link" href={REPO} target="_blank" rel="noreferrer">GitHub<span className="sr-only"> (opens in a new tab)</span></a>.
         </p>
         <p className="about-p">
           It ships React and MathJax, the Bricolage Grotesque and Noto fonts
           (SIL Open Font License) and embeds the Desmos calculator.{' '}
           <a className="about-link about-nowrap" href="/third-party-licenses.txt" target="_blank" rel="noreferrer">
-            Open-source licenses</a>
+            Open-source licenses<span className="sr-only"> (opens in a new tab)</span></a>
         </p>
       </Sec>
 

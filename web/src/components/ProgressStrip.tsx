@@ -73,10 +73,7 @@ export function ProgressStrip({ history, covered, total, attempts, correct, onSc
         {sc.total !== null ? (
           <>
             <div className="scard-top">
-              <span className="scard-l"
-                    title="From your first try at each question, weighted by difficulty.">
-                Estimated score
-              </span>
+              <span className="scard-l">Estimated score</span>
               {sc.delta7 ? (
                 <span className={sc.delta7 > 0 ? 'delta up' : 'delta down'}>
                   <Icon name={sc.delta7 > 0 ? 'trend-up' : 'trend-down'} size={14} strokeWidth={2.2} />
@@ -143,7 +140,11 @@ export function ProgressStrip({ history, covered, total, attempts, correct, onSc
                 sub={acc ? undefined : 'After 5 answers'} />
         </div>
       </section>
-      <p className="scard-note">Practice estimate, not an official score.</p>
+      {/* The method is written out, not left in a tooltip touch never shows. */}
+      <p className="scard-note">
+        {sc.total !== null ? 'From your first try at each question, weighted by difficulty. ' : ''}
+        Practice estimate, not an official score.
+      </p>
     </div>
   )
 }

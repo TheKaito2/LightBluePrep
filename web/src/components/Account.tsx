@@ -40,8 +40,23 @@ function useSyncStatus(): sync.SyncStatus {
   return status
 }
 
+/**
+ * True from a failed sync until one gets through. Each retry passes through
+ * "syncing" and clears the error, so the latch keeps one failure from being
+ * announced again on every retry.
+ */
+function useSyncFailed(): boolean {
+  const [failed, setFailed] = useState(false)
+  useEffect(() => sync.subscribe(() => {
+    if (sync.getError()) setFailed(true)
+    else if (sync.getStatus() !== 'syncing') setFailed(false)
+  }), [])
+  return failed
+}
+
 export function AccountBadge() {
   const status = useSyncStatus()
+  const failed = useSyncFailed()
   /** Closed, or how it is open: anchored under the badge, or as a phone sheet. */
   const [open, setOpen] = useState<null | 'popover' | 'sheet'>(null)
   const [signedIn, setSignedIn] = useState(auth.signedIn())
@@ -102,6 +117,8 @@ export function AccountBadge() {
           </>
         ) : <span className="acct-label">Sign in to sync</span>}
       </button>
+      {/* Only a failure is spoken: "Syncing…" and "Synced" after every answer would be noise. */}
+      <span className="sr-only" role="status">{isIn && failed ? statusLine('pending', true) : ''}</span>
       {/*
         Signed-in and signed-out are separate COMPONENTS, not two branches of
         one. React diffs a component's output by position, so returning both
@@ -227,7 +244,7 @@ function SignedInPanel({ frame, onSignedOut }: { frame: FrameProps; onSignedOut:
   const failure = error || sync.getError()
   return (
     <Frame frame={frame} label="Sync status" title="Sync status">
-      <p className="acct-status" role="status">
+      <p className="acct-status">
         <span className={`acct-dot ${status}`} aria-hidden="true" />
         {statusLine(status, Boolean(sync.getError()))}
       </p>

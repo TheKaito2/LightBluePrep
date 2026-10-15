@@ -231,7 +231,7 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet, onS
   )
 
   if (error) {
-    return <>{head()}<div className="review"><EmptyState mood="oops" title="Couldn't load your answers" body={error} /></div></>
+    return <>{head()}<div className="review"><EmptyState mood="oops" heading="h2" title="Couldn't load your answers" body={error} /></div></>
   }
   if (!items) {
     return (
@@ -260,7 +260,7 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet, onS
       <>
         {head()}
         <div className="review">
-          <EmptyState title="Nothing to review yet"
+          <EmptyState heading="h2" title="Nothing to review yet"
                       body="Answer a question and it lands here with its explanation and your time."
                       action={{ label: 'Start practicing', onClick: onStart }} />
           {setHistory}
@@ -345,7 +345,7 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet, onS
       ) : null}
 
       {!shown.length ? (
-        <EmptyState className="review-none" title="Nothing in this pile"
+        <EmptyState className="review-none" heading="h2" title="Nothing in this pile"
                     body={filter === 'slow' ? 'Every answer here came in within a quarter of SAT pace.'
                       : filter === 'logged' ? 'Log a mistake from an incorrect answer and it shows up here.'
                         : 'Pick another pile or section above.'} />

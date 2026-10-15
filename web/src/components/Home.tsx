@@ -172,6 +172,14 @@ export function Home({
   }, [])
 
   const shownHits = matches?.slice(0, 5) ?? []
+  /**
+   * Spoken by a live region that is always in the page: one that mounts with
+   * its first message is often not heard at all.
+   */
+  const matchNews = !matches ? ''
+    : !matches.length ? `No question with ID ${needle}`
+      : matches.length > 5 ? `${plural(matches.length, 'match', 'matches')}, first 5 shown`
+        : plural(matches.length, 'match', 'matches')
 
   function submitId() {
     if (!matches?.length) return
@@ -312,6 +320,13 @@ export function Home({
     const refs = value.types?.filter((r) => r.startsWith(`${s.code}.`)) ?? []
     return refs.length && pt ? refs.map((r) => pt.types[s.code]?.[r.slice(s.code.length + 1)]?.label ?? s.name) : [s.name]
   }))
+  /**
+   * The bar's count for screen readers. Its own region because the visible
+   * line swaps elements and is display:none on phones, where a live region
+   * says nothing. Empty while counting, so only the settled number is read.
+   */
+  const countNews = loading ? '' : !count ? 'No questions match'
+    : `${plural(count, 'question')}${pool.done ? `, ${fmt(pool.done)} answered` : ''}`
   const summary = pickedNames.length ? andMore(pickedNames)
     : value.section ? `All ${SECTION_NAME[value.section]}` : 'All topics'
 
@@ -449,13 +464,14 @@ export function Home({
                       ))}
                     </ul>
                   ) : null}
-                  <p className="idnote" aria-live="polite">
+                  <p className="idnote">
                     {!matches.length
                       ? <>No question with ID “{needle}”. IDs are 8 characters, shown under Info on any question.</>
                       : matches.length > 5 ? `and ${fmt(matches.length - 5)} more, keep typing` : null}
                   </p>
                 </div>
               ) : null}
+              <span className="sr-only" aria-live="polite" aria-atomic="true">{matchNews}</span>
             </form>
           </div>
           <ProgressStrip history={history} covered={totals.seen} total={totals.all}
@@ -604,7 +620,8 @@ export function Home({
                                         return (
                                           <li key={key}>
                                             <button className={tOn ? 'sktype on' : 'sktype'} role="checkbox" aria-checked={tOn}
-                                                    title={t.how} onClick={() => set({ types: toggle(value.types, ref) })}>
+                                                    aria-describedby={`how-${ref}`}
+                                                    onClick={() => set({ types: toggle(value.types, ref) })}>
                                               <span className={`box xs is-${tOn ? 'on' : 'off'}`}>
                                                 <Icon name="check" size={9} strokeWidth={3.4} />
                                               </span>
@@ -614,6 +631,8 @@ export function Home({
                                                   ? `${fmt(facetCounts.get(ref) ?? 0)} ${facetWord}`
                                                   : ptCounts?.get(ref) ?? 0}
                                               </span>
+                                              {/* Shown on the picked or focused type; always the description. */}
+                                              <span className="sktype-how" id={`how-${ref}`} aria-hidden="true">{t.how}</span>
                                             </button>
                                           </li>
                                         )
@@ -652,18 +671,21 @@ export function Home({
               ) : null}
             </div>
             {!loading && !count ? (
-              <span className="sb-meta sb-none" role="status">
-                <span className="sb-none-long">No questions match</span><span className="sb-none-short">No match</span>
-                {' · '}
+              <span className="sb-meta sb-none">
+                <span aria-hidden="true">
+                  <span className="sb-none-long">No questions match</span><span className="sb-none-short">No match</span>
+                  {' · '}
+                </span>
                 <button type="button" className="sb-reset" onClick={resetFilters}>Reset filters</button>
               </span>
             ) : (
-              <span className="sb-meta">
+              <span className="sb-meta" aria-hidden="true">
                 {loading ? 'Counting…' : plural(count, 'question')}
                 {!loading && pool.done ? ` · ${fmt(pool.done)} answered` : ''}
               </span>
             )}
           </div>
+          <span className="sr-only" aria-live="polite" aria-atomic="true">{countNews}</span>
           <div className="sb-diff">{difficultyChips}</div>
           <button className="btn on-ink-secondary sb-opt" onClick={() => setShowOptions(true)}
                   aria-haspopup="dialog" aria-expanded={showOptions}>

@@ -32,9 +32,9 @@ const button = (text: string) =>
 describe('Navigator', () => {
   it('names each cell with its state and marks the current one', () => {
     act(() => root.render(<Navigator items={make(10)} current={2} title="T" onGo={() => {}} onClose={() => {}} />))
-    expect(cells()[6].getAttribute('aria-label')).toBe('Question 7, incorrect, marked for review')
+    expect(cells()[6].getAttribute('aria-label')).toBe('Question 7, incorrect, marked for review. Skill, Easy')
     expect(cells()[6].querySelector('svg')).not.toBeNull()
-    expect(cells()[0].getAttribute('aria-label')).toBe('Question 1, unanswered')
+    expect(cells()[0].getAttribute('aria-label')).toBe('Question 1, unanswered. Skill, Easy')
     expect(cells()[2].getAttribute('aria-current')).toBe('step')
     expect(host.querySelector('.nav-foot')!.textContent).toContain('10 questions in this list')
   })
@@ -44,7 +44,7 @@ describe('Navigator', () => {
     act(() => root.render(<Navigator items={make(10)} current={0} title="T" states={states}
                                      onGo={() => {}} onClose={() => {}} />))
     expect(host.querySelector('.nav-foot')!.textContent).toContain('10 questions in this set')
-    expect(cells()[6].getAttribute('aria-label')).toBe('Question 7, answered, marked for review')
+    expect(cells()[6].getAttribute('aria-label')).toBe('Question 7, answered, marked for review. Skill, Easy')
     expect(cells()[6].querySelector('svg')).toBeNull()
   })
 

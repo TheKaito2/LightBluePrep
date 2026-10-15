@@ -73,8 +73,8 @@ function ResourceCard({ r }: { r: Resource }) {
           <h2 className="rcard-t">
             {r.name}
             {r.goat ? (
-              <span className="goat" title="Greatest of all time">
-                <Icon name="star" size={13} strokeWidth={2.4} /> GOAT
+              <span className="goat">
+                <Icon name="star" size={13} strokeWidth={2.4} /> GOAT<span className="sr-only">, greatest of all time</span>
               </span>
             ) : null}
           </h2>
@@ -96,7 +96,7 @@ function ResourceCard({ r }: { r: Resource }) {
         ) : null}
       </figure>
       <a className="btn rcard-go" href={r.url} target="_blank" rel="noreferrer">
-        {r.cta}
+        {r.cta}<span className="sr-only"> (opens in a new tab)</span>
         <Icon name="external" size={16} strokeWidth={2.2} />
       </a>
     </article>

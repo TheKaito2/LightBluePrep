@@ -15,13 +15,15 @@ interface Props {
   /** Extra content under the sentence, such as the locked-Stats meters. */
   children?: ReactNode
   className?: string
+  /** h2 when it sits straight under the page's h1, so no heading level is skipped. */
+  heading?: 'h2' | 'h3'
 }
 
-export function EmptyState({ title, body, mood = 'neutral', action, children, className }: Props) {
+export function EmptyState({ title, body, mood = 'neutral', action, children, className, heading: H = 'h3' }: Props) {
   return (
     <div className={className ? `empty ${className}` : 'empty'}>
       <Mascot mood={mood} size={72} />
-      <h3 className="empty-t">{title}</h3>
+      <H className="empty-t">{title}</H>
       {body ? <p className="empty-p">{body}</p> : null}
       {children}
       {action ? <button type="button" className="btn primary" onClick={action.onClick}>{action.label}</button> : null}

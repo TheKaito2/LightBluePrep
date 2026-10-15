@@ -33,11 +33,11 @@ export function GithubMark({ size = 16 }: { size?: number }) {
   )
 }
 
-/** A quiet icon button in the nav's right cluster; the title carries it. */
+/** A quiet icon link in the nav's right cluster; the title is for mouse hover. */
 export function GithubLink() {
   return (
     <a className="navicon ghlink" href={REPO} target="_blank" rel="noreferrer"
-       title="Source on GitHub" aria-label="Source on GitHub">
+       title="Source on GitHub" aria-label="Source on GitHub (opens in a new tab)">
       <GithubMark size={20} />
     </a>
   )
