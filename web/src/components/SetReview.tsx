@@ -11,6 +11,7 @@
  * A set is graded when it ends, the same as a module, so the cells here say
  * answered or not and nothing about right or wrong.
  */
+import type { ReactNode } from 'react'
 import { Icon } from './Icon'
 import { cellState, type CellState } from './Navigator'
 import { DIFFICULTY_NAME, VERDICT, fmt, plural } from '../lib/labels'
@@ -26,12 +27,16 @@ interface Props {
   onGo: (index: number) => void
   onClose: () => void
   onFinish: () => void
+  /** Grading and saving: Finish is locked so a second click cannot grade twice. */
+  busy?: boolean
+  /** A failed finish is reported here, since this page covers the practice screen. */
+  banner?: ReactNode
   /** This set's own progress, which is not the same as each question's history. */
   states?: CellState[]
 }
 
 export function SetReview({
-  items, current, title, remaining, clock, onGo, onClose, onFinish, states,
+  items, current, title, remaining, clock, onGo, onClose, onFinish, states, busy, banner,
 }: Props) {
   const stateAt = (i: number) => states?.[i] ?? cellState(items[i])
   const unanswered = items.filter((_, i) => stateAt(i) === 'unanswered').length
@@ -49,6 +54,7 @@ export function SetReview({
             ? 'setreview-clock is-low' : 'setreview-clock'}>{clock}</span>
         ) : null}
       </header>
+      {banner}
 
       <div className="setreview-body">
         <h1 className="setreview-h">Check Your Work</h1>
@@ -80,9 +86,13 @@ export function SetReview({
         </div>
 
         <div className="setreview-foot">
-          <button className="btn primary lg" onClick={onFinish}>
-            Finish set
-            <Icon name="arrow-right" size={18} strokeWidth={2.2} />
+          <button className="btn primary lg" onClick={onFinish} disabled={busy}>
+            {busy ? 'Finishing…' : (
+              <>
+                Finish set
+                <Icon name="arrow-right" size={18} strokeWidth={2.2} />
+              </>
+            )}
           </button>
         </div>
       </div>

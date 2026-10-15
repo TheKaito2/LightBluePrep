@@ -130,8 +130,14 @@ export default function App() {
   const [response, setResponse] = useState<string | null>(null)
   const [result, setResult] = useState<GradeResult | null>(null)
   const [crossOut, setCrossOut] = useState<Set<string>>(new Set())
-  // On by default: the cross-out tool is more useful than it is intrusive.
-  const [crossOutMode, setCrossOutMode] = useState(true)
+  /**
+   * Every question's cross-outs for this session, so leaving a question and
+   * coming back puts them back, as Bluebook does. Keyed by set as well as
+   * question: redoing a set starts clean rather than inheriting the last try.
+   */
+  const crossOuts = useRef(new Map<string, Set<string>>())
+  // Off by default, as on the real test: the strike column narrows every choice.
+  const [crossOutMode, setCrossOutMode] = useState(false)
 
   /**
    * The set being worked through, if this is a set rather than open practice.
@@ -150,6 +156,7 @@ export default function App() {
    * Every write goes through this ref so it always starts from the latest.
    */
   const activeSetRef = useRef<PracticeSet | null>(null)
+  const crossKey = (id: string) => `${activeSetRef.current?.id ?? ''}:${id}`
   const [activeSets, setActiveSets] = useState<PracticeSet[]>([])
   /** The finished set being read back on the results screen. */
   const [shownSet, setShownSet] = useState<PracticeSet | null>(null)
@@ -429,7 +436,7 @@ export default function App() {
     const held = activeSetRef.current?.items
       ?.find((i) => i.question_id === current.id)?.response ?? null
     setResponse(activeSetRef.current ? held : null)
-    setCrossOut(new Set()); setAnnotations([])
+    setCrossOut(new Set(crossOuts.current.get(crossKey(current.id)))); setAnnotations([])
     api.question(current.id)
       .then((d) => {
         if (stale) return
@@ -546,7 +553,7 @@ export default function App() {
 
   /** Write the set's progress back. Called after every answer. */
   const persistSet = useCallback(async (
-    next: SetAnswer[], finished: boolean, spent: number,
+    next: SetAnswer[], finished: boolean, spent: number, retry?: () => void,
   ) => {
     const live = activeSetRef.current
     if (!live) return null
@@ -565,32 +572,64 @@ export default function App() {
       // The local ref is authoritative for the length of the session.
       if (finished) { activeSetRef.current = null; setActiveSet(null) }
       return saved
-    } catch (e) { fail(e); return null }
+    } catch (e) { fail(e, retry); return null }
   }, [fail])
+
+  /**
+   * True while a finish is grading or saving. Every grade writes a new attempt,
+   * so a double click on Finish, or the clock running out mid-finish, must not
+   * start a second pass.
+   */
+  const finishingRef = useRef(false)
+  const [finishing, setFinishing] = useState(false)
+  /**
+   * Grades already recorded by a finish that then failed, keyed by set and
+   * question, with the answer they were for. A retry re-grades only what is
+   * missing here, or what was changed since, so it cannot record an attempt twice.
+   */
+  const gradedRef = useRef(new Map<string, { response: string; correct: 0 | 1 }>())
 
   /** End the set and show the score. */
   const finishSet = useCallback(async () => {
     const live = activeSetRef.current
-    if (!live) return
-    const spent = live.seconds ?? 0
-    // Everything is graded here rather than as it was answered, which is also
-    // where the attempts get recorded. A question left blank is not attempted.
-    const graded = await Promise.all((live.items ?? []).map(async (i) => {
-      if (i.response === null || i.response === '') return { ...i, correct: 0 as const }
-      try {
-        const r = await api.answer(i.question_id, i.response, i.seconds || 0)
-        return { ...i, correct: (r.correct ? 1 : 0) as 0 | 1 }
-      } catch { return { ...i, correct: 0 as const } }
-    }))
-    activeSetRef.current = { ...live, items: graded }
-    const saved = await persistSet(graded, true, spent)
-    setShowSetReview(false)
-    setShownSet(saved)
-    setRemaining(null)
-    navigate('results', true)
-    refreshActiveSets()
-    api.taxonomy().then((d) => { setTaxonomy(d.taxonomy); setStats(d.stats) }).catch(() => {})
-  }, [persistSet, refreshActiveSets, navigate])
+    if (!live || finishingRef.current) return
+    finishingRef.current = true
+    setFinishing(true)
+    const retry = () => { void finishSet() }
+    try {
+      const spent = live.seconds ?? 0
+      // Everything is graded here rather than as it was answered, which is also
+      // where the attempts get recorded. A question left blank is not attempted.
+      let failure: unknown = null
+      const graded = await Promise.all((live.items ?? []).map(async (i) => {
+        if (i.response === null || i.response === '') return { ...i, correct: 0 as const }
+        const key = `${live.id}:${i.question_id}`
+        const done = gradedRef.current.get(key)
+        if (done?.response === i.response) return { ...i, correct: done.correct }
+        try {
+          const r = await api.answer(i.question_id, i.response, i.seconds || 0)
+          const correct = (r.correct ? 1 : 0) as 0 | 1
+          gradedRef.current.set(key, { response: i.response, correct })
+          return { ...i, correct }
+        } catch (e) { failure = e; return i }
+      }))
+      // A question that could not be graded is not wrong: stay in the set and
+      // offer Retry rather than score it 0 and move on.
+      if (failure) { fail(failure, retry); return }
+      const saved = await persistSet(graded, true, spent, retry)
+      if (!saved) return
+      gradedRef.current.clear()
+      setShowSetReview(false)
+      setShownSet(saved)
+      setRemaining(null)
+      navigate('results', true)
+      refreshActiveSets()
+      api.taxonomy().then((d) => { setTaxonomy(d.taxonomy); setStats(d.stats) }).catch(() => {})
+    } finally {
+      finishingRef.current = false
+      setFinishing(false)
+    }
+  }, [persistSet, refreshActiveSets, navigate, fail])
 
   /**
    * The set clock.
@@ -746,7 +785,8 @@ export default function App() {
   }, [items, index, persistSet])
 
   async function submit() {
-    if (!current || !response || result) return
+    // Inside a set nothing is submitted: answers are held and graded at the end.
+    if (activeSetRef.current || !current || !response || result) return
     try {
       const graded = await api.answer(current.id, response, seconds)
       setResult(graded)
@@ -763,23 +803,6 @@ export default function App() {
           : item
       )))
       api.stats().then(setStats).catch(() => {})
-
-      // A set keeps its own copy of what happened, so its score is fixed on the
-      // day rather than re-derived from attempts you might repeat later.
-      const live = activeSetRef.current
-      if (live) {
-        const next = (live.items ?? []).map((i) => (
-          i.question_id === current.id
-            ? { ...i, response, correct: (graded.correct ? 1 : 0) as 0 | 1, seconds }
-            : i
-        ))
-        const spent = (live.seconds ?? 0) + seconds
-        // Update the ref first so an answer landing before the write returns
-        // still builds on this one.
-        activeSetRef.current = { ...live, items: next, seconds: spent }
-        setActiveSet(activeSetRef.current)
-        void persistSet(next, false, spent)
-      }
     } catch (e) { fail(e) }
   }
 
@@ -801,12 +824,20 @@ export default function App() {
   }
 
   function toggleCrossOut(label: string) {
-    setCrossOut((prev) => {
-      const next = new Set(prev)
-      if (next.has(label)) next.delete(label)
-      else { next.add(label); if (response === label) setResponse(null) }
-      return next
-    })
+    if (!current) return
+    const next = new Set(crossOut)
+    if (next.has(label)) next.delete(label)
+    else {
+      next.add(label)
+      // Crossing out your answer withdraws it. In a set the held copy has to go
+      // too, or it comes back on return and is graded at the end.
+      if (response === label) {
+        setResponse(null)
+        if (activeSetRef.current) holdAnswer(null, seconds)
+      }
+    }
+    crossOuts.current.set(crossKey(current.id), next)
+    setCrossOut(next)
   }
 
   useEffect(() => {
@@ -1098,7 +1129,8 @@ export default function App() {
         </div>
       </header>
 
-      {banner}
+      {/* Set review covers this screen, so the banner moves onto it instead. */}
+      {showSetReview && activeSet ? null : banner}
 
       <main id="question" tabIndex={-1}
             className={desmosSplit === null ? 'main' : 'main is-split-tool'}
@@ -1209,6 +1241,8 @@ export default function App() {
                    clock={remaining === null ? null : formatClock(remaining)}
                    onGo={go}
                    onClose={() => setShowSetReview(false)}
+                   busy={finishing}
+                   banner={banner}
                    onFinish={finishSet} />
       ) : null}
 

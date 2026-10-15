@@ -183,7 +183,8 @@ export function QuestionView(props: Props) {
 
       <div className={flagged ? 'q-head is-marked' : 'q-head'}>
         <span className="q-num">{number}</span>
-        <button className={flagged ? 'markbtn on' : 'markbtn'} onClick={onToggleFlag}>
+        <button className={flagged ? 'markbtn on' : 'markbtn'} onClick={onToggleFlag}
+                aria-pressed={flagged}>
           {flagged ? <BookmarkFilled size={17} /> : <Icon name="bookmark" size={17} />}
           <span>{flagged ? 'Marked for Review' : 'Mark for Review'}</span>
         </button>
@@ -195,6 +196,7 @@ export function QuestionView(props: Props) {
           <button className={crossOutMode ? 'strike on' : 'strike'}
                   onClick={onToggleCrossOutMode}
                   aria-pressed={crossOutMode}
+                  aria-label="Cross out answer choices"
                   title="Cross out answer choices">
             <span className="strike-letters">ABC</span>
           </button>
@@ -215,6 +217,8 @@ export function QuestionView(props: Props) {
             const isPicked = response === option.label
             const isKey = graded && result!.accepted.includes(option.label)
             const isWrongPick = graded && isPicked && !result!.correct
+            const crossLabel = isCrossed
+              ? `Undo cross out of choice ${option.label}` : `Cross out choice ${option.label}`
             return (
               <li key={option.label}
                   className={[
@@ -226,9 +230,16 @@ export function QuestionView(props: Props) {
                     isKey ? 'is-key' : '',
                     isWrongPick ? 'is-wrongpick' : '',
                   ].filter(Boolean).join(' ')}>
+                {/* Crossed stays focusable and clickable, as in Bluebook: picking a
+                    crossed choice un-crosses it and selects it. */}
                 <button className="choice-main"
-                        disabled={graded || isCrossed}
-                        onClick={() => onRespond(option.label)}>
+                        disabled={graded}
+                        aria-pressed={isPicked}
+                        aria-disabled={isCrossed || undefined}
+                        onClick={() => {
+                          if (isCrossed) onToggleCrossOut(option.label)
+                          onRespond(option.label)
+                        }}>
                   {/* The mark is the non-colour tell for right and wrong. */}
                   <span className="bubble">
                     {option.label}
@@ -242,10 +253,13 @@ export function QuestionView(props: Props) {
                             field={`option:${option.label}`} annotations={annotations} />
                   {isKey ? <span className="sr-only">, correct answer</span>
                     : isWrongPick ? <span className="sr-only">, your answer, incorrect</span> : null}
+                  {isCrossed ? <span className="sr-only"> (crossed out)</span> : null}
                 </button>
                 {crossing ? (
                   <button className={isCrossed ? 'crossbtn on' : 'crossbtn'}
-                          title={isCrossed ? 'Undo cross out' : `Cross out ${option.label}`}
+                          aria-label={crossLabel}
+                          aria-pressed={isCrossed}
+                          title={crossLabel}
                           onClick={() => onToggleCrossOut(option.label)}>
                     {option.label}
                   </button>

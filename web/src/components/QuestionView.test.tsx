@@ -1,0 +1,72 @@
+// @vitest-environment jsdom
+/**
+ * Cross-out and selection semantics on a multiple-choice question (P-22, P-24).
+ *
+ * A crossed choice must stay in the tab order and, as in Bluebook, clicking it
+ * un-crosses and selects it. The picked choice and each cross-out control
+ * expose their state, not just a colour or a letter.
+ */
+import { act } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { QuestionView } from './QuestionView'
+import type { Question } from '../types'
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+
+let host: HTMLDivElement
+let root: Root
+beforeEach(() => {
+  window.matchMedia ??= (() => ({ matches: false, addEventListener() {}, removeEventListener() {} })) as never
+  host = document.createElement('div')
+  document.body.append(host)
+  root = createRoot(host)
+})
+afterEach(() => {
+  act(() => root.unmount())
+  host.remove()
+})
+
+const question: Question = {
+  id: 'q1', section: 'MATH', domain: 'H', domain_name: 'Algebra', skill: 'H.A',
+  skill_name: 'Linear equations', difficulty: 'E', band: null, type: 'mcq',
+  stimulus_html: '', stem_html: '<p>Pick one.</p>', key_recovered: false, source_path: '',
+  options: ['A', 'B', 'C', 'D'].map((label) => ({ label, html: `<p>${label} text</p>` })),
+}
+
+it('keeps a crossed choice focusable, names the controls, and un-crosses on pick', () => {
+  const onToggleCrossOut = vi.fn()
+  const onRespond = vi.fn()
+  act(() => root.render(
+    <QuestionView question={question} number={1} annotations={[]} result={null} seconds={0}
+                  response="A" flagged crossOutMode crossOut={new Set(['B'])}
+                  onRespond={onRespond} onSubmit={() => {}} onToggleFlag={() => {}}
+                  onToggleCrossOutMode={() => {}} onToggleCrossOut={onToggleCrossOut}
+                  onAddAnnotation={() => {}} onRemoveAnnotation={() => {}}
+                  mistake={null} onSaveMistake={() => {}} />,
+  ))
+  const choices = [...host.querySelectorAll<HTMLButtonElement>('button.choice-main')]
+  expect(choices.map((c) => c.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false'])
+
+  const crossed = choices[1]
+  expect(crossed.disabled).toBe(false)
+  expect(crossed.getAttribute('aria-disabled')).toBe('true')
+  expect(crossed.textContent).toContain('(crossed out)')
+  expect(choices[0].hasAttribute('aria-disabled')).toBe(false)
+
+  const strikes = [...host.querySelectorAll('button.crossbtn')]
+  expect(strikes[0].getAttribute('aria-label')).toBe('Cross out choice A')
+  expect(strikes[0].getAttribute('aria-pressed')).toBe('false')
+  expect(strikes[1].getAttribute('aria-label')).toBe('Undo cross out of choice B')
+  expect(strikes[1].getAttribute('aria-pressed')).toBe('true')
+  expect(host.querySelector('.strike')?.getAttribute('aria-label')).toBe('Cross out answer choices')
+  expect(host.querySelector('.markbtn')?.getAttribute('aria-pressed')).toBe('true')
+
+  act(() => crossed.click())
+  expect(onToggleCrossOut).toHaveBeenCalledWith('B')
+  expect(onRespond).toHaveBeenCalledWith('B')
+
+  act(() => choices[2].click())
+  expect(onToggleCrossOut).toHaveBeenCalledTimes(1)
+  expect(onRespond).toHaveBeenLastCalledWith('C')
+})
