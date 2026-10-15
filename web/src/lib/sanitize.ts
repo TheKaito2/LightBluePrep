@@ -34,7 +34,9 @@ const URL_ATTRS: Record<string, (value: string) => boolean> = {
   // Every image in the bank is inline, and img-src in _headers refuses the rest.
   src: (v) => /^data:image\//i.test(v),
 }
-const ALWAYS_DROP = new Set(['srcset', 'action', 'formaction', 'ping', 'poster', 'background'])
+// data-css-scope is ours (scopeStyle): one arriving with the content is dropped,
+// so the scope a figure ends up with is always one this file chose.
+const ALWAYS_DROP = new Set(['srcset', 'action', 'formaction', 'ping', 'poster', 'background', 'data-css-scope'])
 
 function cleanAttributes(el: Element): void {
   for (const attr of [...el.attributes]) {
@@ -76,7 +78,9 @@ function scopeStyle(style: Element): void {
   if (!root) { style.remove(); return }
   const sheet = new CSSStyleSheet()
   sheet.replaceSync(style.textContent ?? '')
-  const id = `f${++scopes}`
+  // A figure can carry more than one <style> (a6097ec2 has two): they share
+  // its scope, or the first one's rules would point at a scope nothing has.
+  const id = root.getAttribute('data-css-scope') ?? `f${++scopes}`
   root.setAttribute('data-css-scope', id)
   const rules = [...sheet.cssRules].map((rule) => rule.cssText).filter(balanced).join('\n')
   style.textContent = `[data-css-scope="${id}"] {\n${rules}\n}`

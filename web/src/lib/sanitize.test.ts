@@ -72,6 +72,16 @@ describe('sanitize', () => {
     expect(css.trimEnd().endsWith('}')).toBe(true)
   })
 
+  it('gives every <style> in one figure the same scope', () => {
+    const svg = clean('<svg data-css-scope="x&quot;]"><style>*{stroke-linecap:butt}</style>'
+      + '<style>.heavy{font-weight:bold}</style></svg>').querySelector('svg')!
+    const id = svg.getAttribute('data-css-scope')!
+    expect(id).toMatch(/^f\d+$/)
+    for (const style of svg.querySelectorAll('style')) {
+      expect(style.textContent!.startsWith(`[data-css-scope="${id}"] {`)).toBe(true)
+    }
+  })
+
   it('keeps a stray brace from closing the scope early', () => {
     const host = clean('<svg><style>.a{fill:red} } body{display:none} .b{fill:blue}</style></svg>')
     const css = host.querySelector('style')!.textContent!
