@@ -936,7 +936,7 @@ export default function App() {
       ),
       resources: () => <Resources />,
       inbox: () => <Inbox />,
-      about: () => <About />,
+      about: () => <About taxonomy={taxonomy} />,
       settings: () => <Settings />,
       results: () => (shownSet ? (
         <SetResults set={shownSet}

@@ -12,6 +12,13 @@ export const DONATE = (import.meta.env.VITE_DONATE_URL as string | undefined) ||
 /** Optional second donation page, shown beside the first on About. */
 export const DONATE_ALT = (import.meta.env.VITE_DONATE_ALT_URL as string | undefined) || ''
 
+/**
+ * The privacy policy. Pages serves public/privacy.html at /privacy, the URL in
+ * the sitemap; /privacy.html only 308s there. The Python server has no such
+ * rewrite, so that build keeps the file name.
+ */
+export const PRIVACY_URL = import.meta.env.VITE_BACKEND === 'local' ? '/privacy' : '/privacy.html'
+
 export function GithubMark({ size = 16 }: { size?: number }) {
   return (
     <svg viewBox="0 0 16 16" width={size} height={size} fill="currentColor"

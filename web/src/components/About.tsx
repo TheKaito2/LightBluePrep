@@ -4,39 +4,80 @@
  * The privacy part must stay true to what the build actually does: what is
  * collected, what is not, how to delete it. Keep it in step with
  * public/privacy.html.
+ *
+ * One reading column of sections (spec 8.6), Privacy second so it is on the
+ * first screen, and the two actions gathered in one card at the end.
  */
-
-import { REPO } from './Github'
+import type { ReactNode } from 'react'
+import { PRIVACY_URL, REPO } from './Github'
+import { Icon } from './Icon'
 import { PageHead } from './PageHead'
+import { NoData, Stat, StatGroup } from './Stat'
 import { openSupport, supportAvailable } from './Support'
 import { backend } from '../api'
 import { configured } from '../lib/auth'
+import * as fb from '../lib/feedback'
+import { fmt } from '../lib/labels'
 import { countsPeople, countsVisits } from '../lib/usage'
+import type { TaxonomyRow } from '../types'
 import { FeedbackLink } from './Feedback'
 
 const UPSTREAM = 'https://github.com/jackwangxyw/Bluebank'
 
-export function About() {
+type IconName = Parameters<typeof Icon>[0]['name']
+
+const STEPS: { icon: IconName; title: string; body: string }[] = [
+  { icon: 'grid', title: 'Pick topics', body: 'Select skills on Practice, or narrow one down to a single question type.' },
+  { icon: 'clock', title: 'Practice like test day', body: 'A Bluebook-style screen with Desmos built in, and timed sets when you want them.' },
+  { icon: 'history', title: 'Review and redo', body: 'Every answer is saved, so you can redo any pile: wrong ones, marked ones, a whole topic.' },
+]
+
+function Sec({ icon, title, children }: { icon: IconName; title: string; children: ReactNode }) {
+  return (
+    <section className="about-sec">
+      <h2 className="about-h2">
+        <span className="about-ico" aria-hidden="true"><Icon name={icon} size={18} strokeWidth={2} /></span>
+        {title}
+      </h2>
+      <div className="about-body">{children}</div>
+    </section>
+  )
+}
+
+export function About({ taxonomy }: { taxonomy: TaxonomyRow[] }) {
   const canSignIn = configured
+  // Counted from the bank itself, so the band never goes stale; a dash until
+  // the index has loaded.
+  const questions = taxonomy.reduce((sum, r) => sum + r.n, 0)
+  const skills = new Set(taxonomy.map((r) => r.skill)).size
+  const count = (n: number) => (taxonomy.length ? fmt(n) : <NoData />)
   return (
     <>
     <PageHead tone="ink" eyebrow="Free · open source · no ads" title={<>About Light<span className="phead-blue">Blue</span>Prep</>}
-              sub="Every official College Board practice question, free, in one place you can filter, track and re-drill." />
-    <div className="about">
+              sub="Every official College Board practice question, free, in one place you can filter, track and re-drill.">
+      <StatGroup>
+        <Stat size="l" label="Questions" value={count(questions)} />
+        <Stat size="l" label="Skills" value={count(skills)} />
+        <Stat size="l" label="Ads" value="0" />
+      </StatGroup>
+    </PageHead>
+    <div className="aboutpage">
 
-      <section className="about-block">
-        <h2 className="about-h2">How it works</h2>
-        <p className="about-p">
-          Tick the topics you want on Practice, narrow a topic down to one kind
-          of question if you like, and start. Options lets you skip what you
-          have already done, drill only the ones you got wrong, or run a timed
-          set. Review keeps everything you answered, so you can redo a whole
-          pile at once or practise questions solved the same way.
-        </p>
+      <Sec icon="book" title="How it works">
+        <ol className="about-steps">
+          {STEPS.map((s) => (
+            <li key={s.title}>
+              <Icon name={s.icon} size={20} strokeWidth={2} />
+              <h3>{s.title}</h3>
+              <p>{s.body}</p>
+            </li>
+          ))}
+        </ol>
         {backend === 'local' ? (
           <p className="about-p">
-            Every skill and its question types, with how many questions each has,
-            are listed on one page: <a className="about-link" href="/skills/">all SAT skills</a>.
+            <a className="about-link about-more" href="/skills/">
+              Browse every SAT skill <Icon name="arrow-right" size={16} strokeWidth={2.2} />
+            </a>
           </p>
         ) : null}
         <p className="about-p">
@@ -44,14 +85,9 @@ export function About() {
           straight from College Board and keeps a copy, so the first visit takes
           a few seconds and after that it is fast and works offline.
         </p>
-        <p className="about-p">
-          Tap Info on any question for its College Board ID. Copy it, or tap
-          YouTube to look for a walkthrough of that exact question.
-        </p>
-      </section>
+      </Sec>
 
-      <section className="about-block">
-        <h2 className="about-h2">Privacy</h2>
+      <Sec icon="shield" title="Privacy">
         <p className="about-p">
           No account needed.{' '}
           <strong>
@@ -81,35 +117,28 @@ export function About() {
           </p>
         ) : null}
         <p className="about-p">
-          To wipe your history, open Settings.
-          Full policy: <a className="about-link" href="/privacy.html">privacy.html</a>.
+          To wipe your history, open Settings.{' '}
+          <a className="about-link" href={PRIVACY_URL}>Read the full privacy policy</a>
         </p>
-      </section>
+      </Sec>
 
-      {supportAvailable ? (
-        <section className="about-block">
-          <h2 className="about-h2">Support</h2>
-          <p className="about-p">
-            LightBluePrep is free and stays free. Nothing is locked behind
-            payment. Donations only pay for the domain and hosting.
-          </p>
-          <button type="button" className="btn primary" onClick={openSupport}>
-            Support LightBluePrep
-          </button>
-        </section>
-      ) : null}
-
-      <section className="about-block">
-        <h2 className="about-h2">Found a bug? Got an idea?</h2>
+      <Sec icon="message" title="Found a bug? Got an idea?">
         <p className="about-p">
           Tell me. Messages are anonymous and go straight to me. To report a
           problem with one question, use the link under that question.
         </p>
-        <FeedbackLink label="Send feedback" className="btn" ctx={{ context: 'about' }} />
-      </section>
+      </Sec>
 
-      <section className="about-block">
-        <h2 className="about-h2">Credits and license</h2>
+      {supportAvailable ? (
+        <Sec icon="heart" title="Support">
+          <p className="about-p">
+            LightBluePrep is free and stays free. Nothing is locked behind
+            payment. Donations only pay for the domain and hosting.
+          </p>
+        </Sec>
+      ) : null}
+
+      <Sec icon="code" title="Credits and license">
         <p className="about-p">
           LightBluePrep is built on{' '}
           <a className="about-link" href={UPSTREAM} target="_blank" rel="noreferrer">
@@ -122,21 +151,38 @@ export function About() {
         </p>
         <p className="about-p">
           It ships React and MathJax, the Bricolage Grotesque and Noto fonts
-          (SIL Open Font License) and embeds the Desmos calculator. Their licenses
-          are in{' '}
-          <a className="about-link" href="/third-party-licenses.txt" target="_blank" rel="noreferrer">
-            third-party-licenses.txt</a>.
+          (SIL Open Font License) and embeds the Desmos calculator.{' '}
+          <a className="about-link about-nowrap" href="/third-party-licenses.txt" target="_blank" rel="noreferrer">
+            Open-source licenses</a>
         </p>
-      </section>
+      </Sec>
 
-      <section className="about-block">
-        <h2 className="about-h2">Disclaimer</h2>
+      <Sec icon="info" title="Disclaimer">
         <p className="about-p">
           LightBluePrep is a free, non-commercial student project. It is not
           affiliated with or endorsed by College Board. SAT and Bluebook are
           trademarks of College Board.
         </p>
-      </section>
+      </Sec>
+
+      {supportAvailable || fb.available ? (
+        <div className="about-actions">
+          {supportAvailable ? (
+            <div className="about-action">
+              <p><strong>Keep it free</strong>Donations pay for the domain and hosting.</p>
+              <button type="button" className="btn primary" onClick={openSupport}>
+                <Icon name="heart" size={16} strokeWidth={2.2} /> Support LightBluePrep
+              </button>
+            </div>
+          ) : null}
+          {fb.available ? (
+            <div className="about-action">
+              <p><strong>Tell me what to fix</strong>Anonymous, and it goes straight to me.</p>
+              <FeedbackLink label="Send feedback" className="btn" ctx={{ context: 'about' }} />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
     </>
   )

@@ -13,6 +13,7 @@ import * as api from '../api'
 import * as auth from '../lib/auth'
 import * as sync from '../lib/sync'
 import { PageHead } from './PageHead'
+import { PRIVACY_URL } from './Github'
 import { plural } from '../lib/labels'
 import { toUserMessage } from '../lib/errors'
 
@@ -147,7 +148,7 @@ export function Settings() {
               <p className="about-p settings-fine">
                 Questions you have opened stay cached so the site keeps working offline.
                 They are College Board's questions, not your data. Full details are in
-                the <a className="about-link" href="/privacy.html">privacy policy</a>.
+                the <a className="about-link" href={PRIVACY_URL}>privacy policy</a>.
               </p>
             </>
           ) : (

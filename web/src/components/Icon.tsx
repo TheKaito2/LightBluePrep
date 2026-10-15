@@ -10,6 +10,7 @@ type Name =
   | 'flame' | 'lock' | 'heart' | 'coffee' | 'trend-up' | 'trend-down' | 'qr'
   | 'book' | 'target' | 'layers' | 'sigma' | 'grid' | 'history' | 'chart' | 'info' | 'compass' | 'play' | 'external' | 'star' | 'ruler'
   | 'gear' | 'cloud' | 'refresh' | 'clock' | 'download' | 'check-circle' | 'alert' | 'user'
+  | 'shield' | 'message' | 'code'
 
 const PATHS: Record<Name, string> = {
   // Eight teeth at r 9.4, roots at r 6.9, hole r 3; computed, not traced.
@@ -65,6 +66,9 @@ const PATHS: Record<Name, string> = {
   'check-circle': 'M12 21a9 9 0 100-18 9 9 0 000 18zM8 12.2l2.8 2.8L16 9.5',
   alert: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7.5V13M12 16.5h.01',
   user: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4.5 20.5a7.5 7.5 0 0115 0',
+  shield: 'M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z',
+  message: 'M20 15.5a1.5 1.5 0 01-1.5 1.5H8l-4 3.5V5.5A1.5 1.5 0 015.5 4h13A1.5 1.5 0 0120 5.5z',
+  code: 'M8.5 7l-5 5 5 5M15.5 7l5 5-5 5M13.5 4.5l-3 15',
   tag: 'M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0l-6.8-6.8A2 2 0 013.2 12.4V5a2 2 0 012-2h7.4a2 2 0 011.4.6l6.6 6.6a2 2 0 010 2.8zM8 8h.01',
 }
 

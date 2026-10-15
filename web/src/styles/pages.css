@@ -15,7 +15,9 @@
 }
 
 /* ---- about: link and the GitHub button ---- */
-.about-link { color: var(--fg-link); text-decoration: underline; text-underline-offset: 3px; }
+.about-link {
+  color: var(--fg-link); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+}
 .about-link:hover { color: var(--fg-link-hover); }
 
 /* ============================================================ settings
@@ -49,6 +51,64 @@
   .about .about-block { padding: var(--sp-4); }
 }
 
+/* ============================================================ about (spec 8.6)
+   One 720px reading column, its left edge in line with the band's title.
+   Sections are split by hairlines, not boxed: cards are for things you act
+   on, and the only one here is the closing action card. */
+.aboutpage { max-width: 1160px; margin: 0 auto; padding: var(--sp-2) var(--sp-8) 96px; }
+.aboutpage > * { max-width: 720px; }
+.about-sec { padding: 40px 0; }
+.about-sec + .about-sec { border-top: 1px solid var(--hair-1); }
+.about-sec .about-h2 { display: flex; align-items: center; gap: var(--sp-3); margin: 0 0 var(--sp-4); padding: 0; border: 0; }
+.about-ico {
+  flex: none; width: 32px; height: 32px; border-radius: var(--rad-sm);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-subtle); color: var(--fg-2);
+}
+/* Body text starts under the heading's words, not under its tile. */
+.about-body { padding-left: 44px; }
+/* A short link whose hyphen would otherwise split it across lines on a phone. */
+.about-nowrap { white-space: nowrap; }
+.about-more { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.about-more svg { flex: none; }
+
+/* How it works: three steps in one bordered box, cells split by hairlines. */
+.about-steps {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 var(--sp-5); padding: 0; list-style: none;
+  border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface);
+}
+.about-steps li { min-width: 0; padding: var(--sp-5); }
+.about-steps li + li { border-left: 1px solid var(--hair-1); }
+.about-steps svg { display: block; color: var(--fg-2); }
+.about-steps h3 { margin: var(--sp-3) 0 var(--sp-1); font: 700 18px/24px var(--display); letter-spacing: var(--tr-h3); color: var(--fg-1); }
+.about-steps p { margin: 0; font: var(--type-small); color: var(--fg-2); }
+
+/* Closing action card: one primary, one secondary, side by side. */
+.about-actions {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin-top: var(--sp-2);
+  border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface);
+}
+.about-action { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-6); }
+.about-action + .about-action { border-left: 1px solid var(--hair-1); }
+.about-action p { margin: 0; font: var(--type-small); color: var(--fg-2); }
+.about-action strong { display: block; margin-bottom: 2px; font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
+@media (max-width: 819px) {
+  .aboutpage { padding: 0 var(--sp-4) var(--sp-8); }
+  .about-sec { padding: 32px 0; }
+  .about-body { padding-left: 0; }
+  /* Steps stack, icon beside its words, so the list stays short. */
+  .about-steps { grid-template-columns: 1fr; }
+  .about-steps li { display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: var(--sp-3); padding: var(--sp-4); }
+  .about-steps li + li { border-left: 0; border-top: 1px solid var(--hair-1); }
+  .about-steps svg { grid-row: span 2; margin-top: 2px; }
+  .about-steps h3 { margin: 0 0 2px; }
+  .about-actions { grid-auto-flow: row; }
+  .about-action { padding: var(--sp-5); }
+  .about-action + .about-action { border-left: 0; border-top: 1px solid var(--hair-1); }
+  .shell .about-action .btn { align-self: stretch; min-height: 48px; }
+}
+
 /* ============================================================ resources */
 .resources {
   max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) 96px;
@@ -73,8 +133,9 @@
 .rcard-by { font: var(--type-small); color: var(--fg-3); }
 .goat {
   display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px 0 6px; border-radius: var(--rad-pill);
-  background: var(--surface-ink); color: var(--warn-500); font: var(--type-badge); letter-spacing: .04em;
+  background: var(--surface-ink); color: var(--fg-inv-1); font: var(--type-badge); letter-spacing: .04em;
 }
+.goat svg { color: var(--warn-500); }
 /* Static tags (spec 7.5). */
 .rcard-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .rcard-tags li {
@@ -85,12 +146,47 @@
 .rcard-take { margin: 0; padding: var(--sp-4); border-radius: var(--rad-sm); background: var(--surface-subtle); }
 .rcard-take figcaption { font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3); }
 .rcard-take blockquote { margin: 6px 0 0; font: var(--type-body); color: var(--fg-2); }
+/* One step darker than --fg-link: it sits on --surface-subtle, where the
+   usual link blue falls just under 4.5:1. */
+.rcard-more {
+  margin-top: var(--sp-2); padding: 0; border: 0; background: none; cursor: pointer;
+  font: 600 14px/20px var(--sans); color: var(--fg-link-hover);
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+}
+.rcard-more:hover { text-decoration-thickness: 2px; }
 .rcard-go { align-self: flex-start; }
+/* The way back into practice, under the cards. */
+.res-next {
+  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-6);
+  padding: var(--sp-6); border-radius: var(--rad-md); background: var(--surface-subtle);
+}
+.res-next h2 { margin: 0; font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-1); }
+.res-next p { margin: var(--sp-1) 0 0; font: var(--type-body); color: var(--fg-2); }
+.res-next .btn { flex: none; }
 .resources-note { grid-column: 1 / -1; margin: 0; text-align: center; font: var(--type-small); color: var(--fg-3); }
 @media (max-width: 819px) {
   .resources { grid-template-columns: 1fr; padding: var(--sp-6) var(--sp-4) var(--sp-8); gap: var(--sp-4); }
   .rcard { padding: var(--sp-5); }
   .rcard-ico { width: 40px; height: 40px; }
+}
+/* Phone: the action moves up under the title row, the tags keep to one line
+   that scrolls, and the take is clamped, so each card fits about a screen. */
+@media (max-width: 640px) {
+  .rcard > * { order: 2; }
+  .rcard-top { order: 0; align-items: flex-start; }
+  .rcard-ico { margin-top: 4px; }
+  .shell .rcard-go { order: 1; align-self: stretch; justify-content: center; min-height: 48px; }
+  .rcard-tags {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    margin: 0 calc(-1 * var(--sp-5)); padding: 0 var(--sp-5);
+  }
+  .rcard-tags::-webkit-scrollbar { display: none; }
+  .rcard-tags li { flex: none; white-space: nowrap; }
+  .rcard-take blockquote:not(.open) {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4; overflow: hidden;
+  }
+  .res-next { flex-direction: column; align-items: stretch; gap: var(--sp-4); padding: var(--sp-5); }
+  .shell .res-next .btn { min-height: 48px; justify-content: center; }
 }
 
 /* ---- feedback inbox (owner only) ---- */

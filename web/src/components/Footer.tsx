@@ -7,7 +7,7 @@
  * files (see scripts/skill_pages.py and public/privacy.html).
  */
 import { FeedbackLink } from './Feedback'
-import { REPO } from './Github'
+import { PRIVACY_URL, REPO } from './Github'
 import { available as feedbackAvailable } from '../lib/feedback'
 
 /** `context` tags a feedback message with the page it was sent from. */
@@ -22,7 +22,7 @@ export function Footer({ context }: { context: string }) {
         </p>
         <ul className="foot-links">
           <li><a href="/skills/">All SAT skills</a></li>
-          <li><a href="/privacy.html">Privacy</a></li>
+          <li><a href={PRIVACY_URL}>Privacy</a></li>
           <li><a href={REPO} target="_blank" rel="noreferrer">Source</a></li>
           {feedbackAvailable ? <li><FeedbackLink label="Send feedback" ctx={{ context }} /></li> : null}
         </ul>
