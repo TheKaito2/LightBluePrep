@@ -70,7 +70,7 @@
 /* The set's question number: a small ink square. */
 .review-row .q-num {
   flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
-  border-radius: var(--rad-xs); background: var(--fg-1); color: var(--fg-inv-1);
+  border-radius: var(--rad-xs); background: var(--fg-1); color: var(--surface);
   font: 700 13px/1 var(--sans); font-variant-numeric: tabular-nums;
 }
 .review-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -148,6 +148,23 @@
 .shell .mlog-hint b { color: var(--fg-2); }
 .shell .mlog-saved { color: var(--ok-700); }
 .shell .why h3, .shell .verdict-time { font-size: 13px; }
+/* Dark theme: the question, its choices, the verdict and the explanation are
+   the practice screen's components and read Bluebook's palette (base.css).
+   Practice stays light, so the shell maps that palette onto its own dark
+   tokens here. --green and --red become text shades, so the filled answer
+   bubbles take dark letters instead of white. */
+@media (prefers-color-scheme: dark) {
+  .shell {
+    --ink: var(--fg-1); --ink-2: var(--fg-2); --muted: var(--fg-3);
+    --bg: var(--surface); --bg-soft: var(--surface-subtle);
+    --line: var(--hair-2); --line-2: var(--hair-ctl);
+    --accent: var(--brand-700); --accent-soft: var(--brand-50); --accent-ring: var(--brand-100);
+    --green: var(--ok-700); --green-soft: var(--ok-50);
+    --red: var(--bad-700); --red-soft: var(--bad-50);
+    --yellow-soft: var(--warn-50); --amber-ink: var(--warn-700);
+  }
+  .shell .choice:is(.picked, .is-key, .is-wrongpick) :is(.bubble, .bubble-mark) { color: var(--surface); }
+}
 /* Practice drops answer text to 15.5px on phones to fit the pane; Review has
    the room, so it stays on the type scale. */
 .review-detail .choice-text { font-size: 16px; }

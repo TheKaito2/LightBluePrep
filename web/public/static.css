@@ -60,6 +60,9 @@
   --hair-2: #cdd3db;
   --hair-ctl: #8a94a3;
   --focus: var(--brand-700);
+  --n-900: #11151a;
+  /* Fills under white text, the same in both themes (tokens.css). */
+  --fill-brand: #1479c2; --fill-brand-hover: #0f67a8; --fill-brand-press: #0c5a93;
 
   /* No system-ui anywhere: the pages must render in the brand faces. */
   --display: 'Bricolage Grotesque Variable', 'Noto Sans', sans-serif;
@@ -85,6 +88,26 @@
   --ease-std: cubic-bezier(.2, 0, 0, 1);
   --dur-instant: 80ms;
   --dur-fast: 120ms;
+}
+
+/* Dark theme: the app's dark values (tokens.css), the subset used here. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --brand-50: #0f2133; --brand-100: #10283d; --brand-700: #5cb0ec; --brand-800: #9fd0f4;
+    --rw-50: #2a121e; --rw-100: #3a1426; --rw-700: #f08cb6;
+    --math-50: #0d2235; --math-100: #0f2a42; --math-700: #6cbcf2;
+    --surface: #12171d;
+    --surface-subtle: #171d24;
+    --surface-sunken: #222a33;
+    --fg-1: #e8ecf1;
+    --fg-2: #c3cad3;
+    --fg-3: #9da6b1;
+    --fg-4: #6f7883;
+    --hair-1: #262e37;
+    --hair-2: #36404b;
+    --hair-ctl: #76808d;
+  }
 }
 @media (max-width: 819px) {
   :root {
@@ -153,11 +176,11 @@ svg { display: block; flex: none; }
 .btn:hover { background: var(--surface-subtle); border-color: var(--hair-ctl); color: var(--fg-1); }
 .btn:active { background: var(--surface-sunken); }
 .btn.primary {
-  background: var(--brand-700); border-color: var(--brand-700); color: var(--fg-inv-1);
+  background: var(--fill-brand); border-color: var(--fill-brand); color: var(--fg-inv-1);
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .18);
 }
-.btn.primary:hover { background: var(--brand-800); border-color: var(--brand-800); color: var(--fg-inv-1); }
-.btn.primary:active { background: var(--brand-900); border-color: var(--brand-900); transform: translateY(1px); }
+.btn.primary:hover { background: var(--fill-brand-hover); border-color: var(--fill-brand-hover); color: var(--fg-inv-1); }
+.btn.primary:active { background: var(--fill-brand-press); border-color: var(--fill-brand-press); transform: translateY(1px); }
 .btn.quiet { background: none; border-color: transparent; color: var(--fg-2); }
 .btn.quiet:hover { background: var(--surface-subtle); border-color: transparent; color: var(--fg-1); }
 .btn.quiet:active { background: var(--surface-sunken); }
@@ -340,11 +363,11 @@ a.row:hover { background: var(--surface-subtle); color: var(--fg-1); }
 
 /* Bulb (components/Mascot.tsx), the same fills as the app. */
 .bulb-glass, .bulb-limb-fill { fill: var(--brand-500); }
-.bulb-base { fill: var(--brand-700); }
+.bulb-base { fill: var(--fill-brand); }
 .bulb-limb { fill: none; stroke: var(--brand-500); stroke-width: 9; stroke-linecap: round; }
 .bulb-check { fill: none; stroke: var(--fg-inv-1); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
-.bulb-ink { fill: var(--fg-1); }
-.bulb-line { fill: none; stroke: var(--fg-1); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
+.bulb-ink { fill: var(--n-900); }
+.bulb-line { fill: none; stroke: var(--n-900); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
 .bulb-shine { fill: var(--fg-inv-1); }
 .bulb-cheek { fill: var(--rw-200); }
 .bulb-sweat { fill: var(--brand-200); }

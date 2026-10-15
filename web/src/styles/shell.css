@@ -248,8 +248,8 @@
 .phead { flex: none; overflow: hidden; background: var(--surface-ink); color: var(--fg-inv-1); }
 @supports (overflow: clip) { .phead { overflow: clip visible; } }
 .phead.tone-grey { background: var(--surface-sunken); color: var(--fg-1); }
-/* A mixed set has no section scope, so --sec-700 falls back to ink. */
-.phead.tone-section { background: var(--sec-700, var(--surface-ink)); }
+/* A mixed set has no section scope, so --sec-fill falls back to ink. */
+.phead.tone-section { background: var(--sec-fill, var(--surface-ink)); }
 .phead-in {
   max-width: 1160px; min-height: 208px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) var(--sp-8);
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-10); align-items: end;
@@ -353,19 +353,19 @@
 .shell .btn:active:not(:disabled) { background: var(--surface-sunken); }
 
 .shell .btn:is(.primary, .on-ink) {
-  background: var(--brand-700); border-color: var(--brand-700); color: var(--fg-inv-1);
+  background: var(--fill-brand); border-color: var(--fill-brand); color: var(--fg-inv-1);
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .18);
 }
-.shell .btn:is(.primary, .on-ink):hover:not(:disabled) { background: var(--brand-800); border-color: var(--brand-800); }
+.shell .btn:is(.primary, .on-ink):hover:not(:disabled) { background: var(--fill-brand-hover); border-color: var(--fill-brand-hover); }
 .shell .btn:is(.primary, .on-ink):active:not(:disabled) {
-  background: var(--brand-900); border-color: var(--brand-900); transform: translateY(1px);
+  background: var(--fill-brand-press); border-color: var(--fill-brand-press); transform: translateY(1px);
 }
 
 .shell .btn.quiet { background: none; border-color: transparent; color: var(--fg-2); }
 .shell .btn.quiet:hover:not(:disabled) { background: var(--surface-subtle); border-color: transparent; color: var(--fg-1); }
 .shell .btn.quiet:active:not(:disabled) { background: var(--surface-sunken); }
 
-.shell .btn.danger { background: var(--bad-700); border-color: var(--bad-700); color: var(--fg-inv-1); }
+.shell .btn.danger { background: var(--fill-bad); border-color: var(--fill-bad); color: var(--fg-inv-1); }
 .shell .btn.danger:hover:not(:disabled) { background: var(--bad-800); border-color: var(--bad-800); }
 .shell .btn.danger:active:not(:disabled) { background: var(--bad-900); border-color: var(--bad-900); }
 
@@ -402,8 +402,9 @@
     color var(--dur-fast) var(--ease-std);
 }
 .shell .chip:hover { border-color: var(--hair-ctl); color: var(--fg-1); }
-.shell .chip.on { background: var(--fg-1); border-color: var(--fg-1); color: var(--fg-inv-1); }
-.shell :is(.sec-RW, .sec-MATH) .chip.on { background: var(--sec-600); border-color: var(--sec-600); }
+/* Text in --surface, not white: it inverts with --fg-1 in the dark theme. */
+.shell .chip.on { background: var(--fg-1); border-color: var(--fg-1); color: var(--surface); }
+.shell :is(.sec-RW, .sec-MATH) .chip.on { background: var(--sec-600); border-color: var(--sec-600); color: var(--fg-inv-1); }
 .shell .chip.static { cursor: default; }
 .shell .chip:is(.d-E, .d-M, .d-H)::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; }
 .shell .chip.d-E::before { background: var(--ok-500); }
@@ -417,7 +418,7 @@
 .chip.on .chip-n { background: rgba(255, 255, 255, .2); color: inherit; }
 .shell :is(.tone-ink, .startbar2) .chip { background: rgba(255, 255, 255, .06); border-color: var(--hair-inv); color: var(--fg-inv-1); }
 .shell :is(.tone-ink, .startbar2) .chip:hover { border-color: rgba(255, 255, 255, .4); }
-.shell :is(.tone-ink, .startbar2) .chip.on { background: var(--fg-inv-1); border-color: var(--fg-inv-1); color: var(--fg-1); }
+.shell :is(.tone-ink, .startbar2) .chip.on { background: var(--fg-inv-1); border-color: var(--fg-inv-1); color: var(--surface-ink); }
 
 /* ============================================================ segmented control
    Any single choice: section, order, the Review filter, feedback kind. Also in
@@ -430,12 +431,16 @@
   transition: background-color var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
 }
 .seg-b:hover { color: var(--fg-1); }
-.seg-b.on { background: var(--surface); color: var(--fg-1); box-shadow: var(--sh-1); }
+.seg-b.on { background: var(--surface-raised); color: var(--fg-1); box-shadow: var(--sh-1); }
 .seg-b:is(.sec-RW, .sec-MATH) svg { color: var(--sec-600); }
+/* Dark theme: the -600 icons drop under 3:1 on the raised segment. */
+@media (prefers-color-scheme: dark) {
+  .seg-b:is(.sec-RW, .sec-MATH) svg { color: var(--sec-500); }
+}
 .seg-n { font-weight: 500; color: var(--fg-3); }
 :is(.tone-ink, .startbar2) .seg { background: var(--surface-ink-2); }
 :is(.tone-ink, .startbar2) .seg-b { color: var(--fg-inv-2); }
-:is(.tone-ink, .startbar2) .seg-b.on { background: var(--fg-inv-1); color: var(--fg-1); }
+:is(.tone-ink, .startbar2) .seg-b.on { background: var(--fg-inv-1); color: var(--surface-ink); }
 
 /* ============================================================ status badges
    A word, optionally after a 12px icon, on the status's soft fill. */
@@ -689,7 +694,7 @@ body:has(.startbar2) .toast { bottom: calc(72px + 16px); }
 /* ---- Bulb, the mascot (components/Mascot.tsx) ---- */
 .bulb { display: block; overflow: visible; }
 .bulb-glass, .bulb-limb-fill { fill: var(--brand-500); }
-.bulb-base { fill: var(--brand-700); }
+.bulb-base { fill: var(--fill-brand); }
 .bulb-limb { fill: none; stroke: var(--brand-500); stroke-width: 9; stroke-linecap: round; }
 .bulb-check { fill: none; stroke: var(--fg-inv-1); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
 .bulb-ink { fill: var(--n-900); }

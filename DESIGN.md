@@ -14,17 +14,18 @@ Tokens live in [`web/src/tokens.css`](web/src/tokens.css). Components read token
 ## Scope: practice versus everything else
 
 - Every page except practice renders under `.shell`; practice renders under `.app`. Scope shell styles through `.shell`, never by adding a class to practice.
-- The Bluebook names `--sans`, `--serif`, `--ink`, `--ink-2`, `--muted`, `--line`, `--line-2`, `--bg`, `--bg-soft`, `--chrome*`, `--band`, `--accent*`, `--green`, `--red`, `--yellow`, `--amber-ink`, `--r-*`, `--shadow` and `--rule` belong to practice. Never redefine them in `tokens.css`, and do not use them under `.shell`: use the `--surface-*`, `--fg-*`, `--hair-*`, `--ok-*`, `--warn-*`, `--bad-*` roles instead.
+- The Bluebook names `--sans`, `--serif`, `--ink`, `--ink-2`, `--muted`, `--line`, `--line-2`, `--bg`, `--bg-soft`, `--chrome*`, `--band`, `--accent*`, `--green`, `--red`, `--yellow`, `--amber-ink`, `--r-*`, `--shadow` and `--rule` belong to practice. Never redefine them in `tokens.css`, and do not use them under `.shell`: use the `--surface-*`, `--fg-*`, `--hair-*`, `--ok-*`, `--warn-*`, `--bad-*` roles instead. The one exception is the question detail on Review and Results, which reuses practice components; `review.css` maps those names onto shell tokens for the dark theme.
 - College Board royal blue (`--accent`) appears only on the practice screen. Practice buttons and chips are `.app .btn` and `.app .chip` in `bluebook.css`.
 
 ## Color
 
 | Role | Tokens | Use |
 |---|---|---|
-| Surfaces | `--surface`, `--surface-subtle`, `--surface-sunken`, `--surface-ink`, `--surface-ink-2`, `--surface-hero`, `--scrim` | Page and cards; row hover; tracks and disabled fills; ink bands, start bar, toasts; controls on ink; the Home hero; behind dialogs |
+| Surfaces | `--surface`, `--surface-subtle`, `--surface-sunken`, `--surface-raised`, `--surface-ink`, `--surface-ink-2`, `--surface-hero`, `--scrim` | Page and cards; row hover; tracks and disabled fills; the on segment; ink bands, start bar, toasts; controls on ink; the Home hero; behind dialogs |
 | Text | `--fg-1` … `--fg-4`, `--fg-inv-1` … `--fg-inv-3`, `--fg-link` | Primary, secondary, meta, placeholder; the same on ink; links |
 | Borders | `--hair-1`, `--hair-2`, `--hair-ctl`, `--hair-inv` | Cards and rows; chips and secondary buttons; inputs, checkboxes and card hover (3:1); controls on ink |
-| Brand | `--brand-50 … --brand-900` | `700` primary fill, `800` hover and small text on brand tints, `900` pressed, `600` bars and icons only |
+| Brand | `--brand-50 … --brand-900` | `700` text, borders and focus, `800` small text on brand tints, `600` bars and icons only |
+| Fills under white text | `--fill-brand`, `--fill-brand-hover`, `--fill-brand-press`, `--fill-bad`, `--rw-fill`, `--math-fill` (`--sec-fill`) | Primary and danger buttons, the Results band, Bulb's base. Fixed in both themes |
 | Reading and Writing | `--rw-*` | Anything that belongs to R&W, nothing else |
 | Math | `--math-*` | Anything that belongs to Math |
 | Status | `--ok-*`, `--warn-*`, `--bad-*` | Correct / partly / incorrect, difficulty Easy / Medium / Hard |
@@ -36,6 +37,8 @@ Tokens live in [`web/src/tokens.css`](web/src/tokens.css). Components read token
 - `*-500` and lighter: bars, dots, icons. Never text.
 - On `--brand-50`/`--brand-100`, small text is `--brand-800`; `--brand-700` there only at 24px and above.
 
+**Dark theme** (`prefers-color-scheme: dark`, no toggle). Every page except practice. The dark block in `tokens.css` swaps the surfaces, text, borders, shadows, the `*-50`/`*-100` tints (deep washes of the same hue) and the `*-700`/`800` text shades (light, so they read on dark). `*-500`/`600` and the `--fill-*` tokens do not change, so white text on a fill keeps its contrast. The colour block is declared on `.app` as well as `:root`, which keeps practice light the way Bluebook is; a token the dark block changes must live in that block. Text that sits on a `--fg-1` fill uses `--surface` (it inverts with it), and dark text on a white or orange pill uses `--surface-ink`. `public/static.css` mirrors the subset the static pages use.
+
 **Section scope:** add `.sec-RW` or `.sec-MATH` to a container and use `var(--sec-500)` and friends inside it. The same component then colors itself for either section, with no props or conditionals.
 
 ## Bands
@@ -45,7 +48,7 @@ Tokens live in [`web/src/tokens.css`](web/src/tokens.css). Components read token
 | Home | light brand hero (`--surface-hero`) |
 | Review, Stats, Resources, About, Inbox | ink band (`--surface-ink`) |
 | Settings | gray band (`--surface-sunken`) |
-| Results | section band (`--sec-700`, ink for mixed sets) |
+| Results | section band (`--sec-fill`, ink for mixed sets) |
 | Practice | Bluebook |
 
 Every band is `PageHead`; its numbers go in one `StatGroup` of `<Stat size="l">` cells (the stat strip). Section headings below a band use `.h1-section`.
@@ -113,10 +116,10 @@ Rules:
 
 | Variant | Rest | Hover | Pressed | Disabled |
 |---|---|---|---|---|
-| `.primary` | `--brand-700`, white, `inset 0 -1px 0 rgba(0,0,0,.18)` | `--brand-800` | `--brand-900`, `translateY(1px)` | `--surface-sunken`, `--fg-4` |
+| `.primary` | `--fill-brand`, white, `inset 0 -1px 0 rgba(0,0,0,.18)` | `--fill-brand-hover` | `--fill-brand-press`, `translateY(1px)` | `--surface-sunken`, `--fg-4` |
 | default / `.secondary` | `--surface`, `1px --hair-2`, `--fg-1` | `--surface-subtle`, `--hair-ctl` | `--surface-sunken` | `--fg-4`, `--hair-1` |
 | `.quiet` | transparent, `--fg-2` | `--surface-subtle`, `--fg-1` | `--surface-sunken` | `--fg-4` |
-| `.danger` | `--bad-700`, white | `--bad-800` | `--bad-900` | as primary |
+| `.danger` | `--fill-bad`, white | `--bad-800` | `--bad-900` | as primary |
 | `.danger-secondary` (first click of anything destructive) | `--surface`, `1px --bad-200`, `--bad-700` | `--bad-50` | `--bad-50` | as secondary |
 | `.on-ink` | as primary | as primary | as primary | `rgba(255,255,255,.08)`, `--fg-inv-3` |
 | `.on-ink-secondary` | `rgba(255,255,255,.06)`, `1px --hair-inv`, white | `.12` | `.16` | `--fg-inv-3` |
@@ -124,7 +127,7 @@ Rules:
 
 **Chips** (`.chip`): 32px pill, `1px --hair-2`, `--type-ui` in `--fg-2`. On is `--fg-1` with white text (`--sec-600` inside a section). Difficulty chips stay neutral and carry an 8px dot (`--ok-500`, `--warn-500`, `--bad-500`). Counts go in `.chip-n`. On ink: translucent white at rest, white when on.
 
-**Segmented control** (`.seg` / `.seg-b`) for any single choice: `--surface-sunken` track, 32px items, the active one `--surface` with `--sh-1`.
+**Segmented control** (`.seg` / `.seg-b`) for any single choice: `--surface-sunken` track, 32px items, the active one `--surface-raised` with `--sh-1`.
 
 **Status badge** (`.badge.ok | .bad | .warn | .neutral`): 22px pill, optional 12px icon, `--type-badge`, the status's soft fill and text color. Words: Correct, Incorrect, Partly. No fixed width.
 
