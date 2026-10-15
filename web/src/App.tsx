@@ -1104,9 +1104,10 @@ export default function App() {
   }, [view, index, items.length, setTitle])
 
   /**
-   * The nav takes a hairline shadow once the page under it has scrolled. The
-   * window never scrolls here: #main does, or Home's own .home inside it, and
-   * scroll does not bubble, hence the capture listener.
+   * The nav takes a hairline shadow once the page under it has scrolled. On a
+   * desktop #main scrolls, or Home's own .home inside it, and scroll does not
+   * bubble, hence the capture listener. On a phone the document scrolls
+   * instead (base.css), which the window hears.
    */
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
@@ -1117,9 +1118,14 @@ export default function App() {
       const el = e.target as Element
       if (el === main || el.classList.contains('home')) setScrolled(read(el))
     }
+    const onWindow = () => setScrolled(window.scrollY > 0)
     main.addEventListener('scroll', onScroll, { capture: true, passive: true })
-    setScrolled(read(main) || read(main.querySelector('.home')))
-    return () => main.removeEventListener('scroll', onScroll, { capture: true })
+    window.addEventListener('scroll', onWindow, { passive: true })
+    setScrolled(window.scrollY > 0 || read(main) || read(main.querySelector('.home')))
+    return () => {
+      main.removeEventListener('scroll', onScroll, { capture: true })
+      window.removeEventListener('scroll', onWindow)
+    }
   }, [view])
 
   /**
@@ -1131,6 +1137,9 @@ export default function App() {
   useEffect(() => {
     if (focusedView.current === view) return
     focusedView.current = view
+    // Where the document scrolls (phones), every view shares one scroll
+    // position: a new one starts at its top, not wherever the last one was.
+    window.scrollTo(0, 0)
     const target = document.querySelector<HTMLElement>('#main h1, #view-title')
       ?? document.getElementById('main')
     target?.focus()

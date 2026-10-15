@@ -6,8 +6,11 @@
    motion, a 12px type floor). A few practice parts read them, and the practice
    screen only changes where the Bluebook polish pass says so, so it keeps the
    values it was matched with. Drop a line here when that pass moves the part. */
+/* Its own viewport height rather than 100% of #root: on a phone the document
+   grows with its content (base.css), and practice still needs a fixed frame
+   for its bars and inner scroller. 100vh first for browsers without dvh. */
 .app {
-  height: 100%; display: flex; flex-direction: column; background: var(--bg);
+  height: 100vh; height: 100dvh; display: flex; flex-direction: column; background: var(--bg);
   --n-500: #6a717b; --n-900: #1c1f23;
   --sh-1: 0 1px 2px rgba(20, 50, 90, .06);
   --sh-2: 0 4px 14px -4px rgba(20, 50, 90, .12);
@@ -15,14 +18,24 @@
   --dur-fast: 140ms; --dur-base: 260ms;
   --fs-2xs: 11px; --fs-md: 14.5px; --fs-2xl: 26px; --fs-3xl: 32px;
   --rad-xl: 20px;
+  /* Nothing belongs outside the frame. A figure's screen-reader table (.sr-only,
+     absolute) escapes its pane's scroll box and made a landscape phone's
+     document scroll under the bars. clip, so the frame never becomes a scroll
+     box itself; hidden for browsers without it. */
+  overflow: hidden;
 }
+@supports (overflow: clip) { .app { overflow: clip; } }
 
 /* Header: pale blue band, title + Directions stacked left, clock centred,
    icon-over-label tools right, dashed rule underneath. */
 .topbar {
   flex: none; min-height: var(--bar);
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-  gap: 16px; padding: 10px 26px; background-color: var(--chrome);
+  gap: 16px; background-color: var(--chrome);
+  /* The notch and the status bar of a home-screen app sit over the page now
+     that it runs under them (viewport-fit=cover); the insets are 0 elsewhere. */
+  padding: calc(10px + env(safe-area-inset-top)) max(26px, env(safe-area-inset-right))
+    10px max(26px, env(safe-area-inset-left));
   background-image: var(--rule);
   background-size: 100% 2px; background-repeat: repeat-x; background-position: left bottom;
 }
@@ -381,7 +394,10 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
 .bottombar {
   flex: none; min-height: var(--bar);
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-  gap: 16px; padding: 10px 26px; background-color: var(--chrome);
+  gap: 16px; background-color: var(--chrome);
+  /* Clear of the home indicator and a landscape notch. */
+  padding: 10px max(26px, env(safe-area-inset-right))
+    calc(10px + env(safe-area-inset-bottom)) max(26px, env(safe-area-inset-left));
   background-image: var(--rule);
   background-size: 100% 2px; background-repeat: repeat-x; background-position: left top;
 }
@@ -405,7 +421,7 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
 /* ---------- directions ---------- */
 .dir-scrim { position: fixed; inset: 0; background: rgba(16,20,30,.3); z-index: 55; }
 .dir-sheet {
-  position: fixed; left: 50%; top: 84px; transform: translateX(-50%);
+  position: fixed; left: 50%; top: calc(var(--bar) + 10px + env(safe-area-inset-top)); transform: translateX(-50%);
   width: min(760px, 92vw); max-height: 70vh; z-index: 56;
   background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-lg);
   display: flex; flex-direction: column; padding: 30px 34px 24px; box-shadow: var(--shadow);
@@ -498,7 +514,11 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
      wrapping under their glyphs. Long set titles ("All questions: Algebra")
      ran under the timer: grid tracks default to min-content, so the ellipsis
      never kicked in without the minmax(0, ...) columns. */
-  .topbar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); padding: 6px 12px; gap: 8px; min-height: 0; }
+  .topbar {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; min-height: 0;
+    padding: calc(6px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+      6px max(12px, env(safe-area-inset-left));
+  }
   .topbar-left { gap: 2px; min-width: 0; max-width: 100%; }
   .section-title { font-size: 14.5px; gap: 2px; min-width: 0; max-width: 100%; }
   .section-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -541,7 +561,11 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
   .choice-main { padding: 11px 13px; -webkit-tap-highlight-color: transparent; }
 
   /* Footer: Back and Next were being pushed off the right edge. */
-  .bottombar { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 8px 12px; }
+  .bottombar {
+    grid-template-columns: minmax(0, 1fr) auto; gap: 8px;
+    padding: 8px max(12px, env(safe-area-inset-right))
+      calc(8px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
   .bottom-left { display: none; }   /* the wordmark is not worth a third of the bar */
   /* No room for both beside the navigator: the phone keeps the next step, and
      the skill button shows only when it is the sole way on. */
@@ -622,6 +646,38 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
    more like this". The arrow already says next. */
 @media (max-width: 389px) {
   .next-word { display: none; }
+}
+
+/* Landscape phones (DS-38) get the desktop layout at 844x390, where two 74px
+   bars left about 240px for the question. 48px bars, a 16px clock beside its
+   Hide button rather than over it, and glyph-only tools, as on a phone. */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root { --bar: 48px; }
+  .topbar {
+    padding: calc(4px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+      4px max(16px, env(safe-area-inset-left));
+  }
+  .bottombar {
+    padding: 4px max(16px, env(safe-area-inset-right))
+      calc(4px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  /* One row per column, or the stacked title, Directions and Hide make the
+     header 93px whatever --bar says. The title truncates (minmax(0, ...)). */
+  .topbar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; }
+  .topbar-left { flex-direction: row; align-items: center; gap: 10px; min-width: 0; }
+  .section-title { font-size: 15px; min-width: 0; }
+  .section-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ghostlink { flex: none; font-size: 13px; }
+  .topbar-center { flex-direction: row; gap: 10px; }
+  .hide-btn { padding: 1px 12px; font-size: 12px; }
+  .topbar-right { align-items: center; }
+  .clock { font-size: 16px; gap: 4px; }
+  .clock svg { width: 15px; height: 15px; }
+  .clock-time { font-size: 15px; }
+  .clock-cap { display: none; }
+  .tool-text { display: none; }
+  .tool-label:not(.has-count) { display: none; }
+  .tool-label.has-count { font-size: 11px; }
 }
 
 /* iOS wraps detected dates and numbers in its own anchors inside the question

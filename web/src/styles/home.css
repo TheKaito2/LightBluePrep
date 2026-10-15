@@ -12,6 +12,11 @@
   display: flex; flex-direction: column;
   background: var(--surface);
 }
+/* The document scrolls here instead (base.css), and html carries the scroll
+   padding. */
+@media (max-width: 819px), (max-height: 500px) and (orientation: landscape) {
+  .home { flex: 1 0 auto; overflow: visible; scroll-padding-bottom: 0; }
+}
 .hwrap { flex: 1 0 auto; width: 100%; max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) var(--sp-12); }
 /* Field and list labels: small, semibold, sentence case. */
 .side-t { margin: 0 0 var(--sp-2); font: 600 13px/18px var(--sans); color: var(--fg-2); }
@@ -326,7 +331,8 @@
   box-shadow: var(--sh-bar);
 }
 .startbar2-in {
-  box-sizing: border-box; max-width: 1160px; min-height: 72px; margin: 0 auto; padding: 12px var(--sp-8);
+  box-sizing: border-box; max-width: 1160px; min-height: 72px; margin: 0 auto;
+  padding: 12px max(var(--sp-8), env(safe-area-inset-right)) 12px max(var(--sp-8), env(safe-area-inset-left));
   display: flex; align-items: center; gap: var(--sp-3);
 }
 .sb-sum { display: flex; flex-direction: column; gap: 2px; min-width: 0; margin-right: auto; }
@@ -433,8 +439,13 @@
   .dcard-t { flex-basis: calc(100% - 30px); }
   .dcard-stat { margin-left: 30px; }
   .dmeter { margin: 0 var(--sp-3); }
+  /* Pinned to the viewport now, so it rides on the fixed tab bar. */
+  .startbar2 { bottom: calc(60px + env(safe-area-inset-bottom)); }
   /* 64px: the title alone, Options as a 40px icon button, Start at md (H-45). */
-  .startbar2-in { min-height: 64px; padding: 8px 12px; gap: var(--sp-2); }
+  .startbar2-in {
+    min-height: 64px; gap: var(--sp-2);
+    padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+  }
   .sb-meta:not(.sb-none) { display: none; }
   .sb-none-long { display: none; }
   .sb-none-short { display: inline; }

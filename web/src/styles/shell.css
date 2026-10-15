@@ -13,6 +13,15 @@
 /* Home's .home is its own scroller; its main only hands the height down. */
 .page.page-home { display: flex; flex-direction: column; overflow: hidden; }
 
+/* Phones and short landscape screens scroll the document instead (DS-35, see
+   base.css), so neither scroller may stay one: an overflow box would also trap
+   the sticky nav and start bar inside it. The shell still fills the screen, so
+   Home's start bar sits at the bottom of a short page. */
+@media (max-width: 819px), (max-height: 500px) and (orientation: landscape) {
+  .shell { height: auto; min-height: 100vh; min-height: 100dvh; }
+  .page, .page.page-home { flex: 1 0 auto; min-height: 0; overflow: visible; }
+}
+
 /* The whole-app crash screen: nothing else is on the page, so centre it. */
 .crash-page { display: flex; align-items: center; justify-content: center; padding: var(--sp-6) var(--sp-4); }
 .empty.crash .fb-link { margin-top: var(--sp-2); }
@@ -75,14 +84,18 @@
    brand and three icon buttons. The DOM order follows the desktop layout; on a
    phone the skip link covers keyboard users. */
 .tabs {
-  position: relative; z-index: 30; flex: none;
+  /* Sticky only matters where the document scrolls (phones); on a desktop the
+     shell is one screen tall and the page scrolls under the nav. */
+  position: sticky; top: 0; z-index: 30; flex: none;
+  padding-top: env(safe-area-inset-top);
   background: var(--surface); border-bottom: 1px solid var(--hair-1);
   transition: box-shadow var(--dur-fast) var(--ease-std);
 }
 /* Set by App once the page under the nav has scrolled. */
 .tabs.scrolled { box-shadow: var(--sh-1); }
 .tabs-inner {
-  max-width: 1160px; margin: 0 auto; padding: 0 var(--sp-8);
+  max-width: 1160px; margin: 0 auto;
+  padding: 0 max(var(--sp-8), env(safe-area-inset-right)) 0 max(var(--sp-8), env(safe-area-inset-left));
   display: flex; align-items: center; height: calc(var(--navh) - 1px);
 }
 
@@ -162,7 +175,7 @@
    re-blurs the page on every scroll frame. */
 @media (max-width: 819px) {
   .shell { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
-  .tabs-inner { padding: 0 var(--sp-2) 0 var(--sp-4); }
+  .tabs-inner { padding: 0 max(var(--sp-2), env(safe-area-inset-right)) 0 max(var(--sp-4), env(safe-area-inset-left)); }
   .brand { margin-right: auto; gap: 8px; }
   .brand .mark { width: 24px; height: 24px; }
   .wordmark { font-size: 18px; }
@@ -187,6 +200,12 @@
   .tab-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
   .tab.on { color: var(--fg-1); font-weight: 700; }
   .tab.on .tab-ico { background: var(--brand-100); color: var(--brand-800); }
+}
+
+/* A landscape phone gets the desktop nav, and 390px is too short to pin it:
+   it scrolls away with the page (DS-38). */
+@media (max-height: 500px) and (orientation: landscape) {
+  .tabs { position: relative; }
 }
 
 /* ============================================================ footer

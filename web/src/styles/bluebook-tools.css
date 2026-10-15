@@ -52,7 +52,7 @@
 /* ---------- navigator ---------- */
 .nav-scrim { position: fixed; inset: 0; background: rgba(16,20,30,.24); z-index: 50; }
 .nav-popup {
-  position: fixed; left: 50%; bottom: calc(var(--bar) + 18px); transform: translateX(-50%);
+  position: fixed; left: 50%; bottom: calc(var(--bar) + 18px + env(safe-area-inset-bottom)); transform: translateX(-50%);
   width: min(720px, 94vw); max-height: 66vh; display: flex; flex-direction: column;
   background: var(--bg); border: 1px solid var(--line);
   border-radius: var(--r-lg); box-shadow: var(--shadow); z-index: 51;
