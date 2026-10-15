@@ -37,9 +37,7 @@
   background: var(--surface-hero); border-bottom: 1px solid var(--brand-200);
 }
 /* A brand-200 line is a glare stripe under the dark hero. */
-@media (prefers-color-scheme: dark) {
-  .hero2 { border-bottom-color: var(--hair-1); }
-}
+:root[data-theme=dark] .hero2 { border-bottom-color: var(--hair-1); }
 .hero2-in {
   max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8);
   display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--sp-12); align-items: center;

@@ -103,5 +103,7 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   service worker), App.tsx split with tests, dark mode outside practice, goal,
   reminders, backup and share card, and sync, quota and privacy hardening in
   the Worker (migration in worker/migrations/).
+- 2026-10-15: Settings, Appearance: System, Light or Dark, saved on this
+  device and applied before the first paint (static pages too).
 
 The full history of changes is in the git log.

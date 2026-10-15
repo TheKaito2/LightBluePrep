@@ -28,6 +28,7 @@ import { isBlank, nowSec, type CellState } from '../lib/sets'
 import { COACH_KEY, getMeta, setMeta } from '../lib/store'
 import { loadProcessTypes, similarTo, typeOf } from '../lib/similar'
 import type { PracticeSetApi } from '../lib/usePracticeSet'
+import { setPracticeOpen } from '../lib/theme'
 import { useQuestionTimer } from '../lib/useTimer'
 import type { Annotation, Filters, GradeResult, Mistake, Question, SetItem, Stats } from '../types'
 
@@ -188,15 +189,10 @@ export function PracticeScreen({
 
   const seconds = useQuestionTimer(current?.id ?? null, question !== null && result === null)
 
-  // Practice stays light in the dark theme, so the phone's browser bar does
-  // too: switch off index.html's dark theme-color tag while practice is open,
-  // which leaves the plain white one.
+  // Practice stays light in the dark theme, so the phone's browser bar does too.
   useEffect(() => {
-    const dark = document.querySelector<HTMLMetaElement>('meta[name="theme-color"][media]')
-    if (!dark) return
-    const media = dark.media
-    dark.media = 'not all'
-    return () => { dark.media = media }
+    setPracticeOpen(true)
+    return () => setPracticeOpen(false)
   }, [])
 
   /** The question the one-time tip is showing on, if any. */

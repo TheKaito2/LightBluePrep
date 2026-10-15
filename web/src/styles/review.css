@@ -153,18 +153,16 @@
    Practice stays light, so the shell maps that palette onto its own dark
    tokens here. --green and --red become text shades, so the filled answer
    bubbles take dark letters instead of white. */
-@media (prefers-color-scheme: dark) {
-  .shell {
-    --ink: var(--fg-1); --ink-2: var(--fg-2); --muted: var(--fg-3);
-    --bg: var(--surface); --bg-soft: var(--surface-subtle);
-    --line: var(--hair-2); --line-2: var(--hair-ctl);
-    --accent: var(--brand-700); --accent-soft: var(--brand-50); --accent-ring: var(--brand-100);
-    --green: var(--ok-700); --green-soft: var(--ok-50);
-    --red: var(--bad-700); --red-soft: var(--bad-50);
-    --yellow-soft: var(--warn-50); --amber-ink: var(--warn-700);
-  }
-  .shell .choice:is(.picked, .is-key, .is-wrongpick) :is(.bubble, .bubble-mark) { color: var(--surface); }
+:root[data-theme=dark] .shell {
+  --ink: var(--fg-1); --ink-2: var(--fg-2); --muted: var(--fg-3);
+  --bg: var(--surface); --bg-soft: var(--surface-subtle);
+  --line: var(--hair-2); --line-2: var(--hair-ctl);
+  --accent: var(--brand-700); --accent-soft: var(--brand-50); --accent-ring: var(--brand-100);
+  --green: var(--ok-700); --green-soft: var(--ok-50);
+  --red: var(--bad-700); --red-soft: var(--bad-50);
+  --yellow-soft: var(--warn-50); --amber-ink: var(--warn-700);
 }
+:root[data-theme=dark] .shell .choice:is(.picked, .is-key, .is-wrongpick) :is(.bubble, .bubble-mark) { color: var(--surface); }
 /* Practice drops answer text to 15.5px on phones to fit the pane; Review has
    the room, so it stays on the type scale. */
 .review-detail .choice-text { font-size: 16px; }

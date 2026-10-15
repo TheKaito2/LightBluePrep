@@ -239,58 +239,56 @@
  * math-700 8.7, ok-700 9.2, bad-700 8.0, warn-700 10.7, streak-700 8.5, all
  * 6.4 or more on every tint. hair-ctl 4.5 (3:1 for controls).
  */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
+:root[data-theme=dark] {
+  color-scheme: dark;
 
-    --brand-50: #0f2133;
-    --brand-100: #10283d;
-    --brand-700: #5cb0ec;
-    --brand-800: #9fd0f4;
+  --brand-50: #0f2133;
+  --brand-100: #10283d;
+  --brand-700: #5cb0ec;
+  --brand-800: #9fd0f4;
 
-    --rw-50: #2a121e;
-    --rw-100: #3a1426;
-    --rw-700: #f08cb6;
+  --rw-50: #2a121e;
+  --rw-100: #3a1426;
+  --rw-700: #f08cb6;
 
-    --math-50: #0d2235;
-    --math-100: #0f2a42;
-    --math-700: #6cbcf2;
+  --math-50: #0d2235;
+  --math-100: #0f2a42;
+  --math-700: #6cbcf2;
 
-    --streak-50: #2e1d0e;
-    --streak-100: #3d250f;
-    --streak-700: #f59e57;
+  --streak-50: #2e1d0e;
+  --streak-100: #3d250f;
+  --streak-700: #f59e57;
 
-    --surface: #12171d;
-    --surface-subtle: #171d24;
-    --surface-sunken: #222a33;
-    --surface-raised: #303a46;
-    --surface-ink: #0a0d11;
-    --surface-ink-2: #1b222b;
-    --scrim: rgba(0, 0, 0, .62);
+  --surface: #12171d;
+  --surface-subtle: #171d24;
+  --surface-sunken: #222a33;
+  --surface-raised: #303a46;
+  --surface-ink: #0a0d11;
+  --surface-ink-2: #1b222b;
+  --scrim: rgba(0, 0, 0, .62);
 
-    --fg-1: #e8ecf1;
-    --fg-2: #c3cad3;
-    --fg-3: #9da6b1;
-    --fg-4: #6f7883;
+  --fg-1: #e8ecf1;
+  --fg-2: #c3cad3;
+  --fg-3: #9da6b1;
+  --fg-4: #6f7883;
 
-    --hair-1: #262e37;
-    --hair-2: #36404b;
-    --hair-ctl: #76808d;
-    --hair-inv: rgba(255, 255, 255, .12);
+  --hair-1: #262e37;
+  --hair-2: #36404b;
+  --hair-ctl: #76808d;
+  --hair-inv: rgba(255, 255, 255, .12);
 
-    --ok-50: #0f2a1c;  --ok-200: #1f5a3a;  --ok-700: #4fd08a;
-    --bad-50: #33141a; --bad-200: #6b2532; --bad-700: #ff8a95;
-    --warn-50: #2e2410; --warn-200: #5c4a1a; --warn-700: #f2c14e;
+  --ok-50: #0f2a1c;  --ok-200: #1f5a3a;  --ok-700: #4fd08a;
+  --bad-50: #33141a; --bad-200: #6b2532; --bad-700: #ff8a95;
+  --warn-50: #2e2410; --warn-200: #5c4a1a; --warn-700: #f2c14e;
 
-    --focus-ring: 0 0 0 3px rgba(92, 176, 236, .3);
+  --focus-ring: 0 0 0 3px rgba(92, 176, 236, .3);
 
-    /* Shadow alone vanishes on a dark page, so each raised layer also gets a
-       faint light edge. */
-    --sh-1: 0 1px 2px rgba(0, 0, 0, .4);
-    --sh-2: 0 0 0 1px rgba(255, 255, 255, .06), 0 8px 24px -6px rgba(0, 0, 0, .55);
-    --sh-3: 0 0 0 1px rgba(255, 255, 255, .08), 0 24px 64px -12px rgba(0, 0, 0, .7);
-    --sh-bar: 0 -8px 24px -12px rgba(0, 0, 0, .7);
-  }
+  /* Shadow alone vanishes on a dark page, so each raised layer also gets a
+     faint light edge. */
+  --sh-1: 0 1px 2px rgba(0, 0, 0, .4);
+  --sh-2: 0 0 0 1px rgba(255, 255, 255, .06), 0 8px 24px -6px rgba(0, 0, 0, .55);
+  --sh-3: 0 0 0 1px rgba(255, 255, 255, .08), 0 24px 64px -12px rgba(0, 0, 0, .7);
+  --sh-bar: 0 -8px 24px -12px rgba(0, 0, 0, .7);
 }
 
 /*

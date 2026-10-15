@@ -91,23 +91,21 @@
 }
 
 /* Dark theme: the app's dark values (tokens.css), the subset used here. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --brand-50: #0f2133; --brand-100: #10283d; --brand-700: #5cb0ec; --brand-800: #9fd0f4;
-    --rw-50: #2a121e; --rw-100: #3a1426; --rw-700: #f08cb6;
-    --math-50: #0d2235; --math-100: #0f2a42; --math-700: #6cbcf2;
-    --surface: #12171d;
-    --surface-subtle: #171d24;
-    --surface-sunken: #222a33;
-    --fg-1: #e8ecf1;
-    --fg-2: #c3cad3;
-    --fg-3: #9da6b1;
-    --fg-4: #6f7883;
-    --hair-1: #262e37;
-    --hair-2: #36404b;
-    --hair-ctl: #76808d;
-  }
+:root[data-theme=dark] {
+  color-scheme: dark;
+  --brand-50: #0f2133; --brand-100: #10283d; --brand-700: #5cb0ec; --brand-800: #9fd0f4;
+  --rw-50: #2a121e; --rw-100: #3a1426; --rw-700: #f08cb6;
+  --math-50: #0d2235; --math-100: #0f2a42; --math-700: #6cbcf2;
+  --surface: #12171d;
+  --surface-subtle: #171d24;
+  --surface-sunken: #222a33;
+  --fg-1: #e8ecf1;
+  --fg-2: #c3cad3;
+  --fg-3: #9da6b1;
+  --fg-4: #6f7883;
+  --hair-1: #262e37;
+  --hair-2: #36404b;
+  --hair-ctl: #76808d;
 }
 @media (max-width: 819px) {
   :root {

@@ -22,6 +22,11 @@ import './styles/stats.css'
 import './styles/pages.css'
 import './styles/account.css'
 import { loadBeacon } from './lib/usage'
+import { applyTheme } from './lib/theme'
+
+// The head's inline line already set data-theme; this keeps it in step from
+// here on (System follows the device live).
+applyTheme()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

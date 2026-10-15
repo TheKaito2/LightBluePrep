@@ -7,11 +7,14 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#12171d" />
     <meta name="theme-color" content="#ffffff" />
+    <!-- Light or dark before the first paint: Settings' choice, else the device's.
+         Byte-identical in index.html, privacy.html, 404.html and the skill pages
+         (scripts/skill_pages.py): its sha256 is in public/_headers. -->
+    <script>(function(){var t;try{t=localStorage.getItem('lbp.theme')}catch(e){}if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.setAttribute('data-theme',t);if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content','#12171d')}})()</script>
     <meta name="robots" content="noindex" />
     <!-- Served by Cloudflare Pages for any path that doesn't exist. Static:
-         no scripts (the CSP blocks inline ones anyway). Every URL is absolute
+         no scripts but the theme line above (its hash is in the CSP). Every URL is absolute
          because this page answers at any depth. Styles are in static.css. -->
     <link rel="stylesheet" href="/static.css" />
   </head>

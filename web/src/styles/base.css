@@ -73,9 +73,7 @@ body {
 body.dragging { cursor: col-resize; user-select: none; }
 /* Dark theme: the page behind the shell, and a phone's overscroll, go dark
    with it. Practice (.app) keeps Bluebook's white. */
-@media (prefers-color-scheme: dark) {
-  body:has(.shell) { background: var(--surface); }
-}
+:root[data-theme=dark] body:has(.shell) { background: var(--surface); }
 
 /* Phones (and short landscape screens): the document scrolls, not a div inside
    it. Mobile browsers only collapse their URL bar, and only scroll to the top

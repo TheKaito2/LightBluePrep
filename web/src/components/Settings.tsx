@@ -27,9 +27,17 @@ import { saveBlob } from '../lib/share'
 import { countdown, targetLine, useGoal } from '../lib/goal'
 import { GoalDialog } from './GoalDialog'
 import { ReminderDialog } from './ReminderDialog'
+import { Segmented } from './Segmented'
+import { setThemeChoice, themeChoice, type ThemeChoice } from '../lib/theme'
 
 type Summary = Awaited<ReturnType<NonNullable<typeof api.localDataSummary>>>
 type Action = 'local' | 'both' | 'cloud'
+
+const THEMES: { value: ThemeChoice; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+]
 
 const DONE: Record<Action, string> = {
   local: 'Deleted from this device.',
@@ -63,6 +71,8 @@ function describe(s: Summary): string {
 }
 
 export function Settings() {
+  const [theme, setTheme] = useState<ThemeChoice>(themeChoice)
+  const pickTheme = (next: ThemeChoice) => { setThemeChoice(next); setTheme(next) }
   const [summary, setSummary] = useState<Summary | null>(null)
   const [confirm, setConfirm] = useState<'local' | 'cloud' | null>(null)
   /** Signed in, whether the local delete also takes the server copy. */
@@ -193,8 +203,13 @@ export function Settings() {
 
   return (
     <>
-      <PageHead tone="grey" title="Settings" sub="Your goal and reminder, and the data saved on this device." />
+      <PageHead tone="grey" title="Settings" sub="How the site looks, your goal and reminder, and the data saved on this device." />
       <div className="settings">
+        <section className="settings-sec" aria-labelledby="settings-look">
+          <h2 className="about-h2" id="settings-look">Appearance</h2>
+          <Segmented legend="Theme" hideLegend value={theme} onChange={pickTheme} options={THEMES}
+                     hint="System matches your device. Practice questions always stay light, like Bluebook." />
+        </section>
         <section className="settings-sec" aria-labelledby="settings-local">
           <h2 className="about-h2" id="settings-local">On this device</h2>
           {api.deleteLocalData ? (

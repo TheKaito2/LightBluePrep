@@ -434,9 +434,7 @@
 .seg-b.on { background: var(--surface-raised); color: var(--fg-1); box-shadow: var(--sh-1); }
 .seg-b:is(.sec-RW, .sec-MATH) svg { color: var(--sec-600); }
 /* Dark theme: the -600 icons drop under 3:1 on the raised segment. */
-@media (prefers-color-scheme: dark) {
-  .seg-b:is(.sec-RW, .sec-MATH) svg { color: var(--sec-500); }
-}
+:root[data-theme=dark] .seg-b:is(.sec-RW, .sec-MATH) svg { color: var(--sec-500); }
 .seg-n { font-weight: 500; color: var(--fg-3); }
 :is(.tone-ink, .startbar2) .seg { background: var(--surface-ink-2); }
 :is(.tone-ink, .startbar2) .seg-b { color: var(--fg-inv-2); }
