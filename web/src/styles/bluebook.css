@@ -406,8 +406,14 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
 .bottom-mid { display: flex; justify-content: center; }
 .bottom-right { display: flex; gap: 12px; justify-content: flex-end; min-width: 0; }
 /* A lone question's way on. Skill names run to 80 characters, so the skill
-   button truncates and carries the full name in its title. */
-.bottom-more { min-width: 0; max-width: 300px; }
+   button takes whatever room the bar has left and truncates only past that,
+   carrying the full name in its title. Next keeps its own width. */
+.bottom-right > .btn:has(.btn-trunc) { min-width: 0; }
+.bottom-right > .btn:not(:has(.btn-trunc)) { flex: none; }
+/* Below desktop width a third of the bar holds Next and only a sliver of the
+   skill name, which then ran under the navigator. Keep the next step; the skill
+   button shows only when it is the sole way on. */
+@media (max-width: 1149px) { .app .btn.bottom-more { display: none; } }
 .btn-trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .navbtn {
   display: inline-flex; align-items: center; gap: 9px;
@@ -567,9 +573,6 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
       calc(8px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
   }
   .bottom-left { display: none; }   /* the wordmark is not worth a third of the bar */
-  /* No room for both beside the navigator: the phone keeps the next step, and
-     the skill button shows only when it is the sole way on. */
-  .app .btn.bottom-more { display: none; }
   .bottom-right .btn { white-space: nowrap; }
   .bottom-mid { justify-content: flex-start; min-width: 0; }
   /* 44px tall for a thumb, at the 14px the bar can still fit at 360px. */
