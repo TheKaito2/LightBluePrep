@@ -121,6 +121,15 @@
    into the right half instead of hiding underneath it. */
 .main.is-split-tool > .qview { margin-left: var(--tool-split, 50%); }
 .placeholder { margin: auto; color: var(--muted); }
+/* A question still loading after 250ms (P-67): the panes it will fill, using
+   the shared flat .skel pulse (home.css) so it settles where the text lands. */
+.qskel-split { grid-template-columns: minmax(0, 1fr) 4px minmax(0, 1fr); }
+.qskel-divider { background: var(--divider); }
+/* Two classes each: home.css loads later and its .skel sets a 14px height. */
+.skel.qskel-passage { height: 320px; }
+.skel.qskel-stem { width: 92%; height: 16px; margin: 6px 0 12px; }
+.skel.qskel-stem.short { width: 58%; margin-bottom: 8px; }
+.skel.qskel-choice { height: 56px; margin-top: 12px; border-radius: var(--r-md); }
 .qview { flex: 1; min-width: 0; display: flex; }
 .split { flex: 1; display: grid; min-width: 0; }
 .single { flex: 1; display: flex; justify-content: center; min-width: 0; }
@@ -509,7 +518,12 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
      sense side by side and are horrible stacked, because the passage traps the
      scroll before you reach the choices. */
   .qview { overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  .split.stacked { grid-template-columns: minmax(0, 1fr); }
+  .split.stacked, .qskel-split { grid-template-columns: minmax(0, 1fr); }
+  .qskel-divider { display: none; }
+  .skel.qskel-passage { height: 160px; }
+  /* Rows to their content, or the grid stretches them down the screen. */
+  .qskel-split { align-content: start; }
+  .qskel-split > .pane:first-child { padding-bottom: 0; }
   .split.stacked .pane-stimulus {
     padding-bottom: 18px; margin-bottom: 2px;
     border-bottom: 1px solid var(--line-2);

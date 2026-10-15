@@ -42,10 +42,16 @@ export function useQuestionTimer(key: string | null, running: boolean) {
 
     // Rounded before it is stored, so the four ticks a second that land on
     // the same whole second leave state alone and the practice screen (and an
-    // open navigator) re-renders once a second rather than four times.
+    // open navigator) re-renders once a second rather than four times. Same
+    // values are skipped here too: React answers the first repeat after a
+    // change with one more render and commit of the whole app before bailing.
+    let shown = -1
     const tick = window.setInterval(() => {
       const live = since.current === null ? 0 : (Date.now() - since.current) / 1000
-      setSeconds(Math.round(accumulated.current + live))
+      const next = Math.round(accumulated.current + live)
+      if (next === shown) return
+      shown = next
+      setSeconds(next)
     }, 250)
 
     return () => {

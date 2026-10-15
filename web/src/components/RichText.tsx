@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useMemo, useRef } from 'react'
 import { annotationIdAt, applyHighlights, selectionToOffsets } from '../lib/ranges'
 import { typeset } from '../lib/mathjax'
 import { sanitize } from '../lib/sanitize'
@@ -46,6 +46,13 @@ function wrapTables(host: HTMLElement): void {
     wrap.appendChild(table)
   }
 }
+
+/**
+ * The default when a caller has no highlights. One shared array rather than a
+ * fresh `[]` per render, which the effect below took as a change and answered
+ * by rebuilding the text and typesetting its maths again (PF-10).
+ */
+const NO_ANNOTATIONS: Annotation[] = []
 
 /** Narrower than this, an image or SVG is an inline glyph or an answer-choice thumbnail. */
 const FIGURE_MIN = 120
@@ -107,10 +114,13 @@ function markFigures(host: HTMLElement): void {
  * cannot move a highlight.
  */
 export function RichText({
-  html, field, annotations = [], onSelect, onAnnotationClick, className,
+  html, field, annotations = NO_ANNOTATIONS, onSelect, onAnnotationClick, className,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const noteIdPrefix = useId()
+  // Recomputed only when the highlights or the field change, so a parent
+  // re-render (a mistake tag clicked under the explanation) rebuilds nothing.
+  const own = useMemo(() => annotations.filter((a) => a.field === field), [annotations, field])
 
   useEffect(() => {
     const host = ref.current
@@ -125,11 +135,11 @@ export function RichText({
     host.replaceChildren(sanitize(html))
     wrapTables(host)
     markFigures(host)
-    applyHighlights(host, annotations.filter((a) => a.field === field), noteIdPrefix)
+    applyHighlights(host, own, noteIdPrefix)
     let current = true
     void typeset(host).then(() => { if (current) host.dataset.typeset = '' })
     return () => { current = false }
-  }, [html, field, annotations, noteIdPrefix])
+  }, [html, own, noteIdPrefix])
 
   const lastReported = useRef('')
 

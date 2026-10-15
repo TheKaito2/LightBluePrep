@@ -120,6 +120,15 @@ function TimerHidden() {
   )
 }
 
+/** The loading question's stem and four answer rows (styles/bluebook.css). */
+const qskelChoices = (
+  <>
+    <span className="skel qskel-stem" />
+    <span className="skel qskel-stem short" />
+    {[0, 1, 2, 3].map((i) => <span key={i} className="skel qskel-choice" />)}
+  </>
+)
+
 /** Move focus to an in-page target without letting the hash reach the router. */
 function skipTo(id: string) {
   return (event: React.MouseEvent) => {
@@ -269,6 +278,12 @@ export default function App() {
   const [reloadKey, setReloadKey] = useState(0)
   const reload = useCallback(() => setReloadKey((n) => n + 1), [])
   const [loading, setLoading] = useState(false)
+  /**
+   * Set once a question load has run past 250ms. Most loads come from the
+   * prefetch cache well inside that, and flashing a placeholder for them made
+   * the panes collapse and re-open on every Next (P-67).
+   */
+  const [slowLoad, setSlowLoad] = useState(false)
 
   const current = items[index] ?? null
   const practising = view === 'practice'
@@ -523,7 +538,10 @@ export default function App() {
   useEffect(() => {
     if (!practising || !current) { setQuestion(null); return }
     let stale = false
-    setLoading(true)
+    setLoading(true); setSlowLoad(false)
+    const slow = window.setTimeout(() => setSlowLoad(true), 250)
+    // The old question goes at once rather than staying up until this one
+    // lands: its response, cross-outs and highlights are already reset below.
     setQuestion(null); setResult(null)
     // Inside a set the answer is held rather than submitted, so coming back to
     // a question has to put the choice back.
@@ -542,8 +560,12 @@ export default function App() {
           .flatMap((i) => (i ? [i.id] : [])))
       })
       .catch((e: Error) => !stale && fail(e, reload))
-      .finally(() => { if (!stale) setLoading(false) })
-    return () => { stale = true }
+      .finally(() => {
+        if (stale) return
+        window.clearTimeout(slow)
+        setLoading(false)
+      })
+    return () => { stale = true; window.clearTimeout(slow) }
   }, [current?.id, practising, reloadKey, fail, reload])
 
   /** Reload the queue of unfinished sets shown on Home. */
@@ -1414,7 +1436,24 @@ export default function App() {
             style={desmosSplit === null
               ? undefined
               : ({ '--tool-split': `${desmosSplit}%` } as React.CSSProperties)}>
-        {loading ? <div className="placeholder">Loading question…</div> : null}
+        {loading && slowLoad ? (
+          // Bluebook's own layout, flat and pulsing: the passage pane beside
+          // the question for Reading and Writing, one column for Math.
+          <div className="qview" aria-busy="true">
+            <span className="sr-only" role="status">Loading the question</span>
+            {current?.section === 'RW' ? (
+              <div className="split qskel-split">
+                <div className="pane"><div className="prompt"><span className="skel qskel-passage" /></div></div>
+                <div className="qskel-divider" />
+                <div className="pane"><div className="prompt">{qskelChoices}</div></div>
+              </div>
+            ) : (
+              <div className="single">
+                <div className="pane"><div className="prompt">{qskelChoices}</div></div>
+              </div>
+            )}
+          </div>
+        ) : null}
         {!loading && !current ? (
           <div className="placeholder">No questions match these filters.</div>
         ) : null}
