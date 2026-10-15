@@ -40,9 +40,12 @@ export function useQuestionTimer(key: string | null, running: boolean) {
     const onVisibility = () => (document.visibilityState === 'visible' ? resume() : pause())
     document.addEventListener('visibilitychange', onVisibility)
 
+    // Rounded before it is stored, so the four ticks a second that land on
+    // the same whole second leave state alone and the practice screen (and an
+    // open navigator) re-renders once a second rather than four times.
     const tick = window.setInterval(() => {
       const live = since.current === null ? 0 : (Date.now() - since.current) / 1000
-      setSeconds(accumulated.current + live)
+      setSeconds(Math.round(accumulated.current + live))
     }, 250)
 
     return () => {

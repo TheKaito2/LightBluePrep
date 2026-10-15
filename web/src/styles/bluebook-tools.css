@@ -73,11 +73,14 @@
   border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
 }
 .nav-legend span { display: inline-flex; align-items: center; gap: 7px; }
-.key { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+.key {
+  width: 14px; height: 14px; border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center; color: #fff;
+}
 .key-unanswered { border: 1px dashed var(--line-2); background: var(--bg); }
 .key-answered { background: var(--accent-soft); border: 1px solid var(--accent-ring); }
 .key-first { background: var(--green); }
-.key-retry { background: var(--yellow); }
+.key-retry { background: var(--yellow); color: #3a2c00; }
 .key-wrong { background: var(--red); }
 .key-marked {
   position: relative; background: var(--bg); border: 1px solid var(--line-2);
@@ -93,7 +96,8 @@
   gap: 9px; padding: 20px; overflow-y: auto;
 }
 .nav-cell {
-  position: relative; height: 40px; border-radius: var(--r-sm);
+  position: relative; height: 40px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 3px; border-radius: var(--r-sm);
   font-size: 14px; font-weight: 550; font-variant-numeric: tabular-nums;
   cursor: pointer; background: var(--bg); border: 1px dashed var(--line-2);
   color: var(--ink-2);
@@ -130,6 +134,26 @@
    a folded corner. At the size these cells actually render it just looked like
    a stray artifact hanging off the ribbon, outside the cell border. The ribbon
    alone reads fine. */
+.nav-cell-glyph { flex: none; }
+
+/* Open practice over every topic: one page of 100 cells at a time. */
+.nav-pager {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 20px 0;
+}
+.nav-pager .btn { white-space: nowrap; }
+.nav-range { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nav-goto {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--ink-2);
+}
+/* 16px so a phone does not zoom in when it takes focus. */
+.nav-goto input, .nav-goto .btn { box-sizing: border-box; height: 34px; }
+.nav-goto input {
+  width: 92px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: var(--r-sm);
+  font: inherit; font-size: 16px; font-weight: 400; color: var(--ink); background: var(--bg);
+}
+.nav-goto input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .nav-foot {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   padding: 0 20px 18px; text-align: center; color: var(--muted); font-size: 12.5px;
@@ -245,6 +269,9 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
 
 @media (max-width: 819px) {
   .nav-grid { grid-template-columns: repeat(6, 1fr); }
+  .nav-pager { gap: 6px; padding: 12px 14px 0; }
+  .app .nav-pager .btn.small { padding: 6px 10px; gap: 4px; }
+  .nav-range { font-size: 12px; }
   /* Panels that assumed a wide viewport. */
   .notes-panel { width: min(400px, 100vw); }
   .nav-popup { width: min(720px, 96vw); max-height: 60vh; }
@@ -285,9 +312,10 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
   background-repeat: repeat-x; background-position: left bottom;
 }
 .setreview-clock {
+  display: inline-flex; align-items: center; gap: 5px;
   font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
-.setreview-clock.is-low { color: var(--red); }
+.setreview-clock.is-low { color: var(--red); font-weight: 800; }
 .setreview-body { flex: 1; max-width: 760px; margin: 0 auto; padding: 40px 24px 80px; width: 100%; }
 .setreview-h { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 6px; text-align: center; }
 .setreview-sub { font-size: 14px; color: var(--muted); margin: 0 0 26px; text-align: center; }

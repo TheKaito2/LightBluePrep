@@ -79,6 +79,19 @@ const FIRST_SIZE = 10
 /** index.html's own title, which Home goes back to. */
 const HOME_TITLE = document.title
 
+/** '0' when the student hid the practice clock; anything else shows it. */
+const SHOW_TIMER_KEY = 'lbp.showTimer'
+
+/** A hidden clock: a glyph rather than "···", which looked like loading. */
+function TimerHidden() {
+  return (
+    <>
+      <Icon name="clock" size={22} strokeWidth={2} />
+      <span className="sr-only">Timer hidden</span>
+    </>
+  )
+}
+
 /** Move focus to an in-page target without letting the hash reach the router. */
 function skipTo(id: string) {
   return (event: React.MouseEvent) => {
@@ -184,12 +197,29 @@ export default function App() {
   }, [view])
 
   const [showNavigator, setShowNavigator] = useState(false)
+  // Stable, so the memoised Navigator skips the clock's re-renders.
+  const closeNavigator = useCallback(() => setShowNavigator(false), [])
+  const openReviewPage = useCallback(() => { setShowNavigator(false); setShowSetReview(true) }, [])
   const [showNotes, setShowNotes] = useState(false)
   const [showReference, setShowReference] = useState(false)
   const closeReference = useCallback(() => setShowReference(false), [])
   const [mistake, setMistake] = useState<Mistake | null>(null)
   const [showDirections, setShowDirections] = useState(false)
-  const [showTimer, setShowTimer] = useState(true)
+  /** Remembered across visits: someone who hides the clock wants it hidden next time too. */
+  const [showTimer, setShowTimer] = useState(() => {
+    try { return localStorage.getItem(SHOW_TIMER_KEY) !== '0' } catch { return true }
+  })
+  const toggleTimer = useCallback(() => setShowTimer((shown) => {
+    try { localStorage.setItem(SHOW_TIMER_KEY, shown ? '0' : '1') } catch { /* blocked: lasts for this tab */ }
+    return !shown
+  }), [])
+  /**
+   * The five-minute and one-minute warnings. Bluebook shows a hidden clock at
+   * five minutes, since a set that ends without warning reads as a crash.
+   * `warning` is the visible pill, `spoken` the screen reader announcement.
+   */
+  const [warning, setWarning] = useState(false)
+  const [spoken, setSpoken] = useState('')
   const [showDesmos, setShowDesmos] = useState(false)
   const [desmosSplit, setDesmosSplit] = useState<number | null>(null)
   const [error, setError] = useState<{ message: string; retry?: () => void } | null>(null)
@@ -681,6 +711,27 @@ export default function App() {
     if (remaining === 0 && activeSet) void finishSet()
   }, [remaining, activeSet, finishSet])
 
+  // Crossing a threshold, not landing on it: a backgrounded tab can skip
+  // straight past 300. A set resumed with less than that left says nothing,
+  // since nothing was crossed.
+  const lastRemaining = useRef<number | null>(null)
+  useEffect(() => {
+    const before = lastRemaining.current
+    lastRemaining.current = remaining
+    if (before === null || remaining === null) return
+    if (before > 300 && remaining <= 300 && remaining > 60) {
+      setShowTimer(true); setWarning(true); setSpoken('5 minutes remaining')
+    } else if (before > 60 && remaining <= 60 && remaining > 0) {
+      setSpoken('1 minute remaining')
+    }
+  }, [remaining])
+  useEffect(() => {
+    if (!warning) return
+    const t = setTimeout(() => setWarning(false), 5000)
+    return () => clearTimeout(t)
+  }, [warning])
+  useEffect(() => { if (!practising) { setWarning(false); setSpoken('') } }, [practising])
+
   /** Open a finished set's score screen from the review page. */
   const showSet = useCallback(async (id: string) => {
     try {
@@ -760,9 +811,12 @@ export default function App() {
     // Bank the time on the question on screen before the set is dropped; the
     // interval flush only runs every few seconds.
     commitElapsed(seconds)
+    // Every answer in a set is already saved as it is given; say so, or
+    // leaving mid-set looks like throwing the set away.
+    if (activeSetRef.current) toast('Set saved. Resume it from Practice.', { tone: 'ok' })
     if (history.state?.view === 'practice') history.back()
     else navigate('home')
-  }, [commitElapsed, seconds, navigate])
+  }, [commitElapsed, seconds, navigate, toast])
 
   /**
    * Bank the clock as the set runs, not only when an answer is given.
@@ -1127,7 +1181,8 @@ export default function App() {
       <header className="topbar">
         <div className="topbar-left">
           <div className="section-title">
-            <button className="backbtn" title="Go back" aria-label="Go back"
+            <button className="backbtn" title={activeSet ? 'Save and exit' : 'Go back'}
+                    aria-label={activeSet ? 'Save and exit' : 'Go back'}
                     onClick={leavePractice}>
               <Icon name="chevron-left" size={18} strokeWidth={2.2} />
             </button>
@@ -1145,17 +1200,39 @@ export default function App() {
 
         <div className="topbar-center">
           {/* A timed set counts the whole set down, the way a module does on the
-              day. Untimed practice keeps the per-question stopwatch it had. */}
-          <div className={
-            (showTimer ? 'clock' : 'clock is-hidden')
-            + (remaining !== null && remaining <= 60 ? ' is-low' : '')
-          }>
-            {!showTimer ? '···'
-              : formatClock(remaining ?? seconds)}
-          </div>
-          <button className="hide-btn" onClick={() => setShowTimer((v) => !v)}>
+              day. Untimed practice keeps the per-question stopwatch it had,
+              smaller and grey with a caption, so it does not read as a deadline. */}
+          {remaining !== null ? (
+            <div role="timer" aria-label="Time remaining"
+                 className={'clock' + (showTimer ? '' : ' is-hidden') + (remaining <= 60 ? ' is-low' : '')}>
+              {!showTimer ? <TimerHidden /> : (
+                <>
+                  {remaining <= 60 ? <Icon name="clock" size={22} strokeWidth={2.4} /> : null}
+                  {formatClock(remaining)}
+                </>
+              )}
+            </div>
+          ) : (
+            <div role="timer" aria-label="Time on this question"
+                 className={'clock is-stopwatch' + (showTimer ? '' : ' is-hidden')}>
+              {!showTimer ? <TimerHidden /> : (
+                <>
+                  <span className="clock-time">{formatClock(seconds)}</span>
+                  <span className="clock-cap" aria-hidden="true">this question</span>
+                </>
+              )}
+            </div>
+          )}
+          <button className="hide-btn" onClick={toggleTimer}>
             {showTimer ? 'Hide' : 'Show'}
           </button>
+          {warning ? (
+            <div className="clock-warn" aria-hidden="true">
+              <Icon name="clock" size={15} strokeWidth={2.2} />
+              5 minutes left
+            </div>
+          ) : null}
+          <div className="sr-only" role="status">{spoken}</div>
         </div>
 
         <div className="topbar-right">
@@ -1347,12 +1424,10 @@ export default function App() {
 
       {showNavigator ? (
         <Navigator items={items} current={index} title={setTitle}
-                   onGo={go} onClose={() => setShowNavigator(false)}
+                   onGo={go} onClose={closeNavigator}
                    states={setStates}
                    complete={setComplete}
-                   onReviewPage={activeSet ? () => {
-                     setShowNavigator(false); setShowSetReview(true)
-                   } : undefined} />
+                   onReviewPage={activeSet ? openReviewPage : undefined} />
       ) : null}
 
       {showSetReview && activeSet ? (

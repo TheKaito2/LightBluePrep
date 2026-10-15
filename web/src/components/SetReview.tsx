@@ -13,8 +13,8 @@
  */
 import type { ReactNode } from 'react'
 import { Icon } from './Icon'
-import { cellState, type CellState } from './Navigator'
-import { DIFFICULTY_NAME, VERDICT, fmt, plural } from '../lib/labels'
+import { NavCell, cellState, type CellState } from './Navigator'
+import { VERDICT, fmt, plural } from '../lib/labels'
 import type { SetItem } from '../types'
 
 interface Props {
@@ -50,8 +50,14 @@ export function SetReview({
           Back to question {current + 1}
         </button>
         {clock ? (
-          <span className={remaining !== null && remaining <= 60
-            ? 'setreview-clock is-low' : 'setreview-clock'}>{clock}</span>
+          // The last minute is bold with a clock glyph as well as red, so it
+          // does not rely on colour alone.
+          <span role="timer" aria-label="Time remaining"
+                className={remaining !== null && remaining <= 60
+                  ? 'setreview-clock is-low' : 'setreview-clock'}>
+            {remaining !== null && remaining <= 60 ? <Icon name="clock" size={17} strokeWidth={2.4} /> : null}
+            {clock}
+          </span>
         ) : null}
       </header>
       {banner}
@@ -72,16 +78,8 @@ export function SetReview({
 
         <div className="nav-grid setreview-grid">
           {items.map((item, i) => (
-            <button
-              key={item.id}
-              className={`nav-cell is-${stateAt(i)}`
-                + (i === current ? ' is-current' : '')
-                + (item.flagged ? ' is-flagged' : '')}
-              onClick={() => { onGo(i); onClose() }}
-              title={`${item.skill_name} · ${DIFFICULTY_NAME[item.difficulty]}`}
-            >
-              {i + 1}
-            </button>
+            <NavCell key={item.id} item={item} index={i} state={stateAt(i)}
+                     isCurrent={i === current} onPick={(n) => { onGo(n); onClose() }} />
           ))}
         </div>
 

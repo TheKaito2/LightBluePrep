@@ -1,5 +1,6 @@
+import { memo, useState, type FormEvent } from 'react'
 import { Icon } from './Icon'
-import { DIFFICULTY_NAME, VERDICT, plural } from '../lib/labels'
+import { DIFFICULTY_NAME, VERDICT, fmt, plural } from '../lib/labels'
 import type { SetItem } from '../types'
 
 interface Props {
@@ -37,9 +38,73 @@ export function cellState(item: SetItem): CellState {
   return attempts > 1 ? 'retry' : 'first'
 }
 
-export function Navigator({
+const SPOKEN: Record<CellState, string> = {
+  unanswered: VERDICT.unanswered,
+  answered: 'answered',
+  first: VERDICT.correct,
+  retry: VERDICT.retry,
+  wrong: VERDICT.incorrect,
+}
+
+/** What a cell says to a screen reader: "Question 7, incorrect, marked for review". */
+export function cellLabel(index: number, state: CellState, flagged: boolean) {
+  return `Question ${index + 1}, ${SPOKEN[state].toLowerCase()}${flagged ? ', marked for review' : ''}`
+}
+
+/**
+ * One numbered cell, shared by the navigator and the set's review page.
+ *
+ * The verdict colours alone fail anyone who cannot tell green from red, so a
+ * graded cell also carries a tick or a cross. A set's cells are never graded,
+ * so they never get one.
+ */
+export function NavCell({ item, index, state, isCurrent, onPick }: {
+  item: SetItem; index: number; state: CellState; isCurrent: boolean; onPick: (index: number) => void
+}) {
+  const glyph = state === 'wrong' ? 'close' : state === 'first' || state === 'retry' ? 'check' : null
+  return (
+    <button
+      className={`nav-cell is-${state}${isCurrent ? ' is-current' : ''}${item.flagged ? ' is-flagged' : ''}`}
+      onClick={() => onPick(index)}
+      aria-label={cellLabel(index, state, Boolean(item.flagged))}
+      aria-current={isCurrent ? 'step' : undefined}
+      title={`${item.skill_name} · ${DIFFICULTY_NAME[item.difficulty]}`}
+    >
+      {glyph ? <Icon name={glyph} size={12} strokeWidth={3} className="nav-cell-glyph" /> : null}
+      {index + 1}
+    </button>
+  )
+}
+
+/**
+ * Cells per page. Open practice over every topic is 3,767 questions, and
+ * rendering all of them took 1.7s to open at 4x CPU throttling. A page of 100
+ * is still more than any set and opens at once.
+ */
+export const PAGE = 100
+
+/**
+ * Memoised because App re-renders on every tick of the question clock; with
+ * stable props from App the open grid is left alone between ticks.
+ */
+export const Navigator = memo(function Navigator({
   items, current, title, onGo, onClose, onReviewPage, states, complete,
 }: Props) {
+  const paged = items.length > PAGE
+  const [page, setPage] = useState(() => Math.floor(current / PAGE))
+  const [target, setTarget] = useState('')
+  const pages = Math.ceil(items.length / PAGE)
+  const start = paged ? page * PAGE : 0
+  const shown = paged ? items.slice(start, start + PAGE) : items
+  const pick = (index: number) => { onGo(index); onClose() }
+
+  const jump = (event: FormEvent) => {
+    event.preventDefault()
+    const n = Number(target)
+    if (!Number.isInteger(n) || n < 1 || n > items.length) return
+    pick(n - 1)
+  }
+
   return (
     <>
       <div className="nav-scrim" onClick={onClose} />
@@ -59,27 +124,39 @@ export function Navigator({
             <span><i className="key key-answered" /> Answered</span>
           ) : (
             <>
-              <span><i className="key key-first" /> Correct first try</span>
-              <span><i className="key key-retry" /> {VERDICT.retry}</span>
-              <span><i className="key key-wrong" /> {VERDICT.incorrect}</span>
+              <span><i className="key key-first"><Icon name="check" size={10} strokeWidth={3.4} /></i> Correct first try</span>
+              <span><i className="key key-retry"><Icon name="check" size={10} strokeWidth={3.4} /></i> {VERDICT.retry}</span>
+              <span><i className="key key-wrong"><Icon name="close" size={10} strokeWidth={3.4} /></i> {VERDICT.incorrect}</span>
             </>
           )}
           <span><i className="key key-marked" /> Marked</span>
         </div>
 
-        <div className="nav-grid">
-          {items.map((item, index) => (
-            <button
-              key={item.id}
-              className={`nav-cell is-${states?.[index] ?? cellState(item)}`
-                + (index === current ? ' is-current' : '')
-                + (item.flagged ? ' is-flagged' : '')}
-              onClick={() => { onGo(index); onClose() }}
-              title={`${item.skill_name} · ${DIFFICULTY_NAME[item.difficulty]}`}
-            >
-              {index + 1}
+        {paged ? (
+          <div className="nav-pager">
+            <button className="btn small" onClick={() => setPage(page - 1)} disabled={page <= 0}>
+              <Icon name="chevron-left" size={15} strokeWidth={2.2} />
+              Previous 100
             </button>
-          ))}
+            <span className="nav-range" aria-live="polite">
+              {fmt(start + 1)}–{fmt(start + shown.length)} of {fmt(items.length)}
+            </span>
+            <button className="btn small" onClick={() => setPage(page + 1)} disabled={page >= pages - 1}>
+              Next 100
+              <Icon name="chevron-right" size={15} strokeWidth={2.2} />
+            </button>
+          </div>
+        ) : null}
+
+        <div className="nav-grid">
+          {shown.map((item, i) => {
+            const index = start + i
+            return (
+              <NavCell key={item.id} item={item} index={index}
+                       state={states?.[index] ?? cellState(item)}
+                       isCurrent={index === current} onPick={pick} />
+            )
+          })}
         </div>
 
         <div className="nav-foot">
@@ -89,9 +166,18 @@ export function Navigator({
               Go to Review Page
             </button>
           ) : null}
-          <span>{plural(items.length, 'question')} in this set</span>
+          {paged ? (
+            <form className="nav-goto" onSubmit={jump}>
+              <label htmlFor="nav-goto-n">Go to #</label>
+              <input id="nav-goto-n" type="number" inputMode="numeric" min={1} max={items.length}
+                     value={target} onChange={(e) => setTarget(e.target.value)} />
+              <button className="btn small" type="submit">Go</button>
+            </form>
+          ) : null}
+          {/* Only a set has `states`; anything else is a list of questions. */}
+          <span>{plural(items.length, 'question')} in this {states ? 'set' : 'list'}</span>
         </div>
       </div>
     </>
   )
-}
+})
