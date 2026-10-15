@@ -4,12 +4,17 @@
  * then streak, coverage and accuracy in one hairline-divided footer. Numbers
  * come from lib/progress.ts; this only draws them.
  */
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Icon } from './Icon'
+import { GoalDialog } from './GoalDialog'
+import { ReminderDialog } from './ReminderDialog'
 import { NoData, Stat } from './Stat'
 import { score, streak, UNLOCK_AFTER, type HistoryRow } from '../lib/progress'
 import { SECTIONS, SECTION_NAME, SECTION_SHORT, fmt, noun, plural } from '../lib/labels'
 import { graded } from '../lib/score'
 import { useShareCard } from '../lib/share'
+import { countdown, targetLine, useGoal } from '../lib/goal'
 import type { Section } from '../types'
 
 /** Two letters, so Tuesday and Thursday (and the weekend) stop sharing one. */
@@ -26,19 +31,41 @@ interface Props {
   onScoreCheck: () => void
 }
 
-/** Tiny line chart of the total over time. Inline SVG, stroke only. */
-function Sparkline({ values }: { values: number[] }) {
+/**
+ * Tiny line chart of the total over time. Inline SVG, stroke only. A target
+ * widens the range to include it, so the dashed tick shows the real gap.
+ */
+function Sparkline({ values, target }: { values: number[]; target: number | null }) {
   const w = 120, h = 40, pad = 4
-  const lo = Math.min(...values), hi = Math.max(...values)
+  const all = target ? [...values, target] : values
+  const lo = Math.min(...all), hi = Math.max(...all)
   const span = Math.max(hi - lo, 40)
   const x = (i: number) => pad + (i * (w - 2 * pad)) / (values.length - 1)
   const y = (v: number) => h - pad - ((v - lo) / span) * (h - 2 * pad)
   const d = values.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')
   return (
     <svg className="spark" viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+      {target ? <path d={`M0,${y(target).toFixed(1)} H${w}`} className="spark-target" /> : null}
       <path d={d} className="spark-line" />
       <circle cx={x(values.length - 1)} cy={y(values.at(-1)!)} r="3" className="spark-dot" />
     </svg>
+  )
+}
+
+/** The streak flame inside a ring that fills with today's answers toward the daily goal. */
+function DailyRing({ done, goal }: { done: number; goal: number }) {
+  const r = 12.5, c = 2 * Math.PI * r
+  const left = c * (1 - Math.min(done / goal, 1))
+  return (
+    <span className={done >= goal ? 'st-ring met' : 'st-ring'} role="img"
+          aria-label={`Today: ${Math.min(done, goal)} of ${goal} questions`}>
+      <svg viewBox="0 0 30 30" aria-hidden="true">
+        <circle cx="15" cy="15" r={r} className="st-ring-track" />
+        <circle cx="15" cy="15" r={r} className="st-ring-fill"
+                strokeDasharray={c.toFixed(2)} strokeDashoffset={left.toFixed(2)} />
+      </svg>
+      <Icon name="flame" size={16} strokeWidth={2.2} />
+    </span>
   )
 }
 
@@ -68,6 +95,26 @@ export function ProgressStrip({ history, covered, total, attempts, correct, onSc
   const trend = sc.series.filter((p) => p.total !== null).map((p) => p.total as number).slice(-30)
   const acc = graded(attempts, correct)
   const card = useShareCard()
+  const goal = useGoal()
+  const [dialog, setDialog] = useState<'goal' | 'remind' | null>(null)
+  const until = countdown(goal, now)
+  const toGo = targetLine(goal, sc.total)
+  const goalRow = (
+    <div className="scard-goal">
+      {until || toGo ? (
+        <>
+          {toGo ? <span className="scard-goal-i"><Icon name="target" size={16} />{toGo}</span> : null}
+          {until ? <span className="scard-goal-i"><Icon name="calendar" size={16} />{until}</span> : null}
+          <button type="button" className="link scard-goal-edit" onClick={() => setDialog('goal')}>Edit goal</button>
+        </>
+      ) : (
+        <button type="button" className="link scard-goal-edit" onClick={() => setDialog('goal')}>
+          <Icon name="target" size={16} />
+          Set your goal: test date and target
+        </button>
+      )}
+    </div>
+  )
 
   return (
     <div className="scard-wrap">
@@ -85,8 +132,9 @@ export function ProgressStrip({ history, covered, total, attempts, correct, onSc
             </div>
             <div className="scard-mid">
               <span className="scard-big">{sc.total}<small>/ 1600</small></span>
-              {trend.length > 1 ? <Sparkline values={trend} /> : null}
+              {trend.length > 1 ? <Sparkline values={trend} target={goal?.target ?? null} /> : null}
             </div>
+            {goalRow}
           </>
         ) : (
           <div className="scard-lock">
@@ -94,6 +142,7 @@ export function ProgressStrip({ history, covered, total, attempts, correct, onSc
             <div>
               <h2 className="scard-lock-t">Unlock your score estimate</h2>
               <p className="scard-lock-sub">Answer {UNLOCK_AFTER} questions in each section.</p>
+              {goalRow}
             </div>
           </div>
         )}
@@ -128,7 +177,10 @@ export function ProgressStrip({ history, covered, total, attempts, correct, onSc
               ) : null}
             </div>
             <span className="stat-n">
-              <Icon name="flame" size={20} strokeWidth={2.2} />{fmt(st.current)}<small>{noun(st.current, 'day')}</small>
+              {goal?.daily
+                ? <DailyRing done={st.today} goal={goal.daily} />
+                : <Icon name="flame" size={20} strokeWidth={2.2} />}
+              {fmt(st.current)}<small>{noun(st.current, 'day')}</small>
             </span>
             <ul className="days" aria-label="Last seven days">
               {st.last7.map((on, i) => {
@@ -148,6 +200,13 @@ export function ProgressStrip({ history, covered, total, attempts, correct, onSc
             {st.atRisk ? (
               <span className="stat-sub streak-risk">Keep your {st.current}-day streak: answer 1 today</span>
             ) : null}
+            {/* Offered while a habit is still forming; past day 1 it is in Settings. */}
+            {st.current <= 1 ? (
+              <button type="button" className="link st-remind" onClick={() => setDialog('remind')}>
+                <Icon name="bell" size={14} strokeWidth={2} />
+                Remind me daily
+              </button>
+            ) : null}
           </div>
           <Stat label="Covered" value={fmt(covered)} sub={`of ${fmt(total)}`}
                 meter={total ? covered / total : 0} />
@@ -160,6 +219,15 @@ export function ProgressStrip({ history, covered, total, attempts, correct, onSc
         {sc.total !== null ? 'From your first try at each question, weighted by difficulty. ' : ''}
         Practice estimate, not an official score.
       </p>
+      {/* Out of the hero, whose z-index makes a stacking context that would put
+          the dialog under the nav and the phone's start and tab bars. Into
+          .shell rather than body, so the shell's control styles still apply. */}
+      {dialog ? createPortal(
+        dialog === 'goal'
+          ? <GoalDialog goal={goal} onClose={() => setDialog(null)} />
+          : <ReminderDialog goal={goal} onClose={() => setDialog(null)} />,
+        document.querySelector('.shell') ?? document.body,
+      ) : null}
     </div>
   )
 }

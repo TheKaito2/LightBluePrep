@@ -46,6 +46,8 @@
   background: var(--ok-50); font: 600 14px/20px var(--sans); color: var(--ok-700);
 }
 .settings-done svg { flex: none; margin-top: 1px; }
+/* A section's actions side by side, wrapping on a phone. */
+.settings-row { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); }
 .settings-dialog { display: flex; flex-direction: column; gap: var(--sp-3); }
 .settings-check { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; cursor: pointer; font: var(--type-body); color: var(--fg-1); }
 .settings-check input { flex: none; width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--brand-700); }

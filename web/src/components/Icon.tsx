@@ -10,7 +10,7 @@ type Name =
   | 'flame' | 'lock' | 'heart' | 'coffee' | 'trend-up' | 'trend-down' | 'qr'
   | 'book' | 'target' | 'layers' | 'sigma' | 'grid' | 'history' | 'chart' | 'info' | 'compass' | 'play' | 'external' | 'star' | 'ruler'
   | 'gear' | 'cloud' | 'refresh' | 'clock' | 'download' | 'check-circle' | 'alert' | 'user'
-  | 'shield' | 'message' | 'code' | 'share'
+  | 'shield' | 'message' | 'code' | 'share' | 'bell' | 'upload' | 'calendar'
 
 const PATHS: Record<Name, string> = {
   // Eight teeth at r 9.4, roots at r 6.9, hole r 3; computed, not traced.
@@ -63,6 +63,9 @@ const PATHS: Record<Name, string> = {
   refresh: 'M20.8 5.6v4.8H16M3.2 18.4v-4.8H8M5.21 9.6a7.2 7.2 0 0111.88-2.69L20.8 10.4M3.2 13.6l3.71 3.49a7.2 7.2 0 0011.88-2.69',
   clock: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
   download: 'M12 4v11M7 10l5 5 5-5M4 19.5h16',
+  upload: 'M12 15V4M7 9l5-5 5 5M4 19.5h16',
+  bell: 'M6 16.5V11a6 6 0 0112 0v5.5l1.5 2h-15zM10 20.5a2 2 0 004 0',
+  calendar: 'M4 6.5a1.5 1.5 0 011.5-1.5h13A1.5 1.5 0 0120 6.5v12a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 18.5zM4 10h16M8.5 3v4M15.5 3v4',
   // The tray-and-arrow share glyph, the one iOS draws on its Share button.
   share: 'M12 14.5V3.5M8 7.5l4-4 4 4M8.5 10.5H6v10h12v-10h-2.5',
   'check-circle': 'M12 21a9 9 0 100-18 9 9 0 000 18zM8 12.2l2.8 2.8L16 9.5',

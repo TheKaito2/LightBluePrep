@@ -208,6 +208,17 @@ export async function drawCard(card: Card): Promise<Blob> {
   return blob
 }
 
+/** Save a file made in the browser (the card, a backup, a reminder) to the device. */
+export function saveBlob(blob: Blob, name: string): void {
+  const href = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = href
+  a.download = name
+  a.click()
+  // Revoked later, not now: some browsers start reading the URL after click() returns.
+  setTimeout(() => URL.revokeObjectURL(href), 10_000)
+}
+
 type Outcome = 'shared' | 'cancelled' | 'saved' | 'saved-copied'
 
 /** The share sheet when it takes files; otherwise download the PNG and copy the link. */
@@ -225,12 +236,7 @@ export async function shareCard(card: Card): Promise<Outcome> {
       // the card drew) still leaves the student with the picture below.
     }
   }
-  const href = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = href
-  a.download = file.name
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(href), 10_000)
+  saveBlob(blob, file.name)
   const copied = navigator.clipboard
     ? await navigator.clipboard.writeText(url).then(() => true, () => false)
     : false

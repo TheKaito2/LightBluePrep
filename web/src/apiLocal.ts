@@ -27,6 +27,7 @@ import { grade } from './lib/grading'
 import { nowSec } from './lib/sets'
 import { normaliseQuestion, type Stub } from './lib/normalize'
 import { byShuffleKey } from './lib/shuffle'
+import * as backup from './lib/backup'
 import * as cb from './lib/cbApi'
 import * as store from './lib/store'
 import * as sync from './lib/sync'
@@ -195,6 +196,16 @@ export async function localDataSummary() {
 export async function deleteLocalData(): Promise<void> {
   await store.clearUserData([INDEX_AGE_KEY, LIVE_KEY, usage.SENT_KEY])
   await reloadProgress()
+}
+
+/** Settings' "Download my data": every user store and the student's own meta keys. */
+export const exportLocalData = () => backup.makeBackup()
+
+/** Settings' "Restore from file": merged in, then the in-memory maps rebuilt. */
+export async function restoreLocalData(file: backup.Backup): Promise<backup.Restored> {
+  const restored = await backup.restoreBackup(file)
+  await reloadProgress()
+  return restored
 }
 
 /** Force a re-read of the index from College Board, picking up new questions. */

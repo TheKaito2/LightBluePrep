@@ -419,6 +419,13 @@ export const COACH_KEY = 'coach-tip-shown'
 export const INSTALL_KEY = 'install-bar-dismissed'
 
 /**
+ * Meta key: the goal (lib/goal.ts), a test date, target score and daily count.
+ * Here rather than in goal.ts so the backup can name it without importing the
+ * React side of goal.ts.
+ */
+export const GOAL_KEY = 'goal'
+
+/**
  * Ask the browser not to evict this site's data under storage pressure.
  *
  * Without this, progress and the question cache are disposable data and can

@@ -46,6 +46,8 @@ vi.mock('./store', () => ({
   saveAnnotations: async (id: string, items: unknown[]) => { saved.set(id, { question_id: id, items }) },
   loadMistake: async () => undefined,
   isEmptyMistake: () => true,
+  // Named by lib/backup's list of meta keys, which apiLocal imports.
+  GOAL_KEY: 'goal', COACH_KEY: 'coach-tip-shown', INSTALL_KEY: 'install-bar-dismissed',
 }))
 
 const local = await import('../apiLocal')

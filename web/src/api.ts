@@ -169,3 +169,7 @@ export const refreshIndex = backend === 'local' ? counted(local.refreshIndex) : 
  */
 export const localDataSummary = backend === 'local' ? local.localDataSummary : null
 export const deleteLocalData = backend === 'local' ? counted(local.deleteLocalData) : null
+
+/** Settings' backup download and restore. Static backend only, like the two above. */
+export const exportLocalData = backend === 'local' ? local.exportLocalData : null
+export const restoreLocalData = backend === 'local' ? counted(local.restoreLocalData) : null

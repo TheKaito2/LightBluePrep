@@ -149,6 +149,19 @@
 .spark { display: block; flex: 0 1 120px; min-width: 64px; height: 40px; margin-bottom: 6px; overflow: visible; }
 .spark-line { fill: none; stroke: var(--brand-600); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .spark-dot { fill: var(--brand-700); }
+/* The target: a dashed hairline, quieter than the line it measures. */
+.spark-target { fill: none; stroke: var(--fg-4); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+
+/* Goal (G-02): target and countdown on one wrapping line under the figure. */
+.scard-goal { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--sp-4); margin-top: -4px; }
+.scard-goal-i {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 600 13px/18px var(--sans); color: var(--fg-2); font-variant-numeric: tabular-nums;
+}
+.scard-goal-i svg { flex: none; color: var(--fg-3); }
+.scard-goal-edit { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; }
+.scard-goal-i + .scard-goal-edit { margin-left: auto; }
+.scard-lock .scard-goal { margin-top: var(--sp-2); }
 
 .scard-lock { display: flex; align-items: flex-start; gap: var(--sp-3); }
 .scard-lock-ico {
@@ -187,6 +200,19 @@
 .scard-stats .stat-n small { font-size: 13px; }
 .st-streak .stat-n svg { align-self: center; margin-right: 4px; color: var(--streak-500); }
 .st-streak.none .stat-n svg { color: var(--fg-4); }
+/* Daily goal: the flame inside a ring of today's answers. The ring is 28px,
+   so the figure's line keeps its height. */
+.st-ring {
+  position: relative; flex: none; align-self: center; width: 28px; height: 28px; margin: -4px 6px -4px 0;
+  display: inline-flex; align-items: center; justify-content: center; color: var(--streak-500);
+}
+.st-streak .stat-n .st-ring > svg:first-child { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; transform: rotate(-90deg); }
+.st-streak .stat-n .st-ring > svg + svg { margin: 0; }
+.st-ring circle { fill: none; stroke-width: 3; }
+.st-ring-track { stroke: var(--surface-sunken); }
+.st-ring-fill { stroke: var(--streak-500); stroke-linecap: round; transition: stroke-dashoffset var(--dur-data) var(--ease-out); }
+.st-ring.met .st-ring-fill { stroke-linecap: butt; }
+.st-remind { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; margin-top: 4px; white-space: nowrap; }
 /* The label row carries the streak's Share button; the 32px button hangs into
    the gap around the 16px label rather than pushing the figure down. */
 .st-top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); height: 16px; }
@@ -412,6 +438,9 @@
 .excl { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font: var(--type-ui); color: var(--fg-1); }
 .shell .excl input[type=checkbox] { margin-top: 1px; }
 .excl-hint { margin-left: 28px; }
+/* Goal and reminder dialogs: full-width fields, one left edge. */
+.goal-input { width: 100%; }
+.shell input.goal-input[type=date], .shell input.goal-input[type=time] { appearance: none; min-height: 40px; }
 
 @media (max-width: 819px) {
   .hwrap { padding: var(--sp-6) var(--sp-4) var(--sp-6); }
@@ -436,6 +465,9 @@
   .scard-stats > .stat { padding: 0 10px; }
   .scard-stats .stat-l { letter-spacing: .03em; }
   .scard-note { margin-top: 6px; }
+  /* One line on a 390px phone: the figures carry the meaning without icons. */
+  .scard-goal { column-gap: var(--sp-3); }
+  .scard-goal-i svg { display: none; }
   .hwrap:has(> .qsets) { padding-top: var(--sp-4); }
   .qsets { margin-bottom: var(--sp-10); }
   .topics-head { flex-direction: column; align-items: stretch; margin-bottom: var(--sp-4); }
