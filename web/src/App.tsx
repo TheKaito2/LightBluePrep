@@ -1518,6 +1518,7 @@ export default function App() {
 
       {showDirections ? (
         <Directions lines={DIRECTIONS[section]} keys={activeSet ? KEYS_SET : KEYS_OPEN}
+                    spr={question?.type === 'spr'}
                     onClose={() => setShowDirections(false)} />
       ) : null}
       <FeedbackHost />

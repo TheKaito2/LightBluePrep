@@ -47,6 +47,57 @@ function wrapTables(host: HTMLElement): void {
   }
 }
 
+/** Narrower than this, an image or SVG is an inline glyph or an answer-choice thumbnail. */
+const FIGURE_MIN = 120
+
+/** An SVG length attribute in CSS pixels, or NaN for a unit we do not convert. */
+function svgLength(value: string | null): number {
+  const match = /^\s*([\d.]+)\s*(px|pt)?\s*$/.exec(value ?? '')
+  if (!match) return NaN
+  return parseFloat(match[1]) * (match[2] === 'pt' ? 4 / 3 : 1)
+}
+
+/**
+ * Mark the graphs and diagrams so CSS can size them as figures.
+ *
+ * The bank's own sizes are too small to read: a stopping-distance graph ships
+ * as a 480px PNG tagged width="176", so its tick labels drew 7px tall. Figures
+ * get a common reading width in bluebook.css instead; inline math images (the
+ * disclosed items set every equation as a PNG) and anything inside an answer
+ * choice keep their own size. The aspect ratio rides along as --fig-ar so a
+ * tall diagram is capped by height rather than stretched to the full width.
+ */
+function markFigures(host: HTMLElement): void {
+  if (host.closest('button')) return
+  const mark = (el: HTMLElement | SVGElement, width: number, height: number) => {
+    if (!(width > FIGURE_MIN)) return
+    el.classList.add('fig-block')
+    if (height > 0) el.style.setProperty('--fig-ar', String(width / height))
+  }
+  for (const svg of host.querySelectorAll('svg')) {
+    if (svg.parentElement?.closest('svg')) continue
+    let width = svgLength(svg.getAttribute('width'))
+    let height = svgLength(svg.getAttribute('height'))
+    // Without a viewBox a resized SVG crops its drawing instead of scaling it.
+    // User units default to CSS pixels, so the drawn size is the viewBox.
+    const box = svg.viewBox.baseVal
+    if (box && box.width > 0) {
+      width = Number.isNaN(width) ? box.width : width
+      height = Number.isNaN(height) ? box.height : height
+    } else if (width > 0 && height > 0) {
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
+    }
+    mark(svg, width, height)
+  }
+  for (const img of host.querySelectorAll('img')) {
+    if (img.classList.contains('math-img') || img.closest('.math-container')) continue
+    if (img.getAttribute('width')) mark(img, Number(img.getAttribute('width')), Number(img.getAttribute('height')))
+    else if (img.naturalWidth) mark(img, img.naturalWidth, img.naturalHeight)
+    // A data: image is still decoding when it is first inserted.
+    else img.addEventListener('load', () => mark(img, img.naturalWidth, img.naturalHeight), { once: true })
+  }
+}
+
 /**
  * Renders official question HTML: MathML, inline SVG figures, tables, and
  * base64 images all arrive from the bank, and pass through lib/sanitize.ts.
@@ -66,10 +117,18 @@ export function RichText({
     if (!host) return
     // Cleaned in an inert template first: nothing in it runs or loads until it
     // is in the page, and by then anything that could is gone (lib/sanitize.ts).
+    // Until MathJax has run, bluebook.css hides the raw <math>: the browser's
+    // own MathML rendering flashed in a different face on every re-render.
+    // Set again once typesetting settles, failed or not, so a MathJax error
+    // still leaves the native rendering readable.
+    delete host.dataset.typeset
     host.replaceChildren(sanitize(html))
     wrapTables(host)
+    markFigures(host)
     applyHighlights(host, annotations.filter((a) => a.field === field), noteIdPrefix)
-    void typeset(host)
+    let current = true
+    void typeset(host).then(() => { if (current) host.dataset.typeset = '' })
+    return () => { current = false }
   }, [html, field, annotations, noteIdPrefix])
 
   const lastReported = useRef('')

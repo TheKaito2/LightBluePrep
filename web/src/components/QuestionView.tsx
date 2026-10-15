@@ -4,6 +4,8 @@ import { Explanation } from './Explanation'
 import { BookmarkFilled, Icon, SplitHandle } from './Icon'
 import { FeedbackLink } from './Feedback'
 import { MistakeFields } from './MistakeFields'
+import { SprRules } from './Directions'
+import { parseRational } from '../lib/fraction'
 import type { Annotation, GradeResult, Mistake, MistakeTag, Question } from '../types'
 
 /**
@@ -86,6 +88,28 @@ const clampSplit = (pct: number) => Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, pct)
  * was a split you had to drag again on every passage. It lasts the session.
  */
 let savedSplit = 50
+
+/** What a grid-in accepts, as Bluebook's field does; SprRules says it in words. */
+const SPR_CHARS = /^[-0-9./]*$/
+const sprLimit = (value: string) => (value.startsWith('-') ? 6 : 5)
+
+/** The typed answer as it will be read: a fraction stacks, a minus is a real minus. */
+function sprPreview(value: string): ReactNode {
+  const negative = value.startsWith('-')
+  const body = negative ? value.slice(1) : value
+  const slash = body.indexOf('/')
+  const sign = negative ? '−' : ''
+  if (slash <= 0 || !parseRational(value)) return sign + body
+  return (
+    <>
+      {sign}
+      <span className="frac">
+        <span className="frac-num">{body.slice(0, slash)}</span>
+        <span className="frac-den">{body.slice(slash + 1)}</span>
+      </span>
+    </>
+  )
+}
 
 function anchorOf(rect: DOMRect | null): Anchor {
   return rect
@@ -372,12 +396,28 @@ export function QuestionView(props: Props) {
       ) : (
         <div className="spr">
           <label htmlFor="spr-input">Enter your answer</label>
+          {/* inputMode text, not decimal: iOS's decimal pad has no '/' or '-'. */}
           <input id="spr-input"
                  className={graded ? `spr-input ${result!.correct ? 'is-right' : 'is-wrong'}` : 'spr-input'}
                  value={response ?? ''}
-                 disabled={graded} autoComplete="off" placeholder="—"
-                 onChange={(e) => onRespond(e.target.value)}
+                 disabled={graded} autoComplete="off"
+                 maxLength={sprLimit(response ?? '')}
+                 inputMode="text" autoCapitalize="off" autoCorrect="off" spellCheck={false}
+                 enterKeyHint="done" aria-describedby="spr-rules"
+                 onChange={(e) => {
+                   const value = e.target.value
+                   if (SPR_CHARS.test(value) && value.length <= sprLimit(value)) onRespond(value)
+                 }}
                  onKeyDown={(e) => { if (e.key === 'Enter' && response && !deferred) onSubmit() }} />
+          {/* The field already holds the same text for a screen reader. */}
+          <p className="spr-preview" aria-hidden="true">
+            <span className="spr-preview-label">Answer preview:</span>
+            <span className="spr-preview-value">{sprPreview(response ?? '')}</span>
+          </p>
+          <details className="spr-help">
+            <summary><Icon name="chevron-down" size={15} />How to enter answers</summary>
+            <SprRules id="spr-rules" />
+          </details>
         </div>
       )}
 

@@ -258,11 +258,38 @@
 
 /* ---------- spr ---------- */
 .spr { margin-top: 20px; }
-.spr label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 7px; }
+.spr label { display: block; font-size: 13px; color: var(--ink-2); margin-bottom: 7px; }
 .spr-input {
   font-family: var(--serif); font-size: 20px; padding: 11px 15px;
   border: 1px solid var(--line-2); border-radius: var(--r-md); width: 240px; color: var(--ink);
 }
+/* A fixed-height row, so the first keystroke does not shift Submit down by the
+   height of a fraction. */
+.spr-preview {
+  display: flex; align-items: center; gap: 10px; min-height: 52px; margin: 6px 0 0;
+  font-size: 13px; color: var(--ink-2);
+}
+.spr-preview-value { font-family: var(--serif); font-size: 20px; color: var(--ink); }
+.frac { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1.15; }
+.frac-num { border-bottom: 1.5px solid currentColor; padding: 0 3px 1px; }
+.frac-den { padding: 1px 3px 0; }
+
+/* Bluebook keeps its entry rules beside the field; collapsed here, since after
+   the first few grid-ins they are only clutter. */
+.spr-help { margin-top: 4px; font-size: 14px; color: var(--ink-2); }
+.spr-help summary {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px 4px 0;
+  font-weight: 600; cursor: pointer; list-style: none;
+}
+.spr-help summary::-webkit-details-marker { display: none; }
+.spr-help summary svg { transition: transform .15s; }
+.spr-help[open] summary svg { transform: rotate(180deg); }
+.spr-help summary:hover { color: var(--ink); }
+.spr-help summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+.spr-rules { margin: 6px 0 0; padding-left: 20px; line-height: 1.5; max-width: 560px; }
+.spr-rules li + li { margin-top: 4px; }
+.dir-body .dir-sub { margin: 0 0 6px; font-family: var(--sans); font-size: 15px; font-weight: 700; color: var(--ink); }
+.dir-body .spr-rules { margin: 0 0 1em; max-width: none; line-height: inherit; }
 .spr-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 /* Graded grid-in: the same 2px state edge as a graded choice. The text fill
    overrides the faded grey the browser gives a disabled field. */
@@ -270,6 +297,7 @@
 .spr-input.is-right { border-color: var(--green); background: var(--green-soft); box-shadow: inset 0 0 0 1px var(--green); }
 .spr-input.is-wrong { border-color: var(--red); background: var(--red-soft); box-shadow: inset 0 0 0 1px var(--red); }
 .submit { margin-top: 26px; }
+.spr + .submit { margin-top: 18px; }
 
 /* ---------- explanation ---------- */
 .explain-bar {
@@ -387,6 +415,35 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
 .richtext img, .richtext svg { max-width: 100%; height: auto; }
 
 /*
+ * Graphs and diagrams, as RichText marks them: a common reading width rather
+ * than the bank's own, which drew a graph 176px wide with 7px tick labels. A
+ * tall diagram is held to the same 440px by height (--fig-ar is width/height),
+ * so it does not push the choices a screen further down. Display rules only:
+ * the images stay as College Board serves them.
+ */
+.richtext .fig-block { width: min(100%, 440px, calc(440px * var(--fig-ar, 1))); height: auto; }
+/* A <figure> brings its own margin; a bare image sat flush under the text. */
+.richtext img.fig-block { display: block; margin: 12px 0; }
+
+/*
+ * Maths. Until MathJax runs (RichText sets data-typeset when it settles), the
+ * raw <math> stays hidden rather than flashing the browser's own rendering. If
+ * MathJax fails, that rendering shows in the question's serif, not the UA
+ * default math face.
+ *
+ * MathJax's SVG output needs no size correction: it is sized in ex, which
+ * resolves against Noto Serif, and at 16 and 17px a typeset "x" measured
+ * 8.75 and 9.25px tall against the serif's 8.5 and 9px. Raising it to 110%
+ * would overshoot.
+ */
+.richtext:not([data-typeset]) math { visibility: hidden; }
+.richtext math { font-family: var(--serif); font-size: 1.05em; color: inherit; }
+.richtext math mi { font-style: italic; text-transform: none; }
+/* The disclosed questions set every equation as a PNG with coloured subpixel
+   fringes baked in, which read as brown digits next to black text. */
+.richtext img.math-img { filter: grayscale(1); }
+
+/*
  * 582 figures in the bank wrap a table or a graphic in <figure>, which the
  * browser gives `margin: 1em 40px` by nobody's decision. On a 390px phone that
  * is 80px, a fifth of the screen, spent on indenting the one element that had
@@ -488,6 +545,13 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
 
   /* Fitting rather than scrolling, for the tables narrow enough to manage it. */
   .richtext table { font-size: 14px; }
+
+  /* A phone gives a figure the whole column: at 390px, 440px is not the limit. */
+  .richtext .fig-block { width: min(100%, 480px); }
+
+  /* The grid-in field and its Submit are the whole interaction here. */
+  .spr-input { width: 100%; }
+  .app .spr + .submit { width: 100%; padding: 13px 20px; font-size: 15px; }
 }
 
 /* Narrow phones. */
