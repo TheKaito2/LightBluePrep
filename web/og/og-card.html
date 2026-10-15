@@ -1,7 +1,12 @@
 <!doctype html>
-<!-- Source for public/og-card.png (1200x630). Not shipped. Re-render with:
+<!-- Source for public/og-card.png (1200x630). Not shipped. Re-render from
+     web/og/ after any change here (the fonts load from node_modules and
+     src/fonts, so run `npm ci` in web/ first):
      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
-       --hide-scrollbars --window-size=1200,630 --screenshot=../public/og-card.png og-card.html -->
+       --hide-scrollbars --force-device-scale-factor=1 --window-size=1200,630 \
+       --virtual-time-budget=3000 --screenshot="$PWD/../public/og-card.png" og-card.html
+     The headline names the question bank's scope, never a count: a number in
+     the image goes stale without anyone noticing. -->
 <html><head><meta charset="utf-8"><style>
 @font-face { font-family: B; src: url(../node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-wght-normal.woff2); font-weight: 200 800; }
 @font-face { font-family: N; src: url(../src/fonts/NotoSans-normal-latin.woff2); font-weight: 100 900; }
@@ -13,12 +18,12 @@ body { position: relative; background: #fff; color: #1c1f23; font-family: N, san
 .d1 { width: 300px; height: 300px; right: -90px; top: -110px; background: #f6c4da; }
 .d2 { width: 200px; height: 200px; left: -70px; bottom: -90px; background: #b9dcf6; }
 .bulb { position: absolute; right: 70px; top: 110px; width: 290px; height: auto; transform: rotate(5deg); }
-.copy { position: absolute; left: 84px; top: 78px; width: 640px; }
+.copy { position: absolute; left: 84px; top: 64px; width: 640px; }
 .brand { display: flex; align-items: center; gap: 18px; font-family: B; font-weight: 800; font-size: 50px; letter-spacing: -.035em; }
 .brand b { color: #1479c2; font-weight: 800; }
-h1 { margin-top: 64px; font-family: B; font-weight: 800; font-size: 74px; line-height: .98; letter-spacing: -.045em; }
+h1 { margin-top: 44px; font-family: B; font-weight: 800; font-size: 74px; line-height: .98; letter-spacing: -.045em; }
 h1 span { color: #1479c2; }
-p { margin-top: 22px; font-size: 27px; line-height: 1.4; color: #3a3f46; }
+p { margin-top: 22px; font-size: 27px; line-height: 1.4; color: #3a3f46; text-wrap: balance; }
 .pills { display: flex; gap: 12px; margin-top: 28px; }
 .pill { padding: 10px 22px; border-radius: 999px; font-family: B; font-weight: 750; font-size: 24px; }
 .p1 { background: #fbe4ef; color: #a3245a; } .p2 { background: #dcefff; color: #075f99; } .p3 { background: #1c1f23; color: #fff; }
@@ -34,8 +39,8 @@ p { margin-top: 22px; font-size: 27px; line-height: 1.4; color: #3a3f46; }
 </div>
 <div class="copy">
   <div class="brand"><svg width="74" height="74" viewBox="0 0 48 48"><rect x="2" y="2" width="44" height="44" rx="12" fill="#1479c2"/><circle cx="24" cy="20" r="12.5" fill="#3aa3ec"/><path d="M14.4 26.5Q19 30.5 19.4 34h9.2q.4-3.5 5-7.5z" fill="#3aa3ec"/><rect x="18.6" y="33.4" width="10.8" height="3.6" rx="1.8" fill="#0b3d6b"/><rect x="19.3" y="37.8" width="9.4" height="3.4" rx="1.7" fill="#0b3d6b"/><path d="M18.4 16.6l3.2 3.2 6.6-6.7" fill="none" stroke="#fff" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19.6" cy="24.2" r="1.7" fill="#1c1f23"/><circle cx="28.4" cy="24.2" r="1.7" fill="#1c1f23"/><path d="M22.2 27q1.8 1.6 3.6 0" fill="none" stroke="#1c1f23" stroke-width="1.3" stroke-linecap="round"/></svg><span>Light<b>Blue</b>Prep</span></div>
-  <h1>Every official SAT question. <span>Free.</span></h1>
+  <h1>Every official SAT practice question. <span>Free.</span></h1>
   <p>Drill by topic, skip what you've done, re-drill what you missed.</p>
-  <div class="pills"><span class="pill p2">3,767 questions</span><span class="pill p1">No paywall</span><span class="pill p3">No ads</span></div>
+  <div class="pills"><span class="pill p2">No account</span><span class="pill p1">No paywall</span><span class="pill p3">No ads</span></div>
 </div>
 </body></html>

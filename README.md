@@ -1,6 +1,6 @@
 # LightBluePrep
 
-**Every official College Board SAT practice question, free, in a question bank you can filter, track and re-drill.**
+**Every question in College Board's official SAT Question Bank, free, in one place you can filter, track and re-drill.**
 
 Live: **https://lightblueprep.pages.dev**
 

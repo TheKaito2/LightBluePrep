@@ -4,34 +4,53 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Privacy Policy · LightBluePrep</title>
+    <meta name="description" content="What LightBluePrep collects (almost nothing), who your browser talks to, and how to delete your data." />
+    <link rel="canonical" href="https://lightblueprep.pages.dev/privacy" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#ffffff" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="LightBluePrep" />
+    <meta property="og:url" content="https://lightblueprep.pages.dev/privacy" />
+    <meta property="og:title" content="Privacy Policy · LightBluePrep" />
+    <meta property="og:description" content="What LightBluePrep collects (almost nothing), who your browser talks to, and how to delete your data." />
+    <meta property="og:image" content="https://lightblueprep.pages.dev/og-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="LightBluePrep: every official SAT practice question, free." />
+    <meta name="twitter:card" content="summary_large_image" />
     <!-- Static on purpose: Google's OAuth consent screen needs a privacy policy
          at a real URL, and the app has no routes. Keep in step with the Privacy
-         section of web/src/components/About.tsx. -->
-    <style>
-      :root { color-scheme: light; }
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body {
-        background: #ffffff; color: #17181a;
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        line-height: 1.6; padding: 48px 24px 96px;
-      }
-      main { max-width: 680px; margin: 0 auto; }
-      h1 { font-size: 34px; letter-spacing: -0.02em; margin-bottom: 6px; }
-      h2 { font-size: 20px; letter-spacing: -0.01em; margin: 36px 0 10px; }
-      p { margin-bottom: 14px; }
-      .updated { color: #63666b; font-size: 15px; margin-bottom: 8px; }
-      a { color: #1479c2; }
-      strong { font-weight: 650; }
-      .back { display: inline-block; margin-bottom: 28px; font-size: 15px; }
-      ul { margin: 0 0 14px 22px; }
-      li { margin-bottom: 6px; }
-    </style>
+         section of web/src/components/About.tsx. Chrome and type come from
+         static.css, shared with 404.html and the skills/ pages. -->
+    <link rel="stylesheet" href="/static.css" />
   </head>
   <body>
-    <main>
-      <a class="back" href="/">&larr; LightBluePrep</a>
+    <header class="sh">
+      <div class="sh-in">
+        <a class="sh-brand" href="/">
+          <svg width="28" height="28" viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="2" y="2" width="44" height="44" rx="12" fill="#1479c2"/><path d="M14.5 24.5l6.5 6.5 12.5-13" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="wordmark">Light<b>Blue</b>Prep</span>
+        </a>
+        <a class="btn primary sm" href="/">Open practice</a>
+      </div>
+    </header>
+    <div class="doc">
+    <nav class="toc" aria-labelledby="toc-h">
+      <p class="toc-h" id="toc-h">On this page</p>
+      <ol>
+        <li><a href="#collect">What we collect</a></li>
+        <li><a href="#counting">Counting visitors</a></li>
+        <li><a href="#browser">Who your browser talks to</a></li>
+        <li><a href="#feedback">If you send feedback</a></li>
+        <li><a href="#sign-in">If you sign in</a></li>
+        <li><a href="#delete">Deleting your data</a></li>
+        <li><a href="#children">Children</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ol>
+    </nav>
+    <main class="prose">
       <h1>Privacy Policy</h1>
       <p class="updated">Last updated 13 October 2026</p>
 
@@ -40,7 +59,7 @@
         student. You can use all of it without an account.
       </p>
 
-      <h2>What we collect</h2>
+      <h2 id="collect">What we collect</h2>
       <p>
         <strong>No personal data, unless you sign in.</strong> There are no ads and no tracking
         cookies. Your answers, notes, highlights, marks and practice sets, and
@@ -48,14 +67,14 @@
         only in your own browser's storage on your device.
       </p>
 
-      <h2>Counting visitors</h2>
+      <h2 id="counting">Counting visitors</h2>
       <p>Two anonymous counts tell us whether anyone uses the site:</p>
       <ul>
         <li><strong>Cloudflare Web Analytics</strong> counts page views and records which page was viewed, the site that linked to it, how fast it loaded, the country, and the type of browser and device. It sets no cookies, stores nothing on your device and does not fingerprint you, so it cannot tell one visitor from another.</li>
         <li><strong>Usage milestones.</strong> The first time your browser answers a question, and again when it has answered ten different questions, it sends our server one empty message, and the server adds one to that day's total. Your browser remembers in its own storage that it sent each one, so the message carries no ID, no cookie and nothing about you. All the server keeps is the daily totals. Deleting your data in Settings keeps that one note, so starting over does not count you twice.</li>
       </ul>
 
-      <h2>Who your browser talks to</h2>
+      <h2 id="browser">Who your browser talks to</h2>
       <ul>
         <li><strong>Cloudflare</strong> serves the website and our server (sync if you sign in, feedback, and the usage milestones), runs the Web Analytics described above, and like any web host it handles your IP address to deliver the page. Sign-in, feedback and the usage milestones are rate-limited to stop abuse, using your IP address only as a short-lived counter key; it is never stored.</li>
         <li><strong>College Board</strong> supplies the questions. Your browser downloads them directly from College Board; we never host or store question content.</li>
@@ -66,7 +85,7 @@
         <li><strong>PromptPay</strong> donations go through your own Thai banking app when you scan the QR. The site never sees the payment.</li>
       </ul>
 
-      <h2>If you send feedback</h2>
+      <h2 id="feedback">If you send feedback</h2>
       <p>
         Bug reports and comments are stored anonymously on our server: the
         message you type, the question ID it is about (if any) and which screen
@@ -91,25 +110,26 @@
         your practice history is linked to. Nothing is sold or shared.
       </p>
 
-      <h2>Deleting your data</h2>
-      <p>
-        The site's <a href="/#settings">Settings page</a> shows what your browser has saved and has a
-        button that permanently deletes it: your answers, marks, highlights and
-        notes, mistake log and practice sets. If you signed in, a second button
-        there (and in the sync menu, top right) permanently deletes everything
-        stored on our server for your account. You can delete either one alone,
-        or both at once.
-        Clearing this site's data in your browser settings also deletes your
-        browser's copy, along with the questions it has cached.
-      </p>
+      <h2 id="delete">Deleting your data</h2>
+      <ul>
+        <li><strong>This device.</strong> The site's <a href="/#settings">Settings page</a> shows what
+          your browser has saved and has a button that permanently deletes it:
+          your answers, marks, highlights and notes, mistake log and practice
+          sets. Clearing this site's data in your browser settings also deletes
+          your browser's copy, along with the questions it has cached.</li>
+        <li><strong>Our server.</strong> If you signed in, a second button there (and in the
+          sync menu, top right) permanently deletes everything stored on our
+          server for your account.</li>
+        <li><strong>Everything.</strong> You can delete either one alone, or both at once.</li>
+      </ul>
 
-      <h2>Children</h2>
+      <h2 id="children">Children</h2>
       <p>
         LightBluePrep is meant for high school students preparing for the SAT.
         It is not directed at children under 13.
       </p>
 
-      <h2>Contact</h2>
+      <h2 id="contact">Contact</h2>
       <p>
         Questions or problems: open an issue on the
         <a href="https://github.com/TheKaito2/LightBluePrep/issues" target="_blank" rel="noreferrer">GitHub repository</a>,
@@ -122,5 +142,18 @@
         and Bluebook are trademarks of College Board.
       </p>
     </main>
+    </div>
+    <footer class="sf">
+      <div class="sf-in">
+        <ul class="sf-links" aria-label="Site">
+          <li><a href="/">Practice</a></li>
+          <li><a href="/skills/">All skills</a></li>
+          <li><a href="/#about">About</a></li>
+          <li><a href="/privacy" aria-current="page">Privacy</a></li>
+          <li><a href="https://github.com/TheKaito2/LightBluePrep">Source</a></li>
+        </ul>
+        <p>LightBluePrep is a free, ad-free student project. Not affiliated with or endorsed by College Board. SAT and Bluebook are trademarks of College Board.</p>
+      </div>
+    </footer>
   </body>
 </html>

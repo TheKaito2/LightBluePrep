@@ -5,11 +5,14 @@
   "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
+    "predev": "node ../scripts/copy_fonts.mjs",
     "dev": "vite",
+    "prebuild": "node ../scripts/copy_fonts.mjs",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
+    "prebuild:pages": "node ../scripts/copy_fonts.mjs",
     "build:pages": "tsc -b && vite build --mode pages",
     "preview:pages": "vite preview --outDir dist-pages"
   },

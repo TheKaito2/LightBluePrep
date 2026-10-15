@@ -54,7 +54,7 @@ export function About({ taxonomy }: { taxonomy: TaxonomyRow[] }) {
   return (
     <>
     <PageHead tone="ink" eyebrow="Free · open source · no ads" title={<>About Light<span className="phead-blue">Blue</span>Prep</>}
-              sub="Every official College Board practice question, free, in one place you can filter, track and re-drill.">
+              sub="Every question in College Board's official SAT Question Bank, free, in one place you can filter, track and re-drill.">
       <StatGroup>
         <Stat size="l" label="Questions" value={count(questions)} />
         <Stat size="l" label="Skills" value={count(skills)} />

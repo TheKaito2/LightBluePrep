@@ -1,62 +1,53 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="nf-page">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Page not found · LightBluePrep</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="robots" content="noindex" />
-    <!-- Served by Cloudflare Pages for any path that doesn't exist. Static and
-         self-contained: no scripts (the CSP blocks inline ones anyway). -->
-    <style>
-      :root { color-scheme: light; }
-      * { margin: 0; box-sizing: border-box; }
-      html, body { height: 100%; }
-      body {
-        display: grid; place-items: center; padding: 24px; overflow: hidden;
-        background: #d9edfc; color: #1c1f23;
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      }
-      body::before, body::after { content: ''; position: fixed; border-radius: 50%; z-index: 0; }
-      body::before { width: 420px; height: 420px; right: -140px; top: -180px; background: #f6c4da; }
-      body::after { width: 260px; height: 260px; left: -100px; bottom: -130px; background: #b9dcf6; }
-      main { position: relative; z-index: 1; max-width: 560px; text-align: center; }
-      .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; letter-spacing: -.03em; color: #1c1f23; text-decoration: none; }
-      .brand b { color: #1479c2; font-weight: 800; }
-      .code { margin-top: 28px; font-size: clamp(110px, 28vw, 180px); font-weight: 900; letter-spacing: -.07em; line-height: .85; color: #1479c2; }
-      h1 { margin-top: 14px; font-size: clamp(28px, 7vw, 40px); font-weight: 850; letter-spacing: -.04em; line-height: 1.05; }
-      p { margin-top: 12px; font-size: 17px; line-height: 1.55; color: #3a3f46; }
-      .go {
-        display: inline-flex; align-items: center; gap: 8px; margin-top: 26px; padding: 14px 26px;
-        border-radius: 999px; background: #3aa3ec; color: #1c1f23; text-decoration: none;
-        font-size: 17px; font-weight: 800; box-shadow: 0 4px 0 #1479c2;
-      }
-      .go:active { transform: translateY(4px); box-shadow: none; }
-      .go:focus-visible { outline: 3px solid #1c1f23; outline-offset: 3px; }
-      .hero { display: flex; align-items: flex-end; justify-content: center; gap: 4px; margin-top: 24px; }
-      .hero .code { margin-top: 0; }
-      .bulb { flex: none; width: clamp(84px, 22vw, 128px); height: auto; }
-      .bulb-glass { fill: #3aa3ec; } .bulb-base { fill: #1479c2; }
-      .bulb-limb { fill: none; stroke: #3aa3ec; stroke-width: 9; stroke-linecap: round; }
-      .bulb-check { fill: none; stroke: #fff; stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
-      .bulb-ink { fill: #1c1f23; } .bulb-shine { fill: #fff; } .bulb-cheek { fill: #f6c4da; } .bulb-sweat { fill: #8ec8f0; }
-      .bulb-line { fill: none; stroke: #1c1f23; stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
-    </style>
+    <!-- Served by Cloudflare Pages for any path that doesn't exist. Static:
+         no scripts (the CSP blocks inline ones anyway). Every URL is absolute
+         because this page answers at any depth. Styles are in static.css. -->
+    <link rel="stylesheet" href="/static.css" />
   </head>
   <body>
-    <main>
-      <a class="brand" href="/">
-        <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true"><rect x="2" y="2" width="44" height="44" rx="12" fill="#1479c2"/><circle cx="24" cy="20" r="12.5" fill="#3aa3ec"/><path d="M14.4 26.5Q19 30.5 19.4 34h9.2q.4-3.5 5-7.5z" fill="#3aa3ec"/><rect x="18.6" y="33.4" width="10.8" height="3.6" rx="1.8" fill="#0b3d6b"/><rect x="19.3" y="37.8" width="9.4" height="3.4" rx="1.7" fill="#0b3d6b"/><path d="M18.4 16.6l3.2 3.2 6.6-6.7" fill="none" stroke="#fff" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19.6" cy="24.2" r="1.7" fill="#1c1f23"/><circle cx="28.4" cy="24.2" r="1.7" fill="#1c1f23"/><path d="M22.2 27q1.8 1.6 3.6 0" fill="none" stroke="#1c1f23" stroke-width="1.3" stroke-linecap="round"/></svg>
-        <span>Light<b>Blue</b>Prep</span>
-      </a>
+    <header class="sh">
+      <div class="sh-in">
+        <a class="sh-brand" href="/">
+          <svg width="28" height="28" viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="2" y="2" width="44" height="44" rx="12" fill="#1479c2"/><path d="M14.5 24.5l6.5 6.5 12.5-13" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="wordmark">Light<b>Blue</b>Prep</span>
+        </a>
+      </div>
+    </header>
+    <main class="nf">
       <!-- Bulb, "oops" mood. Same drawing as src/components/Mascot.tsx. -->
-      <div class="hero"><svg class="bulb" viewBox="0 0 120 142" width="128" height="151" aria-hidden="true"><path class="bulb-limb" d="M22 80 Q13 90 13 99 M98 80 Q107 90 107 99"/><circle class="bulb-glass" cx="60" cy="52" r="44"/><path class="bulb-glass" d="M24 76 Q40 92 41 104 H79 Q80 92 96 76 Z"/><rect class="bulb-base" x="38" y="102" width="44" height="11" rx="5.5"/><rect class="bulb-base" x="40" y="115" width="40" height="10" rx="5"/><rect class="bulb-glass" x="40" y="128" width="15" height="9" rx="4.5"/><rect class="bulb-glass" x="65" y="128" width="15" height="9" rx="4.5"/><path class="bulb-check" d="M43 43 L54 54 L77 31"/><ellipse class="bulb-cheek" cx="36" cy="80" rx="6.5" ry="4.2"/><ellipse class="bulb-cheek" cx="84" cy="80" rx="6.5" ry="4.2"/><ellipse class="bulb-ink" cx="44" cy="70" rx="4.8" ry="5.8"/><ellipse class="bulb-ink" cx="76" cy="70" rx="4.8" ry="5.8"/><circle class="bulb-shine" cx="45.6" cy="67.6" r="1.6"/><circle class="bulb-shine" cx="77.6" cy="67.6" r="1.6"/><path class="bulb-line" d="M51 82 q2.25 -3 4.5 0 t4.5 0 t4.5 0 t4.5 0"/><path class="bulb-sweat" d="M92 30 q-6 9 0 12 q6 -3 0 -12 Z"/></svg><div class="code" aria-hidden="true">404</div></div>
-      <h1>This page skipped the test.</h1>
-      <p>The link is broken or the page moved. Every question is still waiting for you on the home page.</p>
-      <a class="go" href="/">Back to practice
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      <svg viewBox="0 0 120 142" width="96" height="114" aria-hidden="true"><path class="bulb-limb" d="M22 80 Q13 90 13 99 M98 80 Q107 90 107 99"/><circle class="bulb-glass" cx="60" cy="52" r="44"/><path class="bulb-glass" d="M24 76 Q40 92 41 104 H79 Q80 92 96 76 Z"/><rect class="bulb-base" x="38" y="102" width="44" height="11" rx="5.5"/><rect class="bulb-base" x="40" y="115" width="40" height="10" rx="5"/><rect class="bulb-limb-fill" x="40" y="128" width="15" height="9" rx="4.5"/><rect class="bulb-limb-fill" x="65" y="128" width="15" height="9" rx="4.5"/><path class="bulb-check" d="M43 43 L54 54 L77 31"/><ellipse class="bulb-cheek" cx="36" cy="80" rx="6.5" ry="4.2"/><ellipse class="bulb-cheek" cx="84" cy="80" rx="6.5" ry="4.2"/><ellipse class="bulb-ink" cx="44" cy="70" rx="4.8" ry="5.8"/><ellipse class="bulb-ink" cx="76" cy="70" rx="4.8" ry="5.8"/><circle class="bulb-shine" cx="45.6" cy="67.6" r="1.6"/><circle class="bulb-shine" cx="77.6" cy="67.6" r="1.6"/><path class="bulb-line" d="M51 82 q2.25 -3 4.5 0 t4.5 0 t4.5 0 t4.5 0"/><path class="bulb-sweat" d="M92 30 q-6 9 0 12 q6 -3 0 -12 Z"/></svg>
+      <p class="nf-code" aria-hidden="true">404</p>
+      <h1>This page is not here</h1>
+      <p class="nf-lead">The link is broken or the page moved. Every question is still waiting for you on the home page.</p>
+      <a class="btn primary lg" href="/">Back to practice
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </a>
+      <ul class="nf-more">
+        <li><a href="/skills/">Browse every SAT skill</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+      </ul>
     </main>
+    <footer class="sf">
+      <div class="sf-in">
+        <ul class="sf-links" aria-label="Site">
+          <li><a href="/">Practice</a></li>
+          <li><a href="/skills/">All skills</a></li>
+          <li><a href="/#about">About</a></li>
+          <li><a href="/privacy">Privacy</a></li>
+          <li><a href="https://github.com/TheKaito2/LightBluePrep">Source</a></li>
+        </ul>
+        <p>LightBluePrep is a free, ad-free student project. Not affiliated with or endorsed by College Board. SAT and Bluebook are trademarks of College Board.</p>
+      </div>
+    </footer>
   </body>
 </html>

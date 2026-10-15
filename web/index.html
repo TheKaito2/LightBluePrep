@@ -32,7 +32,7 @@
          twitter:card is what makes the image render full width rather than as a
          thumbnail, and Discord honours it despite the name. -->
     <meta name="description"
-          content="Every official College Board SAT practice question, free. Filter by topic, hide the ones you've done, re-drill what you missed, and look up any question by its ID." />
+          content="Every question in College Board's official SAT Question Bank, free. Filter by topic, hide the ones you've done, re-drill what you missed, and look up any question by its ID." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="LightBluePrep" />
     <meta property="og:url" content="https://lightblueprep.pages.dev/" />
@@ -41,13 +41,13 @@
     <link rel="canonical" href="https://lightblueprep.pages.dev/" />
     <meta property="og:title" content="LightBluePrep · Free SAT question bank" />
     <meta property="og:description"
-          content="Every official College Board SAT practice question, free. Filter by topic, hide the ones you've done, re-drill what you missed, and look up any question by its ID." />
+          content="Every question in College Board's official SAT Question Bank, free. Filter by topic, hide the ones you've done, re-drill what you missed, and look up any question by its ID." />
     <meta property="og:image" content="https://lightblueprep.pages.dev/og-card.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt"
-          content="LightBluePrep: every official College Board SAT practice question, free." />
+          content="LightBluePrep: every official SAT practice question, free." />
     <meta name="twitter:card" content="summary_large_image" />
     <!-- Structured data for search engines: the site's name (so results can say
          "LightBluePrep" rather than the bare domain) and that it is a free web
@@ -59,7 +59,7 @@
         {"@type": "WebApplication", "name": "LightBluePrep", "url": "https://lightblueprep.pages.dev/",
          "applicationCategory": "EducationalApplication", "operatingSystem": "Any",
          "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
-         "description": "Every official College Board SAT practice question, free. Filter by topic, hide the ones you've done, re-drill what you missed, and look up any question by its ID."}
+         "description": "Every question in College Board's official SAT Question Bank, free. Filter by topic, hide the ones you've done, re-drill what you missed, and look up any question by its ID."}
       ]}
     </script>
     <!-- Tints the phone browser chrome (and the stripe down a Discord embed).
@@ -85,6 +85,18 @@
     <script defer src="/mathjax/mml-svg.js"></script>
   </head>
   <body>
+    <!-- What a crawler, a link unfurler or a visitor with JavaScript off sees.
+         No class, so no app stylesheet reaches it. -->
+    <noscript>
+      <div style="padding: 24px">
+        <h1>LightBluePrep: free SAT question bank</h1>
+        <p>Practice every question in College Board's official SAT Question Bank, free; the practice app needs JavaScript.</p>
+        <ul>
+          <li><a href="/skills/">Browse every SAT skill</a></li>
+          <li><a href="/privacy">Privacy policy</a></li>
+        </ul>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

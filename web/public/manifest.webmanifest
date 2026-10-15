@@ -1,7 +1,7 @@
 {
   "name": "LightBluePrep",
   "short_name": "LightBluePrep",
-  "description": "Every official College Board SAT practice question, free.",
+  "description": "Every question in College Board's official SAT Question Bank, free.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

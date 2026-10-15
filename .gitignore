@@ -27,3 +27,6 @@ Marketing.md
 # Social graphics and the script that builds them. Local only.
 social/
 .wrangler/
+
+# Copied from node_modules and src/fonts by scripts/copy_fonts.mjs.
+web/public/fonts/
