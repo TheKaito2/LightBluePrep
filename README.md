@@ -129,7 +129,7 @@ The static build depends on College Board sending `Access-Control-Allow-Origin: 
 | `audit` | Lists flagged questions, should be exactly 3 |
 | `import <file.json>` | Loads questions from a file instead of the API |
 
-`fetch` skips anything already in `raw/` with a matching `updateDate`, so re-running it after an interruption picks up where it stopped. `--force` on any of the first four ignores that and refetches everything. `--strict` makes them exit nonzero when something gets flagged, which is what you'd want if you ever ran this on a schedule. `serve` takes `--host 0.0.0.0` to reach it from your phone on the same network.
+`fetch` skips anything already in `raw/` with a matching `updateDate`, so re-running it after an interruption picks up where it stopped. `--force` on any of the first four ignores that and refetches everything. `--strict` makes them exit nonzero when something gets flagged, which is what you'd want if you ever ran this on a schedule. `serve` takes `--host 0.0.0.0 --allow-host 192.168.1.20` (your computer's address on the network) to reach it from your phone. Nothing in it signs anyone in, so while it runs that way anyone on the same network can read and change your progress; it answers only to requests addressed to the names you allow, which keeps other websites out.
 
 ### Where the Data Lives
 Four tables in [data/bluebank.db](data) are yours: `attempts`, `annotations`, `marks` and `mistakes`. Everything else re-downloads. That's a couple of KB of real data sitting inside a 47 MB file, so back up the tables rather than the database.
@@ -217,8 +217,9 @@ Two things do reach out, and only when you ask for them. Desmos loads from their
 
 ### Tests
 ```
-python -m unittest discover tests   # 92
-cd web && npm test                  # 112
+python -m unittest discover tests     # 96
+node --test 'worker/test/*.test.js'   # 18, the sync Worker on node:sqlite
+cd web && npm test                    # 277
 ```
 
 The rationale parser and the grader exist in both Python and TypeScript, and the TypeScript ports were checked against the Python by running both over the whole corpus: every rationale split identically, every explanation classified identically, every recovered key identical. The HTML in the committed cases is paraphrased rather than copied, so no question content is in the repo.

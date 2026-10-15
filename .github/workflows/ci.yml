@@ -43,6 +43,12 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
+      # The sync Worker against its real schema, on node:sqlite: no install.
+      # A glob, not the directory: node --test reads a bare directory as a
+      # script to run.
+      - name: Worker tests
+        run: node --test 'worker/test/*.test.js'
+
       - name: Install
         working-directory: web
         run: npm ci

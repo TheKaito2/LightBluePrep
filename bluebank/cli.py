@@ -176,11 +176,15 @@ def main(argv=None):
     sp = sub.add_parser("serve")
     sp.add_argument("--host", default="127.0.0.1",
                     help="0.0.0.0 to reach it from another device on your network")
+    sp.add_argument("--allow-host", action="append", default=[], metavar="NAME",
+                    help="required off localhost: the address or name other "
+                         "devices use to reach this one (repeatable)")
     sp.add_argument("--port", type=int, default=8000)
     sp.add_argument("-v", "--verbose", action="store_true")
     sp.set_defaults(fn=lambda a: __import__(
         "bluebank.server", fromlist=["serve"]).serve(
-            host=a.host, port=a.port, verbose=a.verbose))
+            host=a.host, port=a.port, verbose=a.verbose,
+            allow_hosts=a.allow_host))
 
     sp = sub.add_parser("import")
     sp.add_argument("path", help="JSON array against the normalized schema")

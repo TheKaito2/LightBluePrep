@@ -1,7 +1,7 @@
 """Local HTTP API for the practice UI.
 
-Stdlib only. Binds to localhost by default; `--host 0.0.0.0` opens it to the
-LAN and is the single change needed to put it behind a domain later.
+Stdlib only. Binds to localhost by default. `--host 0.0.0.0 --allow-host NAME`
+opens it to the LAN, answering only to requests addressed to NAME.
 
 The answer key, per-choice explanations, and rationale are never sent with a
 question. They come back only in the response to a submitted answer, so they
@@ -10,6 +10,8 @@ cannot be read out of devtools before you answer.
 import json
 import mimetypes
 import re
+import sys
+import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -27,6 +29,8 @@ MAX_BODY = 1 << 20   # 1 MB is far more than any annotation set
 # these, only the page this server itself serves may call the API.
 DEV_ORIGINS = {"http://localhost:5173", "http://127.0.0.1:5173"}
 LOOPBACK_NAMES = {"localhost", "127.0.0.1", "::1"}
+LAN_WARNING = "LAN mode: anyone on this network can read and change your progress."
+MAX_LIMIT = 500
 
 
 class Api:
@@ -57,6 +61,11 @@ class Api:
 def _one(query, key, default=None):
     values = query.get(key)
     return values[0] if values else default
+
+
+def _limit(query, default=50):
+    """?limit=, held to 1..MAX_LIMIT. A negative LIMIT is no limit in SQLite."""
+    return max(1, min(int(_one(query, "limit", default)), MAX_LIMIT))
 
 
 def _many(query, key):
@@ -91,7 +100,7 @@ def _sets(conn, query, body):
     flag = _one(query, "active")
     active = None if flag is None else flag == "1"
     return {"sets": session.list_sets(
-        conn, limit=int(_one(query, "limit", "50")), active=active)}
+        conn, limit=_limit(query), active=active)}
 
 
 @Api.route("POST", r"/api/sets")
@@ -198,8 +207,7 @@ def _stats(conn, query, body):
 
 @Api.route("GET", r"/api/review")
 def _review(conn, query, body):
-    limit = int(_one(query, "limit", "50"))
-    rows = session.wrong_answers(conn, limit=limit)
+    rows = session.wrong_answers(conn, limit=_limit(query))
     for row in rows:
         row["question"] = session.public_question(row["question"])
     return {"wrong": rows}
@@ -228,16 +236,18 @@ class Handler(BaseHTTPRequestHandler):
         return origin in DEV_ORIGINS or origin == "http://" + (self.headers.get("Host") or "")
 
     def _host_ok(self):
-        """On the default loopback bind, only answer to a loopback host name.
+        """Only answer to a loopback host name, or in LAN mode a --allow-host one.
 
-        Stops DNS rebinding: a site that re-points its own name at 127.0.0.1
-        is same-origin with itself, so CORS never applies, but the Host header
-        still carries its name.
+        Stops DNS rebinding: a site that re-points its own name at this
+        machine is same-origin with itself, so CORS never applies, but the
+        Host header still carries its name. It used to be skipped entirely
+        off loopback, which is exactly where rebinding is easiest.
         """
-        if not self.server.loopback:
-            return True
-        name = urlparse("//" + (self.headers.get("Host") or "")).hostname
-        return name in LOOPBACK_NAMES
+        try:
+            name = urlparse("//" + (self.headers.get("Host") or "")).hostname
+        except ValueError:                            # a malformed Host
+            return False
+        return name in LOOPBACK_NAMES or name in self.server.allow_hosts
 
     def _send(self, status, payload=None, raw=None, content_type="application/json"):
         if raw is None:
@@ -310,8 +320,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": f"unknown question {exc}"})
         except (ValueError, json.JSONDecodeError) as exc:
             self._send(400, {"error": str(exc)})
-        except Exception as exc:                      # surface it, do not swallow
-            self._send(500, {"error": f"{type(exc).__name__}: {exc}"})
+        except Exception:
+            # The detail goes to this terminal, not the response: in LAN mode
+            # the response can reach anyone on the network, and a traceback
+            # names files and paths on this machine.
+            traceback.print_exc(file=sys.stderr)
+            self._send(500, {"error": "server error"})
 
     def _static(self, path):
         """Serve the built frontend, falling back to index.html for SPA routes."""
@@ -334,17 +348,37 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, raw=target.read_bytes(), content_type=ctype)
 
 
-def serve(host="127.0.0.1", port=8000, db_path=None, web_root=WEB_DIST,
-          verbose=False):
+def make_server(host="127.0.0.1", port=8000, db_path=None, web_root=WEB_DIST,
+                verbose=False, allow_hosts=()):
+    """The bound server, not yet serving. Off loopback it needs allow_hosts.
+
+    Nothing here signs anyone in, so a LAN bind hands your progress to the
+    whole network. Naming the host it is reached by at least keeps other
+    sites out through DNS rebinding, and makes the exposure a choice.
+    """
+    allow_hosts = {h.strip().lower() for h in allow_hosts if h and h.strip()}
+    if host not in LOOPBACK_NAMES and not allow_hosts:
+        raise SystemExit(
+            f"--host {host} needs --allow-host NAME: the address or name other "
+            "devices use to reach this machine, e.g. --allow-host 192.168.1.20")
     httpd = ThreadingHTTPServer((host, port), Handler)
-    httpd.loopback = host in LOOPBACK_NAMES
+    httpd.allow_hosts = allow_hosts
     httpd.db_path = db_path
     httpd.web_root = Path(web_root) if web_root else None
     httpd.verbose = verbose
-    where = "http://localhost:%d" % port if host in ("127.0.0.1", "localhost") \
-        else "http://%s:%d" % (host, port)
+    return httpd
+
+
+def serve(host="127.0.0.1", port=8000, db_path=None, web_root=WEB_DIST,
+          verbose=False, allow_hosts=()):
+    httpd = make_server(host, port, db_path, web_root, verbose, allow_hosts)
     built = httpd.web_root and httpd.web_root.exists()
-    print(f"  serving {where}")
+    if host in LOOPBACK_NAMES:
+        print(f"  serving http://localhost:{port}")
+    else:
+        for name in sorted(httpd.allow_hosts):
+            print(f"  serving http://{name}:{port}")
+        print(f"  {LAN_WARNING}")
     print(f"  frontend: {httpd.web_root if built else 'not built yet (API only)'}")
     try:
         httpd.serve_forever()

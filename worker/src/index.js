@@ -1209,3 +1209,8 @@ export default {
     }
   },
 }
+
+// For worker/test only; nothing routes to them. Functions and nothing else:
+// workerd treats every named export of the main module as a possible
+// entrypoint and refuses to start on one that is a number, string or array.
+export { cleanAttempts, cleanMarks, cleanAnnotations, cleanMistakes, cleanSets, existingKeys }

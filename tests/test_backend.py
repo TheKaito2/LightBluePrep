@@ -805,12 +805,12 @@ if __name__ == "__main__":
 
 
 class TestServerBoundary(unittest.TestCase):
-    """The local server answers only its own page, Vite, and loopback names."""
+    """The local server answers only its own page, Vite, loopback names, and
+    the names given with --allow-host."""
 
     @classmethod
     def setUpClass(cls):
         import threading
-        from http.server import ThreadingHTTPServer
         from bluebank import server
         cls.tmp = tempfile.mkdtemp()
         root = os.path.join(cls.tmp, "web", "dist")
@@ -820,11 +820,11 @@ class TestServerBoundary(unittest.TestCase):
             f.write("<p>app</p>")
         with open(os.path.join(cls.tmp, "web", "dist-pages", "secret.txt"), "w") as f:
             f.write("SIBLING")
-        cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
-        cls.httpd.loopback = True
-        cls.httpd.db_path = os.path.join(cls.tmp, "t.db")
-        cls.httpd.web_root = server.Path(root)
-        cls.httpd.verbose = False
+        # Bound to loopback, but with an allowed name, which is all LAN mode
+        # changes about request handling; binding 0.0.0.0 in a test would
+        # open the port to the network.
+        cls.httpd = server.make_server("127.0.0.1", 0, os.path.join(cls.tmp, "t.db"),
+                                       root, allow_hosts=["Study.lan"])
         cls.port = cls.httpd.server_address[1]
         threading.Thread(target=cls.httpd.serve_forever, daemon=True).start()
 
@@ -873,3 +873,69 @@ class TestServerBoundary(unittest.TestCase):
     def test_sibling_directory_is_not_served(self):
         status, _, text = self.request("GET", "/../dist-pages/secret.txt")
         self.assertNotIn("SIBLING", text)
+
+    def test_allowed_lan_name_is_served(self):
+        status, _, text = self.request("GET", "/", {"Host": f"study.lan:{self.port}"})
+        self.assertEqual(status, 200)
+        self.assertIn("app", text)
+
+    def test_missing_or_malformed_host_is_refused(self):
+        for host in ("", "[bad", f"study.lan.evil.example:{self.port}"):
+            with self.subTest(host=host):
+                status, _, _ = self.request("GET", "/api/stats", {"Host": host})
+                self.assertEqual(status, 403)
+
+    def test_server_error_says_nothing_about_the_machine(self):
+        import contextlib
+        import io
+        from unittest import mock
+        log = io.StringIO()
+        boom = RuntimeError("/Users/someone/secret/path.db is locked")
+        with mock.patch.object(session, "stats", side_effect=boom), \
+                contextlib.redirect_stderr(log):
+            status, _, text = self.request("GET", "/api/stats")
+        self.assertEqual(status, 500)
+        self.assertEqual(json.loads(text), {"error": "server error"})
+        self.assertIn("secret/path.db", log.getvalue(), "the detail is logged locally")
+
+    def test_limit_is_clamped(self):
+        from unittest import mock
+        for sent, used in (("-1", 1), ("0", 1), ("20", 20), ("99999", 500)):
+            with self.subTest(limit=sent), \
+                    mock.patch.object(session, "wrong_answers", return_value=[]) as wrong:
+                status, _, _ = self.request("GET", f"/api/review?limit={sent}")
+                self.assertEqual(status, 200)
+                self.assertEqual(wrong.call_args.kwargs["limit"], used)
+        status, _, _ = self.request("GET", "/api/review?limit=all")
+        self.assertEqual(status, 400)
+
+
+class TestLanMode(unittest.TestCase):
+    def test_off_loopback_needs_an_allowed_host(self):
+        from bluebank import server
+        # Refused before anything is bound.
+        with self.assertRaises(SystemExit) as raised:
+            server.make_server("0.0.0.0", 0, allow_hosts=[" "])
+        self.assertIn("--allow-host", str(raised.exception))
+
+    def test_lan_mode_prints_the_warning(self):
+        import contextlib
+        import io
+        from unittest import mock
+        from bluebank import server
+        fake = mock.MagicMock()
+        fake.return_value.serve_forever.side_effect = KeyboardInterrupt
+        out = io.StringIO()
+        with mock.patch.object(server, "ThreadingHTTPServer", fake), contextlib.redirect_stdout(out):
+            server.serve("0.0.0.0", 8000, web_root=None, allow_hosts=["192.168.1.20"])
+        self.assertIn(server.LAN_WARNING, out.getvalue())
+        self.assertIn("http://192.168.1.20:8000", out.getvalue())
+        self.assertEqual(server.LAN_WARNING,
+                         "LAN mode: anyone on this network can read and change your progress.")
+
+    def test_cli_passes_allow_host_through(self):
+        from unittest import mock
+        from bluebank import cli, server
+        with mock.patch.object(server, "serve") as serve:
+            cli.main(["serve", "--host", "0.0.0.0", "--allow-host", "a.lan", "--allow-host", "b.lan"])
+        self.assertEqual(serve.call_args.kwargs["allow_hosts"], ["a.lan", "b.lan"])
