@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import * as api from './api'
 import { Home } from './components/Home'
 import { Stats as StatsPage } from './components/Stats'
@@ -87,6 +87,23 @@ const hasDeepLink = () => DEEP_LINK_KEYS.some((k) => new URLSearchParams(window.
 /** Session length for someone with no answers yet: a short set with an end, not all 3,767 (H-31). */
 const FIRST_SIZE = 10
 
+/**
+ * The pages that refetch the taxonomy and history after progress changes:
+ * the three that show them (Home's counts, Stats, a set's streak and gains on
+ * Results) and Review, the page Results and a reviewed question return to, so
+ * the numbers are already fresh by the time Home or Stats is opened from it.
+ */
+const PROGRESS_VIEWS = new Set<View>(['home', 'stats', 'review', 'results'])
+
+/**
+ * How many questions past the one on screen to warm. Fewer on a slow line,
+ * where each extra fetch competes with the one you are waiting for.
+ */
+function prefetchAhead(): number {
+  const type = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType
+  return type === 'slow-2g' || type === '2g' || type === '3g' ? 2 : 3
+}
+
 /** index.html's own title, which Home goes back to. */
 const HOME_TITLE = document.title
 
@@ -135,8 +152,10 @@ export default function App() {
     setView(next)
   }, [])
 
-  /** Bumped by a sync that pulled rows; drives the taxonomy refetch below. */
+  /** Bumped by a sync that pulled rows; reloads Home's list and sets. */
   const [dataVersion, setDataVersion] = useState(0)
+  /** Bumped by an answer, a flag, a pull or a delete; drives the taxonomy refetch below. */
+  const progressVersion = useSyncExternalStore(api.onProgress, api.progressVersion)
 
   const [taxonomy, setTaxonomy] = useState<TaxonomyRow[]>([])
   /** True from the start of a taxonomy fetch until it settles, so Home can tell loading from failed. */
@@ -257,22 +276,33 @@ export default function App() {
     current?.id ?? null, practising && question !== null && result === null)
 
   /**
-   * Re-read the taxonomy whenever you land back on Home or Stats, and whenever
-   * a sync pulls something new.
+   * Re-read the taxonomy and history when progress has changed since they were
+   * last read, once you are on a page that shows them.
    *
-   * This used to run once on mount. Answering a question updates the stores but
-   * nothing told React, so "Bank progress", the per-card progress and the whole
-   * Stats page kept showing the numbers from page load until you reloaded.
-   * Practice is excluded because the numbers are not on screen there and the
-   * set list would refetch under you mid-question.
+   * Once on mount was too little: answering updated the stores but nothing told
+   * React, so "Bank progress" and Stats kept their page-load numbers. On every
+   * page switch was too much: About to Settings re-walked all 3,767 questions
+   * and every attempt for numbers that had not moved (PF-16). Practice is
+   * excluded because the numbers are not on screen there and the set list
+   * would refetch under you mid-question. The first read happens on whichever
+   * page you land on, since About shows the totals.
    */
+  const fetchedFor = useRef<string | null>(null)
+  const fetchSeq = useRef(0)
   useEffect(() => {
     if (view === 'practice') return
-    let stale = false
+    const key = `${progressVersion}:${reloadKey}`
+    if (fetchedFor.current === key) return
+    if (fetchedFor.current !== null && !PROGRESS_VIEWS.has(view)) return
+    fetchedFor.current = key
+    // Not cancelled by leaving the page: the numbers are kept for the next
+    // one, and only a newer read supersedes this one.
+    const seq = ++fetchSeq.current
+    const latest = () => seq === fetchSeq.current
     setTaxonomyLoading(true)
     api.taxonomy()
       .then((d) => {
-        if (stale) return
+        if (!latest()) return
         setTaxonomy(d.taxonomy); setStats(d.stats)
         if (firstVisit.current && !d.stats.attempts) {
           // Unless a length was already picked in the moment before this landed.
@@ -280,14 +310,17 @@ export default function App() {
         }
         firstVisit.current = false
       })
-      .catch((e: Error) => !stale && fail(e, reload))
-      .finally(() => { if (!stale) setTaxonomyLoading(false) })
+      .catch((e: Error) => {
+        if (!latest()) return
+        fetchedFor.current = null // so the next page tries again
+        fail(e, reload)
+      })
+      .finally(() => { if (latest()) setTaxonomyLoading(false) })
     // Streaks and the score estimate on Home read every attempt.
     api.history()
-      .then((d) => { if (!stale) setAttemptLog(d.history) })
+      .then((d) => { if (latest()) setAttemptLog(d.history) })
       .catch(() => {})
-    return () => { stale = true }
-  }, [view, dataVersion, reloadKey, fail, reload])
+  }, [view, progressVersion, reloadKey, fail, reload])
 
   // Starts the sync loop if a session already exists. No-op when signed out or
   // when the build has no sync configured, so the localhost path is untouched.
@@ -298,18 +331,15 @@ export default function App() {
    * question, so Back and Next have nowhere to wander and the navigator says
    * 1 of 1.
    */
-  /** Questions whose College Board ID starts with `needle`, exact match first. */
-  const findIds = useCallback((needle: string) => api.questionSet({}).then((d) => d.questions
-    .filter((q) => (q.cb_id ?? '').toLowerCase().startsWith(needle))
-    .sort((a, b) => Number(b.cb_id?.toLowerCase() === needle) - Number(a.cb_id?.toLowerCase() === needle))), [])
+  /** Questions whose College Board ID starts with `needle`: the first 5, exact match first, and the total. */
+  const findIds = api.findByCbId
 
   /** Title for a list opened from Review ("Review: Incorrect"). */
   const [listTitle, setListTitle] = useState<string | null>(null)
   useEffect(() => { if (view !== 'practice') setListTitle(null) }, [view])
 
   const practiceMany = useCallback((ids: string[], title: string) => {
-    api.questionSet({}).then((d) => {
-      const byId = new Map(d.questions.map((q) => [q.id, q]))
+    api.questionsById().then((byId) => {
       const list = ids.flatMap((id) => byId.get(id) ?? [])
       if (!list.length) return
       setItems(list); setIndex(0); setListTitle(title); navigate('practice')
@@ -334,8 +364,8 @@ export default function App() {
     }
     const found = items.find((i) => i.id === id)
     if (found) { open(found); return }
-    api.questionSet({}).then((d) => {
-      const one = d.questions.find((q) => q.id === id)
+    api.questionsById().then((byId) => {
+      const one = byId.get(id)
       if (one) open(one)
     }).catch((e: Error) => fail(e))
   }, [items, fail, navigate])
@@ -450,8 +480,8 @@ export default function App() {
     url.hash = ''
     history.replaceState({ view: 'home' }, '', url)
     if (q) {
-      findIds(q).then((m) => {
-        if (m[0]?.cb_id?.toLowerCase() === q) practiceOne(m[0].id)
+      findIds(q).then(({ hits }) => {
+        if (hits[0]?.cb_id?.toLowerCase() === q) practiceOne(hits[0].id)
       }).catch((e: Error) => fail(e))
     } else if (type?.includes('.')) {
       practiceFilters({ skills: [type.slice(0, type.lastIndexOf('.'))], types: [type] })
@@ -506,6 +536,10 @@ export default function App() {
         if (stale) return
         setQuestion(d.question); setAnnotations(d.annotations); setFlagged(d.flagged)
         setMistake(d.mistake)
+        // Once this one is on screen, so the warming never competes with it:
+        // the next few in THIS list's order, and the one before for Back.
+        api.prefetch([...items.slice(index + 1, index + 1 + prefetchAhead()), items[index - 1]]
+          .flatMap((i) => (i ? [i.id] : [])))
       })
       .catch((e: Error) => !stale && fail(e, reload))
       .finally(() => { if (!stale) setLoading(false) })
@@ -559,8 +593,8 @@ export default function App() {
 
   /** The hero's one-tap start: 10 questions from the whole bank, whatever the topic picker says. */
   const quickSet = useCallback(() => {
-    api.questionSet({})
-      .then((d) => beginSet(sample(d.questions, 10), { size: 10 }))
+    api.questionsById()
+      .then((byId) => beginSet(sample([...byId.values()], 10), { size: 10 }))
       .catch((e: Error) => fail(e))
   }, [beginSet, fail])
 
@@ -570,9 +604,9 @@ export default function App() {
    * because only a first try counts toward the estimate.
    */
   const scoreCheck = useCallback(() => {
-    api.questionSet({})
-      .then((d) => beginSet(
-        sampleBalanced(d.questions.filter((q) => !q.answered_at), (q) => q.section, { RW: 10, MATH: 10 }),
+    api.questionsById()
+      .then((byId) => beginSet(
+        sampleBalanced([...byId.values()].filter((q) => !q.answered_at), (q) => q.section, { RW: 10, MATH: 10 }),
         { size: 20, title: 'Score check' }))
       .catch((e: Error) => fail(e))
   }, [beginSet, fail])
@@ -580,9 +614,7 @@ export default function App() {
   /** Put a set's frozen questions back on screen, at the first unanswered one. */
   const openSet = useCallback(async (id: string) => {
     try {
-      const set = await api.getSet(id)
-      const pool = await api.questionSet({})
-      const byId = new Map(pool.questions.map((q) => [q.id, q]))
+      const [set, byId] = await Promise.all([api.getSet(id), api.questionsById()])
       // Order comes from the set, not the pool: that is what makes it the same
       // set every time. A question retired since it was drawn simply drops out.
       const ordered = (set.items ?? [])
@@ -687,8 +719,8 @@ export default function App() {
       setShownSet(saved)
       setRemaining(null)
       navigate('results', true)
+      // Stats and history refetch on Results itself: the grades bumped the progress version.
       refreshActiveSets()
-      api.taxonomy().then((d) => { setTaxonomy(d.taxonomy); setStats(d.stats) }).catch(() => {})
     } finally {
       finishingRef.current = false
       setFinishing(false)
@@ -1073,9 +1105,9 @@ export default function App() {
     setSimilar(null)
     if (!practising || !single || !current) return
     let stale = false
-    Promise.all([loadProcessTypes(), api.questionSet({})]).then(([pt, pool]) => {
+    Promise.all([loadProcessTypes(), api.questionsById()]).then(([pt, byId]) => {
       if (stale || !pt) return
-      const ids = similarTo(current, pool.questions, pt).map((s) => s.id)
+      const ids = similarTo(current, [...byId.values()], pt).map((s) => s.id)
       setSimilar({ ids, title: `Similar: ${typeOf(current.cb_id, pt)?.label ?? current.skill_name}` })
     }).catch(() => { /* the skill button alone still leads on */ })
     return () => { stale = true }

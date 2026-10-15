@@ -108,9 +108,9 @@ export function QuestionDetail({
   useEffect(() => {
     if (!q || !onPracticeMany) return
     let stale = false
-    Promise.all([loadProcessTypes(), api.questionSet({})]).then(([pt, pool]) => {
+    Promise.all([loadProcessTypes(), api.questionsById()]).then(([pt, byId]) => {
       if (stale || !pt) return
-      setSimilar({ type: typeOf(q.cb_id, pt), ids: similarTo(q, pool.questions, pt).map((s) => s.id) })
+      setSimilar({ type: typeOf(q.cb_id, pt), ids: similarTo(q, [...byId.values()], pt).map((s) => s.id) })
     }).catch(() => { /* the block just stays hidden */ })
     return () => { stale = true }
   }, [q, onPracticeMany])

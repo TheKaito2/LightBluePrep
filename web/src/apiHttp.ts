@@ -65,6 +65,9 @@ export function question(id: string) {
   )
 }
 
+/** Nothing to warm: the server is on this machine, so a question loads at once. */
+export function prefetch(ids: string[]): void { void ids }
+
 /** Ids of every question with a mistake log, for Review's filter. */
 export function loggedIds() {
   return call<{ question_ids: string[]; tags: Record<string, MistakeTag[]> }>('/api/mistakes')

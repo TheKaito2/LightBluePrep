@@ -35,9 +35,6 @@ import type {
   Section, SetAnswer, SetItem, Stats, StoredQuestion, TaxonomyRow,
 } from './types'
 
-/** How many questions ahead to warm the cache while you read the current one. */
-const PREFETCH = 4
-
 interface Cache {
   stubs: Stub[]
   attempts: Map<string, store.Attempt[]>
@@ -102,11 +99,8 @@ async function boot(): Promise<Cache> {
   if (booting) return booting
   booting = (async () => {
     let stubs = await store.loadIndex()
-    if (!stubs.length) {
-      stubs = await cb.fetchIndex()
-      await store.saveIndex(stubs)
-      await store.setMeta(INDEX_AGE_KEY, Date.now())
-    } else {
+    const cold = !stubs.length
+    if (!cold) {
       // Stale index: refresh AFTER boot resolves, never before. Blocking here
       // would put 1.7s on a cold start to pick up a change the bank makes about
       // twice a year. The new count lands on the next visit.
@@ -116,11 +110,21 @@ async function boot(): Promise<Cache> {
       }
     }
 
-    // In parallel with the progress read: it is one small GET and the index
-    // request has already paid the connection cost.
-    const [{ attempts, flagged }, live] = await Promise.all([
-      readProgress(), loadLive(),
+    // All at once: the practice-test list and the progress read need nothing
+    // from the index, and fetched after it they added about 0.9s to a first
+    // visit (PF-04).
+    const [fetched, { attempts, flagged }, live] = await Promise.all([
+      cold ? cb.fetchIndex() : null, readProgress(), loadLive(),
     ])
+    if (fetched) {
+      stubs = fetched
+      // Saved in the background. Nothing reads the stored copy this session,
+      // and storing 3,770 rows took about 0.4s the topics were waiting on. If
+      // it fails, the next visit simply fetches the index again.
+      void store.saveIndex(stubs)
+        .then(() => store.setMeta(INDEX_AGE_KEY, Date.now()))
+        .catch(console.error)
+    }
     cache = { stubs, attempts, flagged, live }
     return cache
   })()
@@ -205,7 +209,23 @@ export async function refreshIndex(): Promise<number> {
   return stubs.length
 }
 
-async function loadFull(id: string): Promise<StoredQuestion> {
+/**
+ * Question bodies being fetched right now, so a question opened while its
+ * prefetch is still on the wire waits for that request instead of sending a
+ * second one.
+ */
+const inflight = new Map<string, Promise<StoredQuestion>>()
+
+function loadFull(id: string): Promise<StoredQuestion> {
+  let pending = inflight.get(id)
+  if (!pending) {
+    pending = fetchFull(id).finally(() => inflight.delete(id))
+    inflight.set(id, pending)
+  }
+  return pending
+}
+
+async function fetchFull(id: string): Promise<StoredQuestion> {
   const cached = await store.loadQuestion(id)
   if (cached) return cached
   const { stubs } = await boot()
@@ -217,8 +237,12 @@ async function loadFull(id: string): Promise<StoredQuestion> {
   return question
 }
 
-/** Best-effort cache warming. A failure here must never surface to the user. */
-function prefetch(ids: string[]): void {
+/**
+ * Warm the cache with the questions practice is likely to open next. The
+ * caller names them, because only it knows the order the list is in. A
+ * failure here must never surface to the user.
+ */
+export function prefetch(ids: string[]): void {
   for (const id of ids) loadFull(id).catch(() => {})
 }
 
@@ -347,20 +371,37 @@ export async function questionSet(filters: Filters):
   return { count: questions.length, questions }
 }
 
+/** What the ID search lists; the rest is a count ("and 12 more"). */
+export const MAX_ID_HITS = 5
+
+/**
+ * The ID search: rows whose College Board ID starts with `prefix` (lower
+ * case), exact match first, then by ID, at most MAX_ID_HITS of them, with the
+ * total. Each keystroke builds five rows instead of the whole bank (PF-17).
+ */
+export function rankByCbId<T>(rows: T[], cbId: (row: T) => string | null | undefined, prefix: string):
+    { hits: T[]; total: number } {
+  const keyed = rows
+    .map((row) => ({ row, id: (cbId(row) ?? '').toLowerCase() }))
+    .filter((k) => k.id.startsWith(prefix))
+  keyed.sort((a, b) => Number(b.id === prefix) - Number(a.id === prefix) || a.id.localeCompare(b.id))
+  return { hits: keyed.slice(0, MAX_ID_HITS).map((k) => k.row), total: keyed.length }
+}
+
+export async function findByCbId(prefix: string): Promise<{ hits: SetItem[]; total: number }> {
+  const c = await boot()
+  const { hits, total } = rankByCbId(c.stubs, (s) => s.questionId, prefix)
+  return { hits: hits.map((stub) => toSetItem(stub, c)), total }
+}
+
 export async function question(id: string): Promise<{
   question: Question; annotations: Annotation[]; flagged: boolean
   mistake: Mistake | null
 }> {
   const c = await boot()
-  const full = await loadFull(id)
-
-  const position = c.stubs.findIndex((s) => s._id === id)
-  if (position >= 0) {
-    prefetch(c.stubs.slice(position + 1, position + 1 + PREFETCH).map((s) => s._id))
-  }
-
-  const saved = await store.loadAnnotations(id)
-  const logged = await store.loadMistake(id)
+  const [full, saved, logged] = await Promise.all([
+    loadFull(id), store.loadAnnotations(id), store.loadMistake(id),
+  ])
   return {
     question: strip(full),
     annotations: saved?.items ?? [],

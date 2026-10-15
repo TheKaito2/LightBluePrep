@@ -29,19 +29,21 @@ async function allowOrigin(url: string, init: RequestInit): Promise<string | nul
 
 describe.runIf(Boolean(import.meta.env.CB_LIVE))('College Board question bank (live)', () => {
   it('still lets a browser on another site call every endpoint (CORS)', async () => {
-    // The two POST endpoints send JSON, so the browser asks first (preflight).
-    for (const url of [LIST_URL, DETAIL_URL]) {
+    // The POSTs go as text/plain, a "simple" request with no preflight, so the
+    // header the browser needs is on the POST's own response.
+    const posts: [string, unknown][] = [
+      [LIST_URL, { asmtEventId: 99, test: 2, domain: 'H' }],
+      [DETAIL_URL, { external_id: (await fetchIndex()).find((s) => s._path === 'external_id')!._id }],
+    ]
+    for (const [url, payload] of posts) {
       expect(OPEN).toContain(await allowOrigin(url, {
-        method: 'OPTIONS',
-        headers: {
-          Origin: SITE,
-          'Access-Control-Request-Method': 'POST',
-          'Access-Control-Request-Headers': 'content-type',
-        },
+        method: 'POST',
+        headers: { Origin: SITE, 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: JSON.stringify(payload),
       }))
     }
     expect(OPEN).toContain(await allowOrigin(LOOKUP_URL, { headers: { Origin: SITE } }))
-  }, 30_000)
+  }, 60_000)
 
   it('serves the index, a question from each host, and the practice-test list', async () => {
     const stubs = await fetchIndex()

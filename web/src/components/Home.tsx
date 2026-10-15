@@ -56,8 +56,8 @@ interface Props {
   onResume: (id: string) => void
   /** Resolves true once the set is deleted. */
   onAbandon: (id: string) => Promise<boolean>
-  /** Every question whose College Board ID matches, for the search box. */
-  findIds: (needle: string) => Promise<SetItem[]>
+  /** The first few questions whose College Board ID matches, exact first, and how many match. */
+  findIds: (needle: string) => Promise<{ hits: SetItem[]; total: number }>
   /** Open one question on its own. */
   onOpenId: (id: string) => void
 }
@@ -118,6 +118,17 @@ function Acc({ seen, correct }: { seen: number; correct: number }) {
   return <span className={`acc ${g.grade}`} title={`${fmt(correct)} of ${fmt(seen)} correct`}>{g.pct}%</span>
 }
 
+/**
+ * The last ID search narrowed to a longer needle, shown while the new search
+ * waits out its debounce so the list does not blink away on every keystroke.
+ * Only when the last answer was complete: otherwise the new total is unknown.
+ */
+function refine(found: { needle: string; hits: SetItem[]; total: number }, needle: string) {
+  if (!needle.startsWith(found.needle) || found.total > found.hits.length) return null
+  const hits = found.hits.filter((q) => (q.cb_id ?? '').toLowerCase().startsWith(needle))
+  return { needle, hits, total: hits.length }
+}
+
 export function Home({
   taxonomy, taxonomyLoading, onRetryBoot, facet, stats, history, value, items, loading, onChange, onOpen, onStart,
   order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId, onQuickStart, onScoreCheck,
@@ -137,14 +148,16 @@ export function Home({
   const closeOptions = useCallback(() => { setShowOptions(false); setReshuffled(false) }, [])
   const [query, setQuery] = useState('')
   /** Hits for the needle they were found for, so a stale list never answers a newer query. */
-  const [found, setFound] = useState<{ needle: string; list: SetItem[] } | null>(null)
+  const [found, setFound] = useState<{ needle: string; hits: SetItem[]; total: number } | null>(null)
   /** The hit Arrow keys have moved to, -1 for none. */
   const [active, setActive] = useState(-1)
   const [idOpen, setIdOpen] = useState(false)
   const idInput = useRef<HTMLInputElement>(null)
   const count = items.length
   const needle = idNeedle(query)
-  const matches = needle.length >= 3 && found?.needle === needle ? found.list : null
+  const matches = needle.length < 3 || !found ? null
+    : found.needle === needle ? found
+      : refine(found, needle)
 
   /**
    * Process types, shown under a ticked skill to narrow it further. Fetched the
@@ -173,8 +186,11 @@ export function Home({
     setActive(-1)
     if (needle.length < 3) return
     let stale = false
-    findIds(needle).then((list) => { if (!stale) setFound({ needle, list }) }).catch(() => {})
-    return () => { stale = true }
+    // Typing an 8-character ID is 6 searches otherwise; wait for a pause.
+    const t = window.setTimeout(() => {
+      findIds(needle).then((d) => { if (!stale) setFound({ needle, ...d }) }).catch(() => {})
+    }, 120)
+    return () => { stale = true; window.clearTimeout(t) }
   }, [needle, findIds])
 
   // "/" jumps to the ID search from anywhere on Home that is not a field.
@@ -190,21 +206,21 @@ export function Home({
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
-  const shownHits = matches?.slice(0, 5) ?? []
+  const shownHits = matches?.hits ?? []
   /**
    * Spoken by a live region that is always in the page: one that mounts with
    * its first message is often not heard at all.
    */
   const matchNews = !matches ? ''
-    : !matches.length ? `No question with ID ${needle}`
-      : matches.length > 5 ? `${plural(matches.length, 'match', 'matches')}, first 5 shown`
-        : plural(matches.length, 'match', 'matches')
+    : !matches.total ? `No question with ID ${needle}`
+      : matches.total > shownHits.length ? `${plural(matches.total, 'match', 'matches')}, first ${shownHits.length} shown`
+        : plural(matches.total, 'match', 'matches')
 
   function submitId() {
-    if (!matches?.length) return
+    if (!matches?.total) return
     if (active >= 0 && shownHits[active]) { onOpenId(shownHits[active].id); return }
     // findIds puts an exact match first.
-    if (matches.length === 1 || matches[0].cb_id?.toLowerCase() === needle) { onOpenId(matches[0].id); return }
+    if (matches.total === 1 || shownHits[0].cb_id?.toLowerCase() === needle) { onOpenId(shownHits[0].id); return }
     setActive(0)
   }
 
@@ -484,9 +500,9 @@ export function Home({
                     </ul>
                   ) : null}
                   <p className="idnote">
-                    {!matches.length
+                    {!matches.total
                       ? <>No question with ID “{needle}”. IDs are 8 characters, shown under Info on any question.</>
-                      : matches.length > 5 ? `and ${fmt(matches.length - 5)} more, keep typing` : null}
+                      : matches.total > shownHits.length ? `and ${fmt(matches.total - shownHits.length)} more, keep typing` : null}
                   </p>
                 </div>
               ) : null}

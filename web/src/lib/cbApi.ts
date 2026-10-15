@@ -66,7 +66,13 @@ async function request(
 function post(url: string, payload: unknown, tries?: Tries): Promise<Json> {
   return request(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    // text/plain, not application/json, keeps this a CORS "simple" request, so
+    // the browser sends it straight away instead of asking with an OPTIONS
+    // first. College Board sends no Access-Control-Max-Age, so that preflight
+    // was repeated on nearly every question (about 300ms each on 3G). Their API
+    // parses the body either way: same 200, byte-identical response.
+    // cbApi.live.test.ts checks that still holds.
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
     body: JSON.stringify(payload),
   }, tries)
 }

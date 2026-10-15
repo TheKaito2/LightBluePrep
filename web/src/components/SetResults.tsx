@@ -50,10 +50,10 @@ export function SetResults({ set, history, onPractice, onPracticeMany, onRedo, o
   // bank so the list can say what each question was about.
   useEffect(() => {
     let stale = false
-    api.questionSet({})
-      .then((d) => {
+    api.questionsById()
+      .then((byId) => {
         if (stale) return
-        setMeta(new Map(d.questions.map((q) => [q.id, q])))
+        setMeta(byId)
         setLoad('ok')
       })
       .catch(() => { if (!stale) setLoad('failed') })
