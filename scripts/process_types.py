@@ -11,6 +11,10 @@ mechanical ends of that:
 
 The export holds College Board text, so OUTDIR must stay outside the repo. The
 merged file holds only question ids and our own type names, no question text.
+
+The public file has been copy-edited by hand since the last merge (Unicode
+maths such as b² − 4ac and π/180, plainer tips, the Oxford comma). A fresh
+merge overwrites those edits, so carry them into the agents' JSON first.
 """
 import html
 import json

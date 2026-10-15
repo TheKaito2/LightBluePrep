@@ -1,6 +1,9 @@
 {
+  "id": "/",
   "name": "LightBluePrep",
   "short_name": "LightBluePrep",
+  "lang": "en",
+  "categories": ["education"],
   "description": "Every question in College Board's official SAT Question Bank, free.",
   "start_url": "/",
   "scope": "/",

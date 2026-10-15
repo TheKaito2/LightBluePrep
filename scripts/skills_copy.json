@@ -1,0 +1,126 @@
+{
+  "_note": "Our own words for the skill pages (scripts/skill_pages.py), keyed by College Board skill code. 'what' is 40 to 80 words on what the skill tests; 'how' is one line on how it appears on the SAT; 'short' names the long skills in <title> tags and chips. Never paste College Board question text here.",
+  "CID": {
+    "what": "Central Ideas and Details asks you to read a short passage and say what it is mostly about, or to find a detail it states directly. Passages range from science and history writing to excerpts of novels and poems. The right answer restates the text closely: it covers the whole passage rather than one sentence, and it never claims more than the author does.",
+    "how": "A short passage, then one question about its main idea or one of its details, with four answer choices."
+  },
+  "COE": {
+    "what": "Command of Evidence tests whether you can match a claim to the evidence that backs it. Sometimes the evidence is textual: a quotation from a poem or novel, or a finding from a study. Sometimes it is quantitative: a value or trend in a table or graph. Decide what the claim needs, then pick the one choice that supports or weakens it on every point.",
+    "how": "A short passage states a claim or hypothesis, and you choose the quotation, research finding, or data from a table or graph that fits it."
+  },
+  "INF": {
+    "what": "Inferences asks you to finish a passage with the conclusion that follows most logically from what it says. The text lays out facts, a study, or an argument and stops at a blank. Good answers use every clue in the passage and go no further. Wrong choices are often claims that sound true but that the text never supports, or that contradict a detail you skimmed past.",
+    "how": "A short passage ends in a blank, and you choose the completion that most logically follows from the text."
+  },
+  "WIC": {
+    "what": "Words in Context tests vocabulary the way it is used, not as a list of definitions. You read a sentence or two with a missing word and choose the most logical and precise fit, or say what a word means in that passage. Signal words such as but, because, and for example point to the meaning before you look at the choices.",
+    "how": "A short passage with a blank or a word to define; the choices are single words or short phrases."
+  },
+  "TSP": {
+    "what": "Text Structure and Purpose is about what an author is doing rather than what the text says. Questions ask for the main purpose of a passage, how it is organized from start to finish, or the job one underlined sentence does, such as giving an example or raising a counterpoint. Outline the moves of the passage in a few words before you read the choices.",
+    "how": "A short informational or literary passage, followed by a question about its purpose, its overall structure, or the function of an underlined part."
+  },
+  "CTC": {
+    "what": "Cross-Text Connections gives you two short texts on the same topic and asks how they relate. You might predict how one author would respond to the other's claim, find the point both accept, or name where they disagree. It rewards a clear one-line summary of each text's position before you compare them, and a careful check that both halves of an answer fit.",
+    "how": "Two short passages, labeled Text 1 and Text 2, followed by one question about how they relate."
+  },
+  "SYN": {
+    "what": "Rhetorical Synthesis puts you in the place of a student writer. You get a set of bulleted notes and a goal, such as emphasizing a similarity or introducing a study to a new audience, and choose the sentence that uses the notes to meet that goal. Accuracy alone is not enough: the right sentence is the one that does exactly what the goal asks.",
+    "how": "A list of research notes and a stated goal; each answer choice is a sentence built from the notes."
+  },
+  "TRA": {
+    "what": "Transitions tests the logical link between two ideas. You read a short passage with a blank where a word or phrase such as however, therefore, or for example belongs, and choose the one that matches how the next sentence relates to the one before it: contrast, cause and effect, addition, example, sequence, or similarity. Name that relationship yourself before you read the choices.",
+    "how": "A short passage with a blank at the start of a sentence or clause; the choices are transition words and phrases."
+  },
+  "BOU": {
+    "what": "Boundaries covers the punctuation that marks where sentences, clauses, and phrases begin and end: periods, semicolons, colons, dashes, and commas. You decide whether two clauses can stand alone, whether an aside needs a matching pair of marks, and when no punctuation belongs at all. Most questions turn on spotting run-ons, comma splices, and sentence fragments.",
+    "how": "A short passage with a blank; the answer choices differ mainly in their punctuation."
+  },
+  "FSS": {
+    "what": "Form, Structure, and Sense covers grammar inside a sentence: subject and verb agreement, verb tense and form, pronouns that match their nouns, plurals and possessives, and modifiers placed beside what they describe. The task is choosing the form that standard written English requires, which often means looking past the words that sit between a subject and its verb.",
+    "how": "A short passage with a blank; the choices are different forms of the same word or phrase."
+  },
+  "H.A.": {
+    "what": "Linear Equations in One Variable asks you to solve, build, and interpret equations such as 3(x − 4) = 2x + 7. You may solve for x, find the value of an expression without solving, decide whether an equation has one solution, none, or infinitely many, or turn a word problem into an equation. Clean algebra and a careful reading of what is asked matter most.",
+    "how": "Multiple choice or a typed-in answer, often a word problem about a rate, a fee, or a total."
+  },
+  "H.B.": {
+    "what": "Linear Functions is about rules of the form f(x) = mx + b, given as an equation, a table, a graph, or a story. You evaluate the function, solve for an input, write the rule from two points or a situation, and explain what the slope and intercept mean in context: the slope is the change per unit, and the intercept is the starting value.",
+    "how": "Multiple choice or a typed-in answer, often with a table, a graph, or a pricing or growth story."
+  },
+  "H.C.": {
+    "what": "Linear Equations in Two Variables covers equations such as 4x + 5y = 60 and the lines they draw. Questions ask you to write the equation for a situation, interpret a coefficient, find a slope or intercept, connect an equation to its graph or table, or use parallel and perpendicular slopes. Many are word problems with two kinds of items and a total.",
+    "how": "Multiple choice or a typed-in answer; graphs and short word problems are common."
+  },
+  "H.D.": {
+    "short": "Systems of Linear Equations",
+    "what": "This skill covers two linear equations solved together. You solve by substitution or elimination, find a combined value such as x + y, decide whether a system has one solution, none, or infinitely many, and set up a system from a word problem. On a graph, the solution is where the two lines cross, and parallel lines mean there is no solution.",
+    "how": "Multiple choice or a typed-in answer; some give the system, others a word problem or a graph of two lines."
+  },
+  "H.E.": {
+    "what": "Linear Inequalities in One or Two Variables asks you to write and solve inequalities, mostly from situations with a limit, such as a budget or a weight capacity. You find the greatest or least value allowed, test which points satisfy an inequality or a system, and read shaded regions on a graph. Remember to flip the sign when you multiply or divide by a negative number.",
+    "how": "Usually multiple choice: a word problem about a maximum or minimum, or a shaded graph."
+  },
+  "P.A.": {
+    "what": "Equivalent Expressions tests algebraic rewriting: combining like terms, expanding products, factoring, and simplifying exponents, radicals, and rational expressions. Many questions ask which choice is equivalent to a given expression, or ask for the constant that makes two forms equal. Expanding each choice, or matching coefficients term by term, settles most of them.",
+    "how": "Mostly multiple choice with algebraic answer choices; some ask for a constant as a typed-in answer."
+  },
+  "P.B.": {
+    "short": "Nonlinear Equations and Systems",
+    "what": "This skill covers equations that are not linear: quadratics, absolute values, radicals, and rational equations, plus systems where a line meets a curve. You solve by factoring, by the quadratic formula, or by substitution, rearrange formulas for one variable, and use the discriminant b² − 4ac to count solutions. Always check the answers for extraneous solutions.",
+    "how": "Multiple choice or a typed-in answer; the graphing calculator helps when a line and a curve cross."
+  },
+  "P.C.": {
+    "what": "Nonlinear Functions covers quadratic, exponential, and other nonlinear functions given as equations, tables, graphs, or models. You evaluate them, find vertices and zeros, interpret constants in context, build exponential growth and decay models, and work with shifts and equivalent forms. It is the largest Math skill in the question bank, so it rewards steady practice.",
+    "how": "Multiple choice or a typed-in answer, often a growth model, a projectile, or a parabola on a graph."
+  },
+  "Q.A.": {
+    "short": "Ratios, Rates, and Units",
+    "what": "This skill is about comparing quantities. You set up and solve proportions, use rates such as speed, density, and unit price, scale a ratio up or down, and convert between units by multiplying conversion fractions so the unwanted units cancel. Many questions are word problems with several steps, so writing the units beside each number keeps the setup honest.",
+    "how": "Mostly word problems, as multiple choice or a typed-in answer."
+  },
+  "Q.B.": {
+    "what": "Percentages asks you to find a percent of a number, find the whole from a part, express one value as a percent of another, and work with percent increase and decrease. The key tool is the multiplier: a 15% increase multiplies by 1.15, a 15% decrease multiplies by 0.85, and several changes in a row multiply together rather than add.",
+    "how": "Short word problems about prices, populations, or survey results, as multiple choice or a typed-in answer."
+  },
+  "Q.C.": {
+    "short": "One-Variable Data",
+    "what": "This skill covers describing one set of data. You find the mean and median from lists, tables, dot plots, and box plots, use a mean to find a missing value, and compare the center and spread of two data sets. A common question asks how the mean, median, or range changes when a value, such as an outlier, is added, removed, or shifted.",
+    "how": "A list, table, dot plot, histogram, or box plot, with multiple choice or a typed-in answer."
+  },
+  "Q.D.": {
+    "short": "Two-Variable Data",
+    "what": "Two-Variable Data covers scatterplots, lines of best fit, and the models behind them. You read values from a graph, predict with the line of best fit, compare actual points with predicted ones, interpret a slope in context, and decide whether a linear, quadratic, or exponential model fits the data. Reading the axis labels and units carefully prevents most mistakes.",
+    "how": "A scatterplot or line graph, with a question about a value, a trend, or a model."
+  },
+  "Q.E.": {
+    "what": "Probability and Conditional Probability asks for the chance of an outcome, usually from counts in a two-way table or a short story. In conditional probability, the words given or of those shrink the total to one row or column: divide the matching count by that smaller total. Other questions work backward from a probability to a count.",
+    "how": "A two-way table or a short description of counts, as multiple choice or a typed-in answer."
+  },
+  "Q.F.": {
+    "short": "Sample Statistics and Margin of Error",
+    "what": "This skill is about what a random sample can tell you about a whole population. You scale a sample proportion or mean up to an estimate for the population, build a plausible range from an estimate and its margin of error, and reason about how sample size affects that margin: a larger random sample gives a smaller margin of error.",
+    "how": "A short description of a survey or sample, almost always with multiple-choice answers."
+  },
+  "Q.G.": {
+    "short": "Evaluating Statistical Claims",
+    "what": "This skill asks whether a conclusion is justified by how the data were collected. Results from a random sample apply only to the population it was drawn from. Only a randomized experiment supports a cause-and-effect claim, and a biased or nonrandom sample cannot support a general one. Read how the study was designed before you judge its conclusion.",
+    "how": "A short description of a study or survey and a choice of conclusions; it is the smallest Math skill in the question bank."
+  },
+  "S.A.": {
+    "what": "Area and Volume covers the perimeter, area, surface area, and volume of common shapes and solids, including rectangles, triangles, circles, prisms, cylinders, cones, and spheres. You plug into formulas, work backward from a given area or volume to a missing length, and use scale factors: when lengths scale by k, areas scale by k² and volumes by k³.",
+    "how": "Multiple choice or a typed-in answer, sometimes with a figure; the reference sheet lists most of the formulas."
+  },
+  "S.B.": {
+    "what": "Lines, Angles, and Triangles covers angle facts and triangle relationships. You use the 180° triangle sum, vertical angles, linear pairs, and the angles formed when a transversal crosses parallel lines. You also set up proportions with similar triangles and decide which facts prove two triangles similar or congruent. Marking every known angle on the figure first is the habit that pays.",
+    "how": "Usually a figure with marked angles or sides, as multiple choice or a typed-in answer."
+  },
+  "S.C.": {
+    "what": "Right Triangles and Trigonometry covers the Pythagorean theorem, the 30-60-90 and 45-45-90 special right triangles, and sine, cosine, and tangent as ratios of sides. You find missing sides, write trig ratios from side lengths, and use the fact that the sine of one acute angle equals the cosine of the other. Most of its questions are rated hard.",
+    "how": "Often a right-triangle figure or a description of one, as multiple choice or a typed-in answer."
+  },
+  "S.D.": {
+    "what": "Circles covers the equation of a circle, (x − h)² + (y − k)² = r², arc length and sector area as fractions of the whole circle, radians, and tangent lines. You read the center and radius, complete the square to reach standard form, convert between degrees and radians with π/180, and use the right angle between a tangent and a radius.",
+    "how": "Multiple choice or a typed-in answer; nearly every question is rated medium or hard."
+  }
+}

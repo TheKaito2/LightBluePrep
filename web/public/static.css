@@ -178,8 +178,8 @@ svg { display: block; flex: none; }
 }
 a.row:hover { background: var(--surface-subtle); color: var(--fg-1); }
 .row-main { flex: 1; min-width: 0; }
-.row-t { font: var(--type-h3); letter-spacing: var(--tr-h3); }
-.row-m { margin-top: 2px; font: var(--type-small); color: var(--fg-3); }
+.row-t { display: block; font: var(--type-h3); letter-spacing: var(--tr-h3); }
+.row-m { display: block; margin-top: 2px; font: var(--type-small); color: var(--fg-3); }
 .row-n { flex: none; font: var(--type-ui); color: var(--fg-2); text-align: right; font-variant-numeric: tabular-nums lining-nums; }
 .row-chev { color: var(--fg-3); }
 
@@ -236,6 +236,87 @@ a.row:hover { background: var(--surface-subtle); color: var(--fg-1); }
 @media (max-width: 819px) {
   .doc { padding-top: var(--sp-8); padding-bottom: var(--sp-12); }
   .prose h2 { margin-top: var(--sp-8); }
+}
+
+/* ============================================================ skill pages
+   The skills index and the 29 skill pages written by scripts/skill_pages.py
+   (spec 8.8). One 720px column, like privacy. */
+.sk {
+  max-width: calc(var(--measure) + 2 * var(--gutter)); margin: 0 auto;
+  padding: var(--sp-10) var(--gutter) var(--sp-16);
+}
+.sk .crumbs { margin-bottom: var(--sp-6); }
+.eyebrow {
+  font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase;
+  color: var(--sec-700, var(--brand-700));
+}
+.eyebrow.brand { color: var(--brand-700); }
+.sk h1 { margin-top: var(--sp-2); font: var(--type-title); letter-spacing: var(--tr-title); }
+.sk .lede { max-width: 60ch; margin-top: var(--sp-3); font: var(--type-lead); color: var(--fg-2); }
+.sk .cta { margin-top: var(--sp-6); }
+.sk section { margin-top: var(--sp-10); }
+.sk h2 { font: var(--type-h2); letter-spacing: var(--tr-h2); }
+.sk h2 + p { margin-top: var(--sp-2); font: 400 16px/26px var(--sans); color: var(--fg-2); }
+.sk :is(h2, p) + :is(.rows, .sibs) { margin-top: var(--sp-4); }
+.back-all { margin-top: var(--sp-10); }
+
+/* Difficulty colours: the dot on a tag and a segment of the mix bar. */
+.d-E { --dot: var(--ok-500); }
+.d-M { --dot: var(--warn-500); }
+.d-H { --dot: var(--bad-500); }
+
+/* Static tags (spec 7.5): the skill's Easy, Medium and Hard counts. */
+.tags { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-4); padding: 0; list-style: none; }
+.tag {
+  display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
+  border-radius: var(--rad-pill); background: var(--surface-subtle); color: var(--fg-2);
+  font: 600 12px/16px var(--sans); font-variant-numeric: tabular-nums lining-nums;
+}
+.tag::before { content: ''; width: 8px; height: 8px; border-radius: var(--rad-pill); background: var(--dot); }
+
+/* Index: section headers carry the section colour, domains are quiet labels. */
+.sk-group { margin-top: var(--sp-12); }
+.sk-h { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--sp-2); color: var(--sec-700); }
+.sk-h::before { content: ''; width: 8px; height: 8px; border-radius: var(--rad-pill); background: var(--sec-500); }
+.sk-hn { font-weight: 600; color: var(--fg-3); }
+.sk-domain {
+  margin: var(--sp-8) 0 var(--sp-2); font: var(--type-label); letter-spacing: var(--tr-label);
+  text-transform: uppercase; color: var(--fg-3);
+}
+.sk-h + .sk-domain { margin-top: var(--sp-4); }
+.sk-group .row-n { min-width: 104px; color: var(--fg-3); }
+.mix { clip-path: inset(0 round 3px); }
+.mix rect { fill: var(--dot); }
+
+/* The count under the name, only where the name needs the row's width. */
+.row-c { display: none; }
+@media (max-width: 479px) {
+  .row-c { display: block; }
+  .row .row-n { display: none; }
+}
+
+/* Sibling skills: chips on desktop, full-width 48px rows on phone, where
+   chips wrapped into two-line blobs. */
+.sibs { display: flex; flex-wrap: wrap; gap: var(--sp-2); padding: 0; list-style: none; }
+.sibs a {
+  display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px;
+  border: 1px solid var(--hair-2); border-radius: var(--rad-md); background: var(--surface);
+  color: var(--fg-2); font: var(--type-ui); letter-spacing: var(--tr-ui); text-decoration: none;
+  transition: border-color var(--dur-fast) var(--ease-std), background-color var(--dur-fast) var(--ease-std);
+}
+.sibs a:hover { border-color: var(--hair-ctl); color: var(--fg-1); }
+.sibs .row-chev { display: none; }
+@media (max-width: 819px) {
+  .sk { padding-top: var(--sp-6); padding-bottom: var(--sp-12); }
+  .sk section { margin-top: var(--sp-8); }
+  .sk-group { margin-top: var(--sp-10); }
+  .sibs { display: block; border-top: 1px solid var(--hair-1); }
+  .sibs a {
+    display: flex; justify-content: space-between; gap: var(--sp-3); min-height: 48px; padding: var(--sp-2) var(--sp-4);
+    border: 0; border-bottom: 1px solid var(--hair-1); border-radius: 0; color: var(--fg-1);
+  }
+  .sibs a:hover { background: var(--surface-subtle); }
+  .sibs .row-chev { display: block; }
 }
 
 /* ============================================================ 404 */

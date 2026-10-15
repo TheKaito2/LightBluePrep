@@ -1,16 +1,16 @@
 # LightBluePrep
 
-> LightBluePrep is a free, open-source practice site for the Digital SAT. It has every official College Board SAT practice question from the public question bank (3,767 questions), sorted by section, domain, skill and difficulty. No paywall, no ads, no account needed.
+> LightBluePrep is a free, open-source practice site for the Digital SAT. It has every question in College Board's official SAT Question Bank, sorted by section, domain, skill, and difficulty. No paywall, no ads, and no account needed.
 
 What it does:
 
-- Filter questions by topic and difficulty, hide ones already done, re-drill ones you got wrong
+- Filter questions by topic and difficulty, hide the ones already done, and retry the ones answered incorrectly
 - Shuffled or ordered practice, and timed practice sets that grade at the end like Bluebook
 - Remembers your progress in the browser; optional Google sign-in syncs it across devices
 - Look up any question by its College Board question ID, with a YouTube search for walkthroughs
-- Mistake log (silly / process / knowledge), Review page to redo whole categories at once
+- Mistake log (silly, process, or knowledge) and a Review page to redo whole categories at once
 - Embedded Desmos graphing calculator and a math reference sheet, like the real test
-- Estimated score per section, streaks, and per-skill accuracy stats
+- Estimated score per section, streaks, and accuracy stats per skill
 
 Who it is for: high school students preparing for the Digital SAT who want the official question bank in one place for free.
 
@@ -18,7 +18,7 @@ Who it is for: high school students preparing for the Digital SAT who want the o
 
 - [Practice site](https://lightblueprep.pages.dev/): start here
 - [Every SAT skill](https://lightblueprep.pages.dev/skills/): the 29 Digital SAT skills, each with its question count and question types, linking straight into practice
-- Deep links: `https://lightblueprep.pages.dev/?q=<College Board question ID>` opens one question; `?skill=<skill code>` practises a skill
+- Deep links: `https://lightblueprep.pages.dev/?q=<College Board question ID>` opens one question; `?skill=<skill code>` practices one skill
 - [Source code (GPL-3.0)](https://github.com/TheKaito2/LightBluePrep): built on Bluebank by jackwangxyw
 - [Privacy policy](https://lightblueprep.pages.dev/privacy): no tracking, no ads; sign-in stores only an anonymous ID
 
@@ -26,3 +26,42 @@ Who it is for: high school students preparing for the Digital SAT who want the o
 
 - Not affiliated with or endorsed by College Board. SAT and Bluebook are trademarks of College Board.
 - Questions are fetched from College Board's public question bank; the site does not host question content.
+
+## Skills
+
+One page per skill, in College Board's order, with its question count and question types. 3,767 questions in all.
+
+### Reading and Writing
+
+- [Central Ideas and Details](https://lightblueprep.pages.dev/skills/central-ideas-and-details): 138 questions
+- [Command of Evidence](https://lightblueprep.pages.dev/skills/command-of-evidence): 277 questions
+- [Inferences](https://lightblueprep.pages.dev/skills/inferences): 140 questions
+- [Words in Context](https://lightblueprep.pages.dev/skills/words-in-context): 261 questions
+- [Text Structure and Purpose](https://lightblueprep.pages.dev/skills/text-structure-and-purpose): 149 questions
+- [Cross-Text Connections](https://lightblueprep.pages.dev/skills/cross-text-connections): 61 questions
+- [Rhetorical Synthesis](https://lightblueprep.pages.dev/skills/rhetorical-synthesis): 204 questions
+- [Transitions](https://lightblueprep.pages.dev/skills/transitions): 194 questions
+- [Boundaries](https://lightblueprep.pages.dev/skills/boundaries): 213 questions
+- [Form, Structure, and Sense](https://lightblueprep.pages.dev/skills/form-structure-and-sense): 208 questions
+
+### Math
+
+- [Linear Equations in One Variable](https://lightblueprep.pages.dev/skills/linear-equations-in-one-variable): 112 questions
+- [Linear Functions](https://lightblueprep.pages.dev/skills/linear-functions): 170 questions
+- [Linear Equations in Two Variables](https://lightblueprep.pages.dev/skills/linear-equations-in-two-variables): 130 questions
+- [Systems of Two Linear Equations in Two Variables](https://lightblueprep.pages.dev/skills/systems-of-two-linear-equations-in-two-variables): 126 questions
+- [Linear Inequalities in One or Two Variables](https://lightblueprep.pages.dev/skills/linear-inequalities-in-one-or-two-variables): 77 questions
+- [Equivalent Expressions](https://lightblueprep.pages.dev/skills/equivalent-expressions): 116 questions
+- [Nonlinear Equations in One Variable and Systems of Equations in Two Variables](https://lightblueprep.pages.dev/skills/nonlinear-equations-in-one-variable-and-systems-of-equations-in-two-variables): 164 questions
+- [Nonlinear Functions](https://lightblueprep.pages.dev/skills/nonlinear-functions): 258 questions
+- [Ratios, Rates, Proportional Relationships, and Units](https://lightblueprep.pages.dev/skills/ratios-rates-proportional-relationships-and-units): 93 questions
+- [Percentages](https://lightblueprep.pages.dev/skills/percentages): 84 questions
+- [One-Variable Data: Distributions and Measures of Center and Spread](https://lightblueprep.pages.dev/skills/one-variable-data-distributions-and-measures-of-center-and-spread): 84 questions
+- [Two-Variable Data: Models and Scatterplots](https://lightblueprep.pages.dev/skills/two-variable-data-models-and-scatterplots): 71 questions
+- [Probability and Conditional Probability](https://lightblueprep.pages.dev/skills/probability-and-conditional-probability): 49 questions
+- [Inference from Sample Statistics and Margin of Error](https://lightblueprep.pages.dev/skills/inference-from-sample-statistics-and-margin-of-error): 28 questions
+- [Evaluating Statistical Claims: Observational Studies and Experiments](https://lightblueprep.pages.dev/skills/evaluating-statistical-claims-observational-studies-and-experiments): 12 questions
+- [Area and Volume](https://lightblueprep.pages.dev/skills/area-and-volume): 110 questions
+- [Lines, Angles, and Triangles](https://lightblueprep.pages.dev/skills/lines-angles-and-triangles): 102 questions
+- [Right Triangles and Trigonometry](https://lightblueprep.pages.dev/skills/right-triangles-and-trigonometry): 69 questions
+- [Circles](https://lightblueprep.pages.dev/skills/circles): 67 questions
