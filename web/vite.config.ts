@@ -1,5 +1,39 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+
+/**
+ * The two faces every page paints with, by their source names. Only these:
+ * preloading the other subsets (latin-ext, Greek, serif, italic) would spend
+ * bandwidth on files most pages never use.
+ */
+const PRELOAD_FONTS = ['NotoSans-normal-latin.woff2', 'bricolage-grotesque-latin-wght-normal.woff2']
+
+/**
+ * Preload links for PRELOAD_FONTS. Otherwise the browser finds them only once
+ * the CSS has loaded and the page has rendered text, which on 3G was 5s after
+ * the CSS arrived, and the headline visibly swapped (PF-11). 'post' so the
+ * hashed file names exist; nothing to do in dev.
+ */
+function preloadFonts(): Plugin {
+  let base = '/'
+  return {
+    name: 'preload-fonts',
+    configResolved(config) { base = config.base },
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, ctx) {
+        if (!ctx.bundle) return
+        return Object.values(ctx.bundle)
+          .filter((file) => file.type === 'asset' && file.names.some((n) => PRELOAD_FONTS.includes(n)))
+          .map((file) => ({
+            tag: 'link',
+            attrs: { rel: 'preload', as: 'font', type: 'font/woff2', href: base + file.fileName, crossorigin: '' },
+            injectTo: 'head' as const,
+          }))
+      },
+    },
+  }
+}
 
 /**
  * Two build targets from one source tree.
@@ -19,7 +53,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => {
   const pages = mode === 'pages'
   return {
-    plugins: [react()],
+    plugins: [react(), preloadFonts()],
     base: pages ? (process.env.BASE ?? '/') : '/',
     server: {
       port: 5173,

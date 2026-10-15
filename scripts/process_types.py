@@ -98,7 +98,13 @@ def merge(indir):
     if problems:
         print("\n".join(problems[:50]), f"\n{len(problems)} problems", file=sys.stderr)
         sys.exit(1)
-    OUT.write_text(json.dumps({"types": types, "q": q}, separators=(",", ":")))
+    # Grouped by type rather than one entry per question: the ids are what is
+    # left, so the file is half the size. lib/similar.ts inverts it on load.
+    grouped = {}
+    for cb_id, ref in q.items():
+        grouped.setdefault(ref, []).append(cb_id)
+    OUT.write_text(json.dumps({"types": types, "q": grouped}, separators=(",", ":"),
+                              ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT}: {len(q)} questions, {sum(map(len, types.values()))} types")
 
 

@@ -86,7 +86,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ------------------------------------------------------------------------------
-MathJax 3.2.2 (Apache-2.0), shipped as /mathjax/mml-svg.js
+MathJax 3.2.2 (Apache-2.0), shipped as /mathjax/3.2.2/mml-svg.js
 Copyright (c) 2009-2022 The MathJax Consortium
 ------------------------------------------------------------------------------
 

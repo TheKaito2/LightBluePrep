@@ -101,8 +101,6 @@ async function boot(): Promise<Cache> {
   if (cache) return cache
   if (booting) return booting
   booting = (async () => {
-    store.requestPersistence().catch(() => {})
-
     let stubs = await store.loadIndex()
     if (!stubs.length) {
       stubs = await cb.fetchIndex()
@@ -417,6 +415,9 @@ export async function explain(id: string, response: string | null): Promise<Grad
   return grade(await loadFull(id), response)
 }
 
+/** requestPersistence() has run this session; see answer(). */
+let persistAsked = false
+
 export async function answer(
   id: string, response: string | null, seconds: number,
 ): Promise<GradeResult> {
@@ -434,6 +435,13 @@ export async function answer(
   }
   await store.saveAttempt(attempt)
   sync.track('attempt', attempt.id)
+  // Ask not to be evicted once there is progress worth keeping, not on page
+  // load: Firefox shows a prompt for it (PF-15). Once a session at most;
+  // Settings has a button too.
+  if (!persistAsked) {
+    persistAsked = true
+    void store.requestPersistence()
+  }
   const list = c.attempts.get(id)
   if (list) list.push(attempt)
   else c.attempts.set(id, [attempt])

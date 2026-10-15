@@ -413,11 +413,11 @@ export const setMeta = <T>(key: string, value: T) => put(STORE_META, value, key)
 export const COACH_KEY = 'coach-tip-shown'
 
 /**
- * Ask the browser not to evict the bank under storage pressure.
+ * Ask the browser not to evict this site's data under storage pressure.
  *
- * Without this a full cache is disposable data and can vanish, costing a
- * re-download. Chrome usually grants it silently for a site with engagement;
- * a refusal is not an error worth surfacing.
+ * Without this, progress and the question cache are disposable data and can
+ * vanish. Chrome usually grants it silently for a site with engagement;
+ * Firefox asks the user. A refusal is not an error worth surfacing.
  */
 export async function requestPersistence(): Promise<boolean> {
   if (!navigator.storage?.persist) return false
@@ -426,5 +426,15 @@ export async function requestPersistence(): Promise<boolean> {
     return await navigator.storage.persist()
   } catch {
     return false
+  }
+}
+
+/** Whether the browser has already agreed not to evict; null if it cannot say. */
+export async function isPersisted(): Promise<boolean | null> {
+  if (!navigator.storage?.persisted) return null
+  try {
+    return await navigator.storage.persisted()
+  } catch {
+    return null
   }
 }

@@ -84,7 +84,43 @@
         startup: { typeset: false },
       };
     </script>
-    <script defer src="/mathjax/mml-svg.js"></script>
+    <!-- MathJax itself (1.9 MB) is not loaded here. lib/mathjax.ts fetches it
+         the first time a question has maths, or when Home is idle; as a
+         deferred script here it held up the first paint of every page. The
+         config above stays inline and unchanged: its hash is in _headers. -->
+    <!-- The questions come straight from College Board. Opening that
+         connection now saves its DNS and TLS round trips (about 0.9s on 3G)
+         when the first question is fetched. crossorigin because those fetches
+         are CORS requests, which use a separate connection. -->
+    <link rel="preconnect" href="https://qbank-api.collegeboard.org" crossorigin />
+    <link rel="dns-prefetch" href="https://saic.collegeboard.org" />
+    <!-- The boot shell inside #root: what shows between the HTML arriving and
+         React's first render, which replaces it. Neutral on purpose (no hero
+         copy), so a deep link to a question does not flash Home. System fonts
+         and inline, because neither the app's CSS nor its fonts are here yet. -->
+    <style>
+      .boot { min-height: 100vh; background: #ffffff; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      .boot-bar { padding-top: env(safe-area-inset-top); border-bottom: 1px solid #e4e8ed; }
+      .boot-in, .boot-page { box-sizing: border-box; max-width: 1160px; margin: 0 auto; padding: 0 32px; }
+      .boot-in { display: flex; align-items: center; gap: 10px; height: 63px; }
+      .boot-word { font-size: 19px; font-weight: 800; letter-spacing: -.03em; color: #11151a; }
+      .boot-word span { color: #1479c2; }
+      .boot-page { padding-top: 48px; }
+      .boot-line { height: 16px; margin-bottom: 16px; border-radius: 6px; background: #eef1f4; }
+      .boot-line.boot-head { width: min(420px, 70%); height: 40px; margin-bottom: 24px; }
+      .boot-line.boot-short { width: 40%; }
+      .boot-line.boot-block { height: 120px; margin-top: 40px; border-radius: 12px; }
+      @media (max-width: 819px) {
+        .boot-in, .boot-page { padding: 0 16px; }
+        .boot-in { gap: 8px; height: 51px; }
+        .boot-in svg { width: 24px; height: 24px; }
+        .boot-word { font-size: 18px; }
+        .boot-page { padding-top: 32px; }
+      }
+    </style>
+    <!-- Without JavaScript nothing replaces the shell; the <noscript> copy in
+         the body says what the site is instead. -->
+    <noscript><style>.boot { display: none; }</style></noscript>
   </head>
   <body>
     <!-- What a crawler, a link unfurler or a visitor with JavaScript off sees.
@@ -99,7 +135,25 @@
         </ul>
       </div>
     </noscript>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" role="status" aria-label="Loading LightBluePrep">
+        <div class="boot-bar">
+          <div class="boot-in">
+            <svg width="28" height="28" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">
+              <rect x="2" y="2" width="44" height="44" rx="12" fill="#1479c2" />
+              <path d="M14.5 24.5l6.5 6.5 12.5-13" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="boot-word" aria-hidden="true">Light<span>Blue</span>Prep</span>
+          </div>
+        </div>
+        <div class="boot-page" aria-hidden="true">
+          <div class="boot-line boot-head"></div>
+          <div class="boot-line"></div>
+          <div class="boot-line boot-short"></div>
+          <div class="boot-line boot-block"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

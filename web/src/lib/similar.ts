@@ -12,16 +12,37 @@ export interface ProcessType { label: string; how: string }
 export interface ProcessTypes {
   /** skill code -> type key -> name and one-line method */
   types: Record<string, Record<string, ProcessType>>
-  /** College Board question id -> "skill.key" */
+  /** College Board question id -> "skill.key" (inverted from the file on load) */
   q: Record<string, string>
+}
+
+/**
+ * The file as served: `q` grouped by type ("skill.key" -> ids), which is half
+ * the size of one entry per question. A browser can still hold the older
+ * per-question file for a day (see _headers), so both shapes are read.
+ */
+interface ProcessTypesFile {
+  types: ProcessTypes['types']
+  q: Record<string, string[] | string>
+}
+
+/** Back to one entry per question, which is how every caller looks it up. */
+export function invertTypes(file: ProcessTypesFile): ProcessTypes {
+  const q: Record<string, string> = {}
+  for (const [key, value] of Object.entries(file.q)) {
+    if (typeof value === 'string') q[key] = value
+    else for (const id of value) q[id] = key
+  }
+  return { types: file.types, q }
 }
 
 let loading: Promise<ProcessTypes | null> | null = null
 
 /** One fetch per page load; null if the file is missing, so the UI just hides. */
 export function loadProcessTypes(): Promise<ProcessTypes | null> {
-  loading ??= fetch('/process-types.json')
-    .then((r) => (r.ok ? r.json() as Promise<ProcessTypes> : null))
+  loading ??= fetch(`${import.meta.env.BASE_URL}process-types.json`)
+    .then((r) => (r.ok ? r.json() as Promise<ProcessTypesFile> : null))
+    .then((file) => (file ? invertTypes(file) : null))
     .catch(() => null)
   return loading
 }

@@ -32,6 +32,11 @@
 .settings-sec .about-p { margin: 0; }
 .settings-stats { align-self: stretch; }
 .settings-fine { font: var(--type-small); color: var(--fg-3); }
+.settings-keep { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
+.settings-keep .settings-fine { margin: 0; }
+/* A standing fact, not the outcome of a click, so quieter than .settings-done. */
+.settings-kept { display: flex; align-items: flex-start; gap: var(--sp-2); font: var(--type-small); color: var(--fg-2); }
+.settings-kept svg { flex: none; margin-top: 2px; color: var(--ok-700); }
 .settings-sec > [aria-live]:empty { display: none; }
 /* Success: a soft green banner with a check, so it does not read as one more
    sentence of body text. */

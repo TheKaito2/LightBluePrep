@@ -211,7 +211,7 @@ The finalizer isn't optional. Raw FNV-1a barely reaches the high bits, which are
 The set clock comes from [web/src/lib/pacing.ts](web/src/lib/pacing.ts), which holds the two numbers the whole thing rests on: 32 minutes for 27 reading and writing questions, 35 for 22 math. A set is priced per question from those, since it can be any length and can mix the sections.
 
 ### Vendored Assets
-MathJax is vendored at [web/public/mathjax/mml-svg.js](web/public/mathjax) and outputs SVG, so there are no font files to fetch and it works offline. Noto is self hosted in [web/src/fonts](web/src/fonts) rather than loaded from Google, since a font CDN sees the IP of every visitor whether or not they ever sign in.
+MathJax is vendored at [web/public/mathjax/3.2.2/mml-svg.js](web/public/mathjax) and outputs SVG, so there are no font files to fetch and it works offline. It loads on first need (the first question with maths), not with the page. Noto is self hosted in [web/src/fonts](web/src/fonts) rather than loaded from Google, since a font CDN sees the IP of every visitor whether or not they ever sign in.
 
 Two things do reach out, and only when you ask for them. Desmos loads from their CDN the first time you open the calculator, running in their restricted testing mode (the `restrictedFunctions` option, which is what College Board uses). Google's sign-in script isn't fetched until you click sign in, so someone who never opens the account panel never talks to Google at all.
 

@@ -20,6 +20,7 @@ import { Modal } from './Modal'
 import { Stat, StatGroup } from './Stat'
 import { plural } from '../lib/labels'
 import { toUserMessage } from '../lib/errors'
+import { isPersisted, requestPersistence } from '../lib/store'
 
 type Summary = Awaited<ReturnType<NonNullable<typeof api.localDataSummary>>>
 type Action = 'local' | 'both' | 'cloud'
@@ -64,6 +65,22 @@ export function Settings() {
   useEffect(() => sync.subscribe(count), [count])
 
   const keep = useCallback(() => { if (!busy) setConfirm(null) }, [busy])
+
+  /**
+   * Whether the browser has agreed not to clear this site's data when space
+   * runs low: null while unknown or where the browser cannot say, which hides
+   * the button. `refused` is set when it said no to the button.
+   */
+  const [persisted, setPersisted] = useState<boolean | null>(null)
+  const [refused, setRefused] = useState(false)
+  useEffect(() => {
+    if (api.deleteLocalData) void isPersisted().then(setPersisted)
+  }, [])
+  async function keepSafe() {
+    const granted = await requestPersistence()
+    setPersisted(granted)
+    setRefused(!granted)
+  }
 
   async function run(action: Action) {
     setBusy(true); setResult(null)
@@ -130,6 +147,25 @@ export function Settings() {
                   </StatGroup>
                 </>
               ) : <p className="about-p">Counting…</p>}
+              {persisted ? (
+                <p className="settings-kept">
+                  <Icon name="shield" size={16} strokeWidth={2} />
+                  Your browser will keep your progress here, even when the device runs low on space.
+                </p>
+              ) : persisted === false ? (
+                <div className="settings-keep">
+                  <button className="btn" onClick={() => { void keepSafe() }}>
+                    <Icon name="shield" size={16} strokeWidth={2} />
+                    Keep my progress safe on this device
+                  </button>
+                  <p className="settings-fine" aria-live="polite">
+                    {refused
+                      ? 'Your browser said no for now. Browsers decide from how much you use a site;'
+                        + ' installing it or bookmarking it usually helps.'
+                      : 'Asks your browser not to clear this site\'s data when the device runs low on space.'}
+                  </p>
+                </div>
+              ) : null}
               <button className="btn danger-secondary" onClick={() => { setConfirm('local'); setResult(null) }}>
                 <Icon name="trash" size={16} strokeWidth={2} />
                 Delete my data on this device

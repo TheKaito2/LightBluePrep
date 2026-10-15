@@ -8,6 +8,8 @@ import { EmptyState } from './EmptyState'
 import { Segmented } from './Segmented'
 import { ResumeLabel, SetCard } from './SetCard'
 import { loadProcessTypes, typeCounts, type ProcessTypes } from '../lib/similar'
+import { whenIdle } from '../lib/idle'
+import { ensureMathJax } from '../lib/mathjax'
 import { setSeconds, formatClock } from '../lib/pacing'
 import { SIZES } from '../lib/prefs'
 import {
@@ -144,9 +146,26 @@ export function Home({
   const needle = idNeedle(query)
   const matches = needle.length >= 3 && found?.needle === needle ? found.list : null
 
-  /** Process types, shown under a ticked skill to narrow it further. */
+  /**
+   * Process types, shown under a ticked skill to narrow it further. Fetched the
+   * moment a skill is picked, or once the topics are up and the browser is
+   * idle, so they never compete with the first paint (PF-18).
+   */
   const [pt, setPt] = useState<ProcessTypes | null>(null)
-  useEffect(() => { void loadProcessTypes().then(setPt) }, [])
+  const narrowing = Boolean(value.skills?.length || value.types?.length)
+  useEffect(() => {
+    if (pt) return
+    const load = () => { void loadProcessTypes().then(setPt) }
+    if (narrowing) { load(); return }
+    if (waiting) return
+    return whenIdle(load)
+  }, [pt, narrowing, waiting])
+  // MathJax is fetched on first need (lib/mathjax.ts). Warm it here, after the
+  // topics are on screen, so the first question with maths does not wait on it.
+  useEffect(() => {
+    if (waiting) return
+    return whenIdle(() => { void ensureMathJax().catch(() => {}) })
+  }, [waiting])
   const ptCounts = useMemo(() => (pt ? typeCounts(pt) : null), [pt])
 
   // ID search: look across the whole bank once the ID is long enough to mean something.

@@ -20,3 +20,25 @@
 # for a year; index.html (max-age=0 by default) is what points at new hashes.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# MathJax sits under its version number (lib/mathjax.ts), so the file under a
+# given name never changes and can be cached like the hashed build. A new
+# MathJax goes in a new folder.
+/mathjax/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Changes only when the types are re-merged. A day fresh, then served from
+# cache while it revalidates; lib/similar.ts reads both the old and new shape.
+/process-types.json
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+# Icons and the share card change about never, but keep their names when they
+# do, so a week rather than immutable.
+/favicon*
+  Cache-Control: public, max-age=604800
+/icon-*
+  Cache-Control: public, max-age=604800
+/apple-touch-icon.png
+  Cache-Control: public, max-age=604800
+/og-card.png
+  Cache-Control: public, max-age=604800

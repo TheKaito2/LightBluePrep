@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterByTypes, similarTo, typeOf, type ProcessTypes } from './similar'
+import { filterByTypes, invertTypes, similarTo, typeOf, type ProcessTypes } from './similar'
 import type { SetItem } from '../types'
 
 function item(id: string, skill: string, band: number, last: number | null): SetItem {
@@ -45,5 +45,16 @@ describe('filterByTypes', () => {
 
   it('narrows only the skill whose type was picked', () => {
     expect(filterByTypes(pool, ['H.A..s'], pt).map((q) => q.id)).toEqual(['z', 'q'])
+  })
+})
+
+describe('invertTypes', () => {
+  it('turns the grouped file back into one entry per question', () => {
+    const file = { types: pt.types, q: { 'H.A..k': ['cb-me', 'cb-a', 'cb-b', 'cb-c', 'cb-d'], 'H.A..s': ['cb-z'] } }
+    expect(invertTypes(file)).toEqual(pt)
+  })
+
+  it('still reads the older per-question file a browser may have cached', () => {
+    expect(invertTypes(pt)).toEqual(pt)
   })
 })

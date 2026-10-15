@@ -215,7 +215,7 @@ def main():
     ).fetchall()
     pt = json.loads(TYPES.read_text())
     copy = json.loads(COPY.read_text())
-    per_type = Counter(pt["q"].values())
+    per_type = Counter({ref: len(ids) for ref, ids in pt["q"].items()})
 
     skills = {}
     for section, domain, domain_name, skill, skill_name, difficulty in rows:
