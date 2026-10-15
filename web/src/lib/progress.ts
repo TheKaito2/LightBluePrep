@@ -153,3 +153,33 @@ export function score(rows: readonly HistoryRow[], now: Date = new Date()): Scor
     delta7: final.total !== null && before?.total != null ? final.total - before.total : null,
   }
 }
+
+// ---------------------------------------------------------- one set's gains
+
+export interface SetGains {
+  /** Questions in the set answered for the first time ever. */
+  fresh: number
+  /** Estimated total just before the set, and with its answers in. */
+  before: number | null
+  after: number | null
+}
+
+/**
+ * What one finished set added, measured from its own answers: the history
+ * before it started plus the set's attempts between `from` and `to`. Anything
+ * else answered while a set sat half done is left out, so the figures belong
+ * to the set even when it is reopened weeks later.
+ */
+export function setGains(
+  rows: readonly HistoryRow[], ids: readonly string[], from: number, to: number,
+): SetGains {
+  const inSet = new Set(ids)
+  const prior = rows.filter((r) => r.answered_at < from)
+  const mine = rows.filter((r) => inSet.has(r.question_id) && r.answered_at >= from && r.answered_at <= to)
+  const seen = new Set(prior.map((r) => r.question_id))
+  return {
+    fresh: new Set(mine.map((r) => r.question_id).filter((id) => !seen.has(id))).size,
+    before: score(prior).total,
+    after: score([...prior, ...mine]).total,
+  }
+}

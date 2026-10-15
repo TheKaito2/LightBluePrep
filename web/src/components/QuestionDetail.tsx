@@ -47,10 +47,16 @@ interface Props {
   editable?: boolean
   /** Practise questions solved the same way. Absent hides the block. */
   onPracticeMany?: (ids: string[], title: string) => void
+  /**
+   * Read back from a finished set: its start and finish, unix seconds. The
+   * attempts table then marks the set's own attempt among the others, and
+   * drops out when that attempt is the only one, since the row already says it.
+   */
+  setWindow?: { from: number; to: number }
 }
 
 export function QuestionDetail({
-  id, response, seconds, onPractice, onLogged, editable, onPracticeMany,
+  id, response, seconds, onPractice, onLogged, editable, onPracticeMany, setWindow,
 }: Props) {
   const [data, setData] = useState<{
     question: Question; annotations: Annotation[]; mistake: Mistake | null
@@ -104,6 +110,11 @@ export function QuestionDetail({
 
   const hasLog = Boolean(data.mistake
     && (data.mistake.tags.length || data.mistake.note))
+  // The set's own attempt: the last one inside its window.
+  const setAttempt = setWindow
+    ? attempts.findLastIndex((a) => a.answered_at >= setWindow.from && a.answered_at <= setWindow.to)
+    : -1
+  const showAttempts = setWindow ? attempts.length > 1 : attempts.length > 0
 
   function saveMistake(tags: MistakeTag[], note: string | null) {
     setLogError(null)
@@ -117,7 +128,7 @@ export function QuestionDetail({
   }
 
   return (
-    <div className="review-detail">
+    <div className={`review-detail sec-${data.question.section}`}>
       {/* The passage is the longest thing here and you usually remember it, so
           it starts folded and the question stays at the top of the panel. */}
       {data.question.stimulus_html ? (
@@ -168,9 +179,10 @@ export function QuestionDetail({
         </ul>
       ) : null}
 
-      {/* Marked but never answered: no attempts, no verdict. */}
-      {attempts.length ? (<>
-      <h4 className="review-h">Your attempts</h4>
+      {/* Marked but never answered: no attempts, no verdict. Inside a set the
+          table is every attempt anywhere, so it says so and marks the set's. */}
+      {showAttempts ? (<>
+      <h4 className="review-h">{setWindow ? 'All your attempts at this question' : 'Your attempts'}</h4>
       <div className="review-tablewrap">
         <table className="review-table">
           <thead>
@@ -178,9 +190,12 @@ export function QuestionDetail({
           </thead>
           <tbody>
             {attempts.map((a, i) => (
-              <tr key={a.id ?? i}>
+              <tr key={a.id ?? i} className={i === setAttempt ? 'is-set' : undefined}>
                 <td>{i + 1}</td>
-                <td>{clock(a.answered_at)}</td>
+                <td>
+                  {clock(a.answered_at)}
+                  {i === setAttempt ? <span className="badge review-setbadge">This set</span> : null}
+                </td>
                 <td className="review-ans">{a.response || VERDICT.unanswered}</td>
                 <td className={a.correct ? 'ok' : 'no'}>{a.correct ? VERDICT.correct : VERDICT.incorrect}</td>
                 <td>{duration(a.seconds)}</td>

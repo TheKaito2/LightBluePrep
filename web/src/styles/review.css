@@ -114,22 +114,61 @@
   .review-detail { padding: 10px 14px 24px; }
 }
 
-/* ---- the score screen ---- */
-.setdone { text-align: center; padding: 18px 0 34px; border-bottom: 1px solid var(--hair-1); margin-bottom: 26px; }
-.setdone-label {
-  margin: 0 0 8px; font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3);
+/* ---- the score screen (spec 8.3) ----
+   The band is PageHead tone="section"; these are its Results-only parts. */
+.setres .phead-t { margin-top: 4px; }
+.setres-score {
+  display: inline-flex; align-items: baseline;
+  font: 800 var(--num-xl)/1 var(--display); letter-spacing: var(--tr-num-xl);
+  font-variant-numeric: tabular-nums lining-nums; color: var(--fg-inv-1);
 }
-.setdone-score {
-  margin: 0; font: 800 var(--num-xl)/1 var(--display); letter-spacing: var(--tr-num-xl);
-  font-variant-numeric: tabular-nums lining-nums;
+/* Unit: 0.4 of the numeral (spec 4). */
+.setres-score small {
+  margin-left: 4px; font: 600 calc(var(--num-xl) * .4)/1 var(--sans); letter-spacing: 0;
+  color: rgba(255, 255, 255, .7); white-space: pre;
 }
-.setdone-score.good { color: var(--ok-700); }
-.setdone-score.mid  { color: var(--warn-700); }
-.setdone-score.poor { color: var(--bad-700); }
-.setdone-score .dim { color: var(--fg-3); }
-.setdone-sub { margin: 8px 0 20px; font: var(--type-ui); color: var(--fg-3); }
-.setdone-acts { display: flex; justify-content: center; gap: 10px; }
-.setdone .hint { text-align: center; max-width: 44ch; margin: 12px auto 0; }
+.setres-back { margin-left: -12px; }
+.setres-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-2); }
+/* The one motion Bulb gets (spec 10): a 6px rise when the set went well.
+   Reduced motion finishes it at once (base.css). */
+@media (max-width: 819px) {
+  /* Primary on its own full-width line, the redo and trash under it. */
+  .setres-acts { justify-content: flex-start; }
+  .setres-acts > .btn { flex: 1 1 auto; }
+  .setres-acts > .btn:first-child { flex-basis: 100%; }
+}
+.setres-bulb.rise { animation: bulb-rise 400ms var(--ease-out) both; }
+@keyframes bulb-rise { from { transform: translateY(6px); } }
+
+.setres-body { padding-top: var(--sp-8); }
+.setres-h { margin: 0 0 var(--sp-3); font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
+.setres-note { margin: 0 0 var(--sp-3); font: var(--type-small); color: var(--fg-3); }
+.setres-list { border-top: 1px solid var(--hair-1); }
+.setres-list .review-item:last-child { border-bottom: 1px solid var(--hair-1); }
+/* Spec 7.11: badges size to their word; titles get two lines, meta one. */
+.setres-list .review-badge { min-width: 0; }
+.setres-list .review-skill {
+  white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+}
+.setres-list .review-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.setres-skel-t { width: min(260px, 70%); height: 16px; }
+.setres-skel-m { width: min(180px, 50%); height: 12px; margin-top: 4px; }
+@media (max-width: 819px) {
+  /* Phones give the title the room: the badge keeps its icon and fill, and
+     its word stays for screen readers. Unanswered has no icon, so it keeps
+     its word. */
+  .setres-list .review-badge:has(svg) { width: 22px; padding: 0; justify-content: center; }
+  .setres-list .review-badge:has(svg) .badge-t {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+}
+.setres-all { margin: var(--sp-3) 0 0 -12px; }
+
+/* The set's own row in the attempts table. */
+.review-table tr.is-set td { background: var(--sec-50, var(--surface-subtle)); }
+.setres .review-table :is(th, td):first-child { padding-left: 10px; }
+.review-table tr.is-set td:first-child { box-shadow: inset 2px 0 0 var(--sec-500, var(--fg-3)); }
+.review-setbadge { margin-left: 8px; height: 20px; background: var(--surface); color: var(--sec-700, var(--fg-2)); }
 
 /* The same mistake-log controls inline in an expanded review row, where the
    drawer's own padding would double up on the panel's. */
@@ -185,9 +224,9 @@
 .similar {
   display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; align-items: center;
   margin: var(--sp-5) 0 var(--sp-3); padding: 14px 16px;
-  border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface);
+  border: 1px solid var(--sec-200, var(--hair-1)); border-radius: var(--rad-md); background: var(--sec-50, var(--surface));
 }
-.similar-k { grid-column: 1; font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3); }
+.similar-k { grid-column: 1; font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--sec-700, var(--fg-3)); }
 .similar-t { grid-column: 1; font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
 .similar-how { grid-column: 1; font: var(--type-small); color: var(--fg-2); }
 .similar-go { grid-column: 2; grid-row: 1 / 4; }

@@ -940,6 +940,7 @@ export default function App() {
       settings: () => <Settings />,
       results: () => (shownSet ? (
         <SetResults set={shownSet}
+                    history={attemptLog}
                     onPractice={practiceOne}
                     onPracticeMany={practiceMany}
                     onRedo={redoSet}

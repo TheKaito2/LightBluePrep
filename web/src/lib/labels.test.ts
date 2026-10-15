@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { andMore, byDomain, bySkill, describeSet, plural, skillDisplayName } from './labels'
+import { andMore, byDomain, bySkill, describeSet, plural, setSection, skillDisplayName } from './labels'
 import type { Filters, PracticeSet } from '../types'
 
 const set = (filters: Filters, total = 10): PracticeSet => ({
@@ -78,5 +78,20 @@ describe('skillDisplayName', () => {
     expect(skillDisplayName('CTC', 'Cross-text Connections')).toBe('Cross-Text Connections')
     expect(skillDisplayName('H.B.', 'Linear functions')).toBe('Linear Functions')
     expect(skillDisplayName('X.Y.', 'Something new ')).toBe('Something new')
+  })
+})
+
+describe('setSection', () => {
+  it('reads the section from the filters, the domains or the skills', () => {
+    expect(setSection({ section: 'MATH' })).toBe('MATH')
+    expect(setSection({ skills: ['WIC', 'TRA'] })).toBe('RW')
+    expect(setSection({ domains: ['H'], skills: ['P.A.'] })).toBe('MATH')
+  })
+
+  it('is undefined for a mixed, unfiltered or unknown set', () => {
+    expect(setSection({ skills: ['WIC', 'H.A.'] })).toBeUndefined()
+    expect(setSection({})).toBeUndefined()
+    expect(setSection({ skills: ['NEW'] })).toBeUndefined()
+    expect(setSection(undefined)).toBeUndefined()
   })
 })

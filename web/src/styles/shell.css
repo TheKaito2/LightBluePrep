@@ -237,6 +237,22 @@
 .phead-blue { color: var(--brand-300); }
 .phead-sub { margin: 12px 0 0; max-width: 52ch; font: var(--type-lead); color: var(--fg-inv-2); }
 .phead-aside { min-width: 0; }
+/* Section band (Results): white at fixed alphas, which stay at 5:1 or better
+   on every -700 fill and on ink. */
+.tone-section .phead-eyebrow { color: rgba(255, 255, 255, .75); }
+.tone-section .phead-sub { color: rgba(255, 255, 255, .86); }
+/* Optional slots: a back link above, Bulb beside the copy, chips below it. */
+.phead-in.has-back { row-gap: var(--sp-4); }
+.phead-back { grid-column: 1 / -1; }
+.phead-in.has-media { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--sp-6); }
+.phead-media { align-self: start; padding-top: var(--sp-1); }
+.phead-foot { margin-top: var(--sp-4); }
+/* Quiet buttons and static chips on a coloured or ink band. */
+.shell .phead:not(.tone-grey) .btn.quiet { color: rgba(255, 255, 255, .86); }
+.shell .phead:not(.tone-grey) .btn.quiet:hover:not(:disabled) { background: rgba(255, 255, 255, .12); color: var(--fg-inv-1); }
+.shell .phead:not(.tone-grey) .btn.quiet:active:not(:disabled) { background: rgba(255, 255, 255, .16); }
+.shell .tone-section .chip.static { height: 28px; background: rgba(255, 255, 255, .12); border-color: transparent; color: var(--fg-inv-1); }
+.shell .tone-section .chip.static svg { flex: none; width: 14px; height: 14px; }
 .tone-grey .phead-eyebrow { color: var(--fg-3); }
 .tone-grey .phead-t { color: var(--fg-1); }
 .tone-grey .phead-sub { color: var(--fg-2); }
@@ -266,6 +282,17 @@
 
 @media (max-width: 819px) {
   .phead-in { min-height: 0; grid-template-columns: 1fr; gap: var(--sp-5); padding: var(--sp-6) var(--sp-4) var(--sp-5); }
+  /* Bulb sits top right beside the eyebrow, title and sub; the copy's box
+     dissolves into the grid so the chips and the aside below take the full
+     width instead of the column left of Bulb. Spacing comes from margins. */
+  .phead-in.has-media { grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--sp-4); row-gap: 0; }
+  .phead-in.has-media .phead-copy { display: contents; }
+  .phead-in.has-media :is(.phead-eyebrow, .phead-t, .phead-sub) { grid-column: 1; }
+  .phead-in.has-media .phead-media { grid-column: 2; grid-row: 2 / span 3; }
+  .phead-in.has-media :is(.phead-foot, .phead-aside) { grid-column: 1 / -1; }
+  .phead-in.has-media .phead-back { margin-bottom: var(--sp-3); }
+  .phead-in.has-media .phead-aside { margin-top: var(--sp-5); }
+  .phead-in.has-back:not(.has-media) { row-gap: var(--sp-3); }
   /* One row of equal cells; labels are short enough not to truncate. */
   .phead .stat-group > .stat { flex: 1 1 0; min-width: 0; padding: var(--sp-3); }
   .phead .stat-n.l { font-size: var(--num-m); letter-spacing: var(--tr-num-m); }

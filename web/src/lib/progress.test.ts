@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { questionRating, score, streak, type HistoryRow } from './progress'
+import { questionRating, score, setGains, streak, type HistoryRow } from './progress'
 import type { Section } from '../types'
 
 /** Local-time timestamp in seconds for `daysAgo` days before `now`, at noon. */
@@ -102,5 +102,33 @@ describe('score', () => {
     expect(questionRating(1, null)).toBe(260)
     expect(questionRating(7, null)).toBe(770)
     expect(questionRating(null, 'H')).toBe(questionRating(6, null))
+  })
+})
+
+describe('setGains', () => {
+  const unlocked = (t: number) => [
+    ...Array.from({ length: 10 }, (_, i) => row(t, 1, `r${i}`, 'RW')),
+    ...Array.from({ length: 10 }, (_, i) => row(t, 1, `m${i}`, 'MATH')),
+  ]
+
+  it('counts first tries and moves the estimate by the set alone', () => {
+    const from = at(NOW, 0, 9)
+    const to = at(NOW, 0, 10)
+    const rows = [
+      ...unlocked(at(NOW, 3)),
+      row(from + 60, 1, 'new1'), row(from + 120, 1, 'new2'),
+      row(from + 180, 0, 'm0'), // seen before the set: not fresh, not counted
+      row(from + 240, 0, 'other'), // answered during the set, but not in it
+      row(to + 600, 1, 'new3'), // after the set ended
+    ]
+    const g = setGains(rows, ['new1', 'new2', 'm0', 'new3'], from, to)
+    expect(g.fresh).toBe(2)
+    expect(g.before).not.toBeNull()
+    expect(g.after! - g.before!).toBeGreaterThan(0)
+  })
+
+  it('has no estimate until both sections unlock', () => {
+    const g = setGains([row(at(NOW, 0), 1, 'a')], ['a'], at(NOW, 1), at(NOW, 0, 23))
+    expect(g).toEqual({ fresh: 1, before: null, after: null })
   })
 })

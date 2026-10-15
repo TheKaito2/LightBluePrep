@@ -171,6 +171,18 @@ function topic(f: Filters): string {
 }
 
 /**
+ * The one section a set's filters keep it to, or undefined for a mixed set.
+ * Picking skills on Home does not set `section`, so a Words in Context set
+ * is still Reading and Writing by its skills.
+ */
+export function setSection(f: Filters = {}): Section | undefined {
+  if (f.section) return f.section
+  const codes = [...(f.domains ?? []), ...(f.skills ?? [])]
+  const found = new Set(codes.map((c) => DOMAINS.find((d) => d.code === c || d.skills.includes(c))?.section))
+  return found.size === 1 ? [...found][0] : undefined
+}
+
+/**
  * The one-line name a practice set goes by, e.g. "10 · Words in Context ·
  * Hard · 1.5× time".
  *

@@ -14,11 +14,16 @@ interface Props {
   label: string
   onConfirm: () => Promise<boolean>
   className?: string
+  /** The pair's words where "Delete?" and "Keep" need context, e.g. Results. */
+  confirmText?: string
+  cancelText?: string
 }
 
 type Step = 'idle' | 'ask' | 'busy'
 
-export function ConfirmDelete({ label, onConfirm, className }: Props) {
+export function ConfirmDelete({
+  label, onConfirm, className, confirmText = 'Delete?', cancelText = 'Keep',
+}: Props) {
   const [step, setStep] = useState<Step>('idle')
   const keep = useRef<HTMLButtonElement>(null)
   const trash = useRef<HTMLButtonElement>(null)
@@ -56,10 +61,10 @@ export function ConfirmDelete({ label, onConfirm, className }: Props) {
     <span className={cls} role="group" aria-label={label}
           onKeyDown={(e) => { if (e.key === 'Escape' && step === 'ask') { e.stopPropagation(); back() } }}>
       <button type="button" className="btn sm danger-secondary" disabled={step === 'busy'} onClick={confirm}>
-        {step === 'busy' ? 'Deleting…' : 'Delete?'}
+        {step === 'busy' ? 'Deleting…' : confirmText}
       </button>
       <button ref={keep} type="button" className="btn sm quiet" disabled={step === 'busy'} onClick={back}>
-        Keep
+        {cancelText}
       </button>
     </span>
   )
