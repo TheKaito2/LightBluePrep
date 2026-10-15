@@ -189,7 +189,7 @@ export default function App() {
       <Review onPractice={practiceOne} onPracticeMany={practiceMany} onOpenSet={set.show}
               onDeleteSet={set.drop} onStart={() => navigate('home')} />
     ),
-    stats: () => <StatsPage taxonomy={taxonomy} onPractice={practiceFilters} onStart={set.quick} />,
+    stats: () => <StatsPage taxonomy={taxonomy} history={attemptLog} onPractice={practiceFilters} onStart={set.quick} />,
   }
   return (
     <div className="shell">

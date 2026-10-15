@@ -545,6 +545,7 @@ export async function history(): Promise<{ history: HistoryRow[] }> {
         section: stub._section,
         band: stub.score_band_range_cd ?? null,
         difficulty: stub.difficulty ?? null,
+        seconds: a.seconds ?? null,
       })
     }
   }

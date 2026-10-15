@@ -11,7 +11,7 @@ function at(now: Date, daysAgo: number, hour = 12): number {
 }
 
 function row(t: number, correct: 0 | 1, id: string, section: Section = 'MATH', band = 4): HistoryRow {
-  return { answered_at: t, correct, question_id: id, section, band, difficulty: null }
+  return { answered_at: t, correct, question_id: id, section, band, difficulty: null, seconds: null }
 }
 
 const NOW = new Date(2026, 9, 8, 18, 0, 0) // 8 Oct 2026, 6pm local

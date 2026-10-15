@@ -164,3 +164,57 @@ button.row-name:is(:hover, :focus-visible) svg,
   .row-item { grid-template-columns: minmax(0, 1fr) auto 52px; gap: var(--sp-3); }
   .row-item .row-meter { display: none; }
 }
+
+/* ---- last 4 weeks: accuracy bars beside pace, in one bordered box ----
+ * The bars are flat --brand-600 on a sunken track: brand, not a grade colour,
+ * because the trend is the point and each week's own grade would compete with it.
+ */
+.trend {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface);
+}
+.trend-part { min-width: 0; padding: var(--sp-5) var(--sp-6) var(--sp-6); }
+.trend-part + .trend-part { border-left: 1px solid var(--hair-1); }
+.trend-t { margin: 0 0 var(--sp-4); font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3); }
+
+.weeks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-4); }
+.week { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; text-align: center; }
+.week-pct {
+  font: 750 var(--num-s)/1 var(--display); letter-spacing: var(--tr-num-s); color: var(--fg-1);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.week-pct.none { color: var(--fg-3); }
+.week-pct small { font-size: .6em; margin-left: 1px; color: var(--fg-2); }
+.week-track {
+  position: relative; width: 100%; max-width: 56px; height: 120px; margin-top: 2px;
+  border-radius: var(--rad-xs); background: var(--surface-sunken); overflow: hidden;
+}
+.week-fill { position: absolute; left: 0; right: 0; bottom: 0; background: var(--brand-600); }
+.week-date { margin-top: 2px; font: var(--type-small); font-weight: 600; color: var(--fg-1); white-space: nowrap; }
+.week-n { margin-top: -4px; font: var(--type-small); color: var(--fg-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.pace { list-style: none; margin: 0; padding: 0; }
+.pace-row {
+  display: grid; grid-template-columns: 8px minmax(0, 1fr); column-gap: var(--sp-3); row-gap: 2px;
+  padding: var(--sp-3) 0;
+}
+.pace-row:first-child { padding-top: 0; }
+.pace-row + .pace-row { border-top: 1px solid var(--hair-1); }
+.pace-dot { align-self: center; width: 8px; height: 8px; border-radius: 50%; background: var(--sec-500); }
+.pace-name { font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
+.pace-fig { grid-column: 2; font: var(--type-ui); color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.pace-fig b { font-weight: 650; color: var(--fg-1); }
+.pace-fig.is-slow, .pace-fig.is-slow b { color: var(--warn-700); }
+.pace-fig svg { display: inline; margin-right: 6px; vertical-align: -2px; }
+.pace-fig.none { color: var(--fg-3); }
+.trend-note { margin: var(--sp-4) 0 0; font: var(--type-small); color: var(--fg-3); text-wrap: pretty; }
+
+@media (max-width: 819px) {
+  .trend { grid-template-columns: minmax(0, 1fr); }
+  .trend-part { padding: var(--sp-4); }
+  .trend-part + .trend-part { border-left: 0; border-top: 1px solid var(--hair-1); }
+  .weeks { gap: var(--sp-2); }
+  .week-track { height: 96px; }
+  /* Four columns of "1,234 answered" do not fit 390px: the word goes under the count. */
+  .week-n { display: flex; flex-direction: column; margin-top: -2px; }
+}

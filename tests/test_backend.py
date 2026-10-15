@@ -788,7 +788,7 @@ class TestReviewOrder(unittest.TestCase):
         rows = session.history(self.conn)
         self.assertEqual([(r["question_id"], r["answered_at"]) for r in rows],
                          [("q1", 500), ("q1", 1000), ("q2", 2000)])
-        for field in ("correct", "section", "band", "difficulty"):
+        for field in ("correct", "section", "band", "difficulty", "seconds"):
             self.assertIn(field, rows[0].keys(), field)
 
     def test_the_row_carries_what_review_shows(self):

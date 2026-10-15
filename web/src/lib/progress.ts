@@ -14,6 +14,8 @@ export interface HistoryRow {
   section: Section
   band: number | null
   difficulty: Difficulty | null
+  /** Time on the question; null or 0 when it was not timed. */
+  seconds: number | null
 }
 
 // ------------------------------------------------------------------ streaks

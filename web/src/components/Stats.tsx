@@ -4,12 +4,17 @@ import { Icon } from './Icon'
 import { PageHead } from './PageHead'
 import { NoData, Stat, StatGroup } from './Stat'
 import { DIFFICULTIES, DIFFICULTY_NAME, SECTIONS, SECTION_NAME, SECTION_SHORT, fmt } from '../lib/labels'
+import { MODULE, duration } from '../lib/pacing'
+import type { HistoryRow } from '../lib/progress'
 import { MIN_ANSWERS, graded } from '../lib/score'
 import { focusSkills, rollup, type SkillTally, type Tally } from '../lib/taxonomy'
+import { MIN_RECENT, WEEKS, trends } from '../lib/trends'
 import type { Filters, TaxonomyRow } from '../types'
 
 interface Props {
   taxonomy: TaxonomyRow[]
+  /** Every attempt, oldest first: the source of the weekly trend and pace. */
+  history: HistoryRow[]
   onPractice: (filters: Filters) => void
   /** Start a 10-question set from the whole bank. */
   onStart: () => void
@@ -111,6 +116,76 @@ function FocusRow({ k, onPractice }: { k: SkillTally; onPractice: (f: Filters) =
   )
 }
 
+const weekDay = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+
+/**
+ * Accuracy per rolling week and seconds per question against the real test's
+ * pace. Nothing until the weeks hold MIN_RECENT answers: four bars drawn from
+ * a handful of questions would be noise dressed up as a trend.
+ */
+function Trend({ history }: { history: HistoryRow[] }) {
+  const t = useMemo(() => trends(history), [history])
+  if (t.answered < MIN_RECENT) return null
+  return (
+    <section className="block" aria-labelledby="trend-title">
+      <div className="block-head">
+        <h2 className="h1-section" id="trend-title">Last {WEEKS} weeks</h2>
+      </div>
+      <div className="trend">
+        <div className="trend-part">
+          <h3 className="trend-t">Accuracy by week</h3>
+          <ol className="weeks">
+            {t.weeks.map((w) => {
+              // Below MIN_ANSWERS a week gets its count and an empty track, like every other figure here.
+              const g = graded(w.seen, w.correct)
+              const last = new Date(w.end.getTime() - 86400000)
+              const said = `Week of ${weekDay(w.start)} to ${weekDay(last)}: ${
+                g ? `${g.pct}% correct` : w.seen ? 'too few answers to judge' : 'no answers'}, ${fmt(w.seen)} answered`
+              return (
+                <li key={w.start.getTime()} className="week" title={said}>
+                  <span className="sr-only">{said}</span>
+                  <span className={g ? 'week-pct' : 'week-pct none'} aria-hidden="true">{g ? <>{g.pct}<small>%</small></> : '—'}</span>
+                  <span className="week-track" aria-hidden="true">
+                    {g && g.pct ? <span className="week-fill" style={{ height: `${g.pct}%` }} /> : null}
+                  </span>
+                  <span className="week-date" aria-hidden="true">{weekDay(w.start)}</span>
+                  <span className="week-n" aria-hidden="true"><span>{fmt(w.seen)}</span> <span>answered</span></span>
+                </li>
+              )
+            })}
+          </ol>
+        </div>
+        <div className="trend-part">
+          <h3 className="trend-t">Pace</h3>
+          <ul className="pace">
+            {SECTIONS.map((s) => {
+              const p = t.pace[s]
+              return (
+                <li key={s} className={`pace-row sec-${s}`}>
+                  <span className="pace-dot" aria-hidden="true" />
+                  <span className="pace-name">{SECTION_NAME[s]}</span>
+                  {p ? (
+                    <span className={p.slow ? 'pace-fig is-slow' : 'pace-fig'}>
+                      {p.slow ? <><Icon name="alert" size={14} strokeWidth={2.2} /><span className="sr-only">Slow: </span></> : null}
+                      <b>{duration(p.mean)}</b> average · target {duration(p.target)}
+                    </span>
+                  ) : (
+                    <span className="pace-fig none">No timed answers yet</span>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+          <p className="trend-note">
+            The target is the real test's pace: {MODULE.RW.minutes} minutes for {MODULE.RW.questions} Reading
+            and Writing questions, {MODULE.MATH.minutes} minutes for {MODULE.MATH.questions} Math.
+          </p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 /** Before the bank index arrives: the band, the shape of the strip and three rows. */
 function Loading() {
   return (
@@ -140,7 +215,7 @@ function Loading() {
   )
 }
 
-export function Stats({ taxonomy, onPractice, onStart }: Props) {
+export function Stats({ taxonomy, history, onPractice, onStart }: Props) {
   const model = useMemo(() => {
     const r = rollup(taxonomy)
     const untouched = r.skills
@@ -239,6 +314,8 @@ export function Stats({ taxonomy, onPractice, onStart }: Props) {
           </>
         )}
       </section>
+
+      <Trend history={history} />
 
       <section className="block" aria-labelledby="difficulty-title">
         <div className="block-head">
