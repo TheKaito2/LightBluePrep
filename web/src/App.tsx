@@ -33,7 +33,8 @@ import { COACH_KEY, getMeta, setMeta } from './lib/store'
 import type { HistoryRow } from './lib/progress'
 import { setSeconds, formatClock } from './lib/pacing'
 import { useQuestionTimer } from './lib/useTimer'
-import { SECTION_NAME } from './lib/labels'
+import { SECTION_NAME, skillDisplayName } from './lib/labels'
+import { loadProcessTypes, similarTo, typeOf } from './lib/similar'
 import * as sync from './lib/sync'
 import { toUserMessage } from './lib/errors'
 import { parseHash, titleFor, urlFor, type View } from './lib/route'
@@ -271,12 +272,27 @@ export default function App() {
     }).catch((e: Error) => fail(e))
   }, [fail, navigate])
 
+  /**
+   * Where a single question was opened from, so its footer can say "Back to
+   * Review" rather than a bare "Done".
+   */
+  const [oneFrom, setOneFrom] = useState<View | null>(null)
+
   const practiceOne = useCallback((id: string) => {
+    // Named after the question itself: the Home filters it fell back to said
+    // "All questions" over "Question 1 of 1".
+    const open = (one: SetItem) => {
+      setItems([one]); setIndex(0)
+      const skill = skillDisplayName(one.skill, one.skill_name ?? '')
+      setListTitle(skill ? `${SECTION_NAME[one.section]}: ${skill}` : `Question ${one.cb_id ?? ''}`.trim())
+      setOneFrom(viewRef.current)
+      navigate('practice')
+    }
     const found = items.find((i) => i.id === id)
-    if (found) { setItems([found]); setIndex(0); navigate('practice'); return }
+    if (found) { open(found); return }
     api.questionSet({}).then((d) => {
       const one = d.questions.find((q) => q.id === id)
-      if (one) { setItems([one]); setIndex(0); navigate('practice') }
+      if (one) open(one)
     }).catch((e: Error) => fail(e))
   }, [items, fail, navigate])
 
@@ -365,6 +381,8 @@ export default function App() {
         size: prev.size, speed: prev.speed,
         ...(next.skills?.length === 1 && !next.section ? { ...next, section: d.questions[0].section } : next),
       }))
+      // Its title comes from these filters, not from a list opened before it.
+      setListTitle(null)
       setItems(arrange(d.questions, order, seed)); setIndex(0); navigate('practice')
     }).catch((e: Error) => fail(e))
   }, [order, seed, fail, navigate])
@@ -922,7 +940,30 @@ export default function App() {
     activeSet && setStates?.length && setStates.every((st) => st !== 'unanswered'),
   )
 
-  const section = question?.section ?? filters.section ?? 'RW'
+  // The list row knows the section before the question loads. Falling straight
+  // to the filters made the Math tools blink out and back on every Next in
+  // mixed practice, and Directions show the wrong section meanwhile.
+  const section = question?.section ?? current?.section ?? filters.section ?? 'RW'
+
+  /**
+   * One question on its own (Review, an ID search, a ?q= link) has nowhere for
+   * Back and Next to go, so its footer offers a way on instead: more of the
+   * same type, or the whole skill. Worked out up front so the button is ready
+   * the moment the answer is graded.
+   */
+  const single = items.length === 1 && !activeSet
+  const [similar, setSimilar] = useState<{ ids: string[]; title: string } | null>(null)
+  useEffect(() => {
+    setSimilar(null)
+    if (!practising || !single || !current) return
+    let stale = false
+    Promise.all([loadProcessTypes(), api.questionSet({})]).then(([pt, pool]) => {
+      if (stale || !pt) return
+      const ids = similarTo(current, pool.questions, pt).map((s) => s.id)
+      setSimilar({ ids, title: `Similar: ${typeOf(current.cb_id, pt)?.label ?? current.skill_name}` })
+    }).catch(() => { /* the skill button alone still leads on */ })
+    return () => { stale = true }
+  }, [practising, single, current?.id])
   // Reads like Bluebook's "Section 1, Module 2: Reading and Writing": the
   // section, then whatever the filters narrowed it to.
   const setTitle = useMemo(() => {
@@ -932,7 +973,7 @@ export default function App() {
     if (listTitle && !activeSet) return listTitle
     const f = activeSet?.filters ?? filters
     if (f.title) return f.title
-    const lead = f.section ? SECTION_NAME[f.section] : 'All questions'
+    const lead = f.section ? SECTION_NAME[f.section] : 'All topics'
     if (f.skills?.length === 1 && question?.skill_name) {
       return `${lead}: ${question.skill_name}`
     }
@@ -1135,10 +1176,14 @@ export default function App() {
           ) : null}
           {section === 'MATH' && !DESMOS_EMBEDDED ? (
             // No API key of our own yet: hand off to Desmos's free calculator
-            // site rather than embedding it.
-            <a className="tool" href="https://www.desmos.com/calculator" target="_blank" rel="noreferrer" aria-label="Calculator"
+            // site rather than embedding it. The second glyph says a tab opens.
+            <a className="tool" href="https://www.desmos.com/calculator" target="_blank" rel="noreferrer"
+               aria-label="Calculator (opens desmos.com in a new tab)"
                title="Opens the Desmos graphing calculator in a new tab">
-              <span className="tool-glyphs"><Icon name="calculator" size={21} /></span>
+              <span className="tool-glyphs">
+                <Icon name="calculator" size={21} />
+                <Icon name="external" size={15} />
+              </span>
               <span className="tool-label"><span className="tool-text">Calculator</span></span>
             </a>
           ) : null}
@@ -1157,14 +1202,19 @@ export default function App() {
               {annotations.length ? ` (${annotations.length})` : ''}
             </span>
           </button>
-          <div className="tool static">
-            <span className="tool-glyphs"><Icon name="check" size={21} /></span>
-            <span>
-              {stats && stats.attempts
-                ? `${stats.correct}/${stats.attempts}`
-                : '0/0'}
-            </span>
-          </div>
+          {/* Lifetime score, so it says what it counts. Not in a set, where a
+              number ticking up on every answer would read as set progress. */}
+          {stats?.attempts && !activeSet ? (
+            <div className="tool static" role="img"
+                 aria-label={`${stats.correct} correct of ${stats.attempts} answered`}
+                 title={`${stats.correct} correct of ${stats.attempts} answered`}>
+              <span className="tool-glyphs">
+                <Icon name="check" size={19} />
+                <span className="tool-score">{stats.correct}/{stats.attempts}</span>
+              </span>
+              <span className="tool-label"><span className="tool-text">Correct</span></span>
+            </div>
+          ) : null}
         </div>
       </header>
 
@@ -1228,39 +1278,71 @@ export default function App() {
             />
           </ErrorBoundary>
         ) : null}
-        {showDesmos && DESMOS_EMBEDDED ? (
+        {/* Math tools only over Math. Their open state is kept, so a Reading
+            question in mixed practice hides them and the next Math one brings
+            them back. */}
+        {showDesmos && DESMOS_EMBEDDED && section === 'MATH' ? (
           <Desmos onClose={() => setShowDesmos(false)}
                   onExpandedChange={setDesmosSplit} />
         ) : null}
+        {showReference && section === 'MATH' ? <ReferenceSheet onClose={closeReference} /> : null}
       </main>
 
       <footer className="bottombar">
-        <div className="bottom-left">LightBluePrep</div>
+        {/* Where Bluebook puts the student's name. */}
+        <div className="bottom-left">
+          <Mark size={20} />
+          <span className="wordmark">Light<span className="wordmark-blue">Blue</span>Prep</span>
+        </div>
         <div className="bottom-mid">
           <button className="navbtn" onClick={() => setShowNavigator(true)}
-                  disabled={!items.length}>
+                  disabled={items.length <= 1}>
             Question {items.length ? index + 1 : 0} of {items.length.toLocaleString()}
             <Icon name="chevron-up" size={15} strokeWidth={2.2} />
           </button>
         </div>
-        <div className="bottom-right">
-          <button className="btn primary" onClick={() => go(index - 1)} disabled={index <= 0}>
-            Back
-          </button>
-          {/* On the last question of a set, Next becomes the way out. Bluebook
-              does the same thing rather than showing both. */}
-          {activeSet && index >= items.length - 1 ? (
-            <button className="btn primary" onClick={() => setShowSetReview(true)}>
-              Review
-              <Icon name="arrow-right" size={17} strokeWidth={2.2} />
+        {single && current ? (
+          <div className="bottom-right">
+            {!result ? (
+              <button className="btn primary" onClick={leavePractice}>
+                {oneFrom === 'review' ? 'Back to Review' : 'Done'}
+              </button>
+            ) : (
+              <>
+                <button className={similar?.ids.length ? 'btn quiet bottom-more' : 'btn primary'}
+                        title={`All ${current.skill_name} questions`}
+                        onClick={() => practiceFilters({ skills: [current.skill] })}>
+                  <span className="btn-trunc">All {current.skill_name} questions</span>
+                </button>
+                {similar?.ids.length ? (
+                  <button className="btn primary" onClick={() => practiceMany(similar.ids, similar.title)}>
+                    Next: {similar.ids.length} more like this
+                    <Icon name="arrow-right" size={17} strokeWidth={2.2} />
+                  </button>
+                ) : null}
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="bottom-right">
+            <button className="btn primary" onClick={() => go(index - 1)} disabled={index <= 0}>
+              Back
             </button>
-          ) : (
-            <button className="btn primary" onClick={() => go(index + 1)}
-                    disabled={index >= items.length - 1}>
-              Next
-            </button>
-          )}
-        </div>
+            {/* On the last question of a set, Next becomes the way out. Bluebook
+                does the same thing rather than showing both. */}
+            {activeSet && index >= items.length - 1 ? (
+              <button className="btn primary" onClick={() => setShowSetReview(true)}>
+                Review
+                <Icon name="arrow-right" size={17} strokeWidth={2.2} />
+              </button>
+            ) : (
+              <button className="btn primary" onClick={() => go(index + 1)}
+                      disabled={index >= items.length - 1}>
+                Next
+              </button>
+            )}
+          </div>
+        )}
       </footer>
 
       {showNavigator ? (
@@ -1284,8 +1366,6 @@ export default function App() {
                    banner={banner}
                    onFinish={finishSet} />
       ) : null}
-
-      {showReference ? <ReferenceSheet onClose={closeReference} /> : null}
 
       {showNotes ? (
         <Notes annotations={annotations}

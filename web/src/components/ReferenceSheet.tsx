@@ -2,10 +2,13 @@
  * Math reference sheet, the same formulas Bluebook gives you on test day.
  *
  * Drawn here from scratch: the formulas are facts, the figures are our own
- * SVG, nothing is copied from College Board's sheet. Same drawer shell as
- * Highlights & Notes.
+ * SVG, nothing is copied from College Board's sheet.
+ *
+ * A floating window in the calculator's shell rather than a drawer: Bluebook's
+ * reference is non-modal, so you can read a formula while you work the
+ * question, and nothing covers the toolbar button that closes it.
  */
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from './Icon'
 
 interface Shape {
@@ -64,7 +67,7 @@ const SHAPES: Shape[] = [
   },
   {
     name: 'Cylinder',
-    fig: <><ellipse cx="50" cy="18" rx="26" ry="8" /><path d="M24 18v44M76 18v44" /><path d="M24 62a26 8 0 0052 0" /><path d="M24 62a26 8 0 0152 0" className="ref-dash" /><path d="M50 18h26" /><T x={63} y={14}>r</T><T x={84} y={44}>h</T></>,
+    fig: <><ellipse cx="50" cy="18" rx="26" ry="8" /><path d="M24 18v44M76 18v44" /><path d="M24 62a26 8 0 0052 0" /><path d="M24 62a26 8 0 0152 0" className="ref-dash" /><path d="M50 18h26" /><T x={69} y={8}>r</T><T x={84} y={44}>h</T></>,
     formulas: [<>V = πr<sup>2</sup>h</>],
   },
   {
@@ -84,39 +87,80 @@ const SHAPES: Shape[] = [
   },
 ]
 
+/**
+ * Where you last left the window, kept past unmount like the calculator's.
+ * Null until it is first dragged: it opens at the right, clear of the
+ * calculator, which opens at the left.
+ */
+let remembered: { x: number; y: number } | null = null
+
 export function ReferenceSheet({ onClose }: { onClose: () => void }) {
+  const panel = useRef<HTMLElement>(null)
+  const [pos, setPos] = useState(remembered)
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  useEffect(() => { remembered = pos }, [pos])
+
+  function onTitleDown(event: React.PointerEvent) {
+    const el = panel.current
+    const parent = el?.parentElement
+    if (!el || !parent) return
+    event.preventDefault()
+    const startX = event.clientX - el.offsetLeft
+    const startY = event.clientY - el.offsetTop
+    const maxX = Math.max(0, parent.clientWidth - el.offsetWidth)
+    const maxY = Math.max(0, parent.clientHeight - el.offsetHeight)
+    document.body.classList.add('dragging-panel')
+    const move = (e: PointerEvent) => setPos({
+      x: Math.min(maxX, Math.max(0, e.clientX - startX)),
+      y: Math.min(maxY, Math.max(0, e.clientY - startY)),
+    })
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      document.body.classList.remove('dragging-panel')
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  // CSS clamps the stored spot to the pane, so a smaller window later cannot
+  // leave the sheet out of reach.
+  const style = pos ? ({ '--ref-x': `${pos.x}px`, '--ref-y': `${pos.y}px` } as React.CSSProperties) : undefined
+
   return (
-    <>
-      <div className="nav-scrim" onClick={onClose} />
-      <aside className="notes-panel ref-panel" role="dialog" aria-label="Reference sheet">
-        <div className="notes-head">
-          <span className="notes-title">Reference</span>
-          <button className="nav-close" onClick={onClose} aria-label="Close">
-            <Icon name="close" size={18} strokeWidth={2.2} />
-          </button>
-        </div>
-        <div className="ref-body">
-          <ul className="ref-grid">
-            {SHAPES.map((s) => (
-              <li key={s.name} className={s.wide ? 'ref-card wide' : 'ref-card'}>
-                <svg viewBox={s.wide ? '0 0 200 82' : '0 0 100 82'} className="ref-fig" aria-hidden="true">{s.fig}</svg>
-                <span className="ref-name">{s.name}</span>
-                {s.formulas.map((f, i) => <span key={i} className="ref-f">{f}</span>)}
-              </li>
-            ))}
-          </ul>
-          <ul className="ref-facts">
-            <li>A circle has 360°, which is 2π radians.</li>
-            <li>The angles in a triangle add up to 180°.</li>
-          </ul>
-        </div>
-      </aside>
-    </>
+    <aside ref={panel} className={pos ? 'desmos-panel ref-panel is-placed' : 'desmos-panel ref-panel'}
+           style={style} role="dialog" aria-label="Reference sheet">
+      <div className="desmos-head" onPointerDown={onTitleDown}>
+        <span className="desmos-title">Reference</span>
+        <Icon name="dots9" size={23} className="desmos-grab" strokeWidth={3.4} />
+        <button className="desmos-btn"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={onClose}
+                aria-label="Close reference sheet" title="Close reference sheet">
+          <Icon name="close" size={21} strokeWidth={1.9} />
+        </button>
+      </div>
+      <div className="ref-body">
+        <ul className="ref-grid">
+          {SHAPES.map((s) => (
+            <li key={s.name} className={s.wide ? 'ref-card wide' : 'ref-card'}>
+              <svg viewBox={s.wide ? '0 0 200 82' : '0 0 100 82'} className="ref-fig" aria-hidden="true">{s.fig}</svg>
+              <span className="ref-name">{s.name}</span>
+              {s.formulas.map((f, i) => <span key={i} className="ref-f">{f}</span>)}
+            </li>
+          ))}
+        </ul>
+        <ul className="ref-facts">
+          <li>A circle has 360°, which is 2π radians.</li>
+          <li>The angles in a triangle add up to 180°.</li>
+        </ul>
+      </div>
+    </aside>
   )
 }

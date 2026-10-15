@@ -233,7 +233,8 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
 .desmos-btn:first-of-type { margin-left: auto; }
 .desmos-btn:hover { background: rgba(255, 255, 255, .16); }
 .desmos-host { flex: 1; min-height: 0; }
-.desmos-error { padding: 16px; color: var(--red); font-size: 14px; }
+.desmos-error { margin: 0; padding: 18px 16px; font-size: 14px; line-height: 1.5; color: var(--ink); }
+.desmos-error a { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; color: var(--accent); font-weight: 600; }
 
 /* Corner grip: three diagonal strokes, an inline svg in Desmos.tsx. */
 .desmos-resize {
@@ -301,13 +302,6 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
   .setreview-grid { grid-template-columns: repeat(6, 1fr); }
 }
 
-/* DIAGNOSTIC, paired with the `diag` state in Desmos.tsx. Remove together. */
-.desmos-diag {
-  flex: none; padding: 6px 10px; background: #fdecef; color: #a60d26;
-  font-size: 11.5px; line-height: 1.35; word-break: break-word;
-  border-top: 1px solid rgba(166, 13, 38, .25);
-}
-
 /* ---- practice: inline mistake log under a wrong answer ----
    A plain card in the Bluebook palette and one family (Noto), so it reads as
    part of the test screen rather than a panel from the rest of the app. */
@@ -358,21 +352,34 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
 .qinfo-note { margin: -4px 0 0; max-width: 300px; font-size: 12.5px; line-height: 1.4; color: var(--n-500); }
 
 /* ---- practice: Math reference sheet ---- */
-.ref-panel { width: min(460px, 100vw); }
-.ref-body { padding: 16px 18px 28px; overflow-y: auto; }
+/* The calculator's window shell (.desmos-panel) at 380x560, opening at the
+   right so it sits clear of the calculator, which opens at the left. Once
+   dragged, the stored spot is clamped to the pane here rather than in JS. */
+.ref-panel {
+  --ref-w: min(380px, calc(100% - 28px));
+  --ref-h: min(560px, calc(100% - 28px));
+  top: 14px; right: 14px; width: var(--ref-w); height: var(--ref-h);
+}
+.ref-panel.is-placed {
+  right: auto;
+  left: clamp(0px, var(--ref-x), calc(100% - var(--ref-w)));
+  top: clamp(0px, var(--ref-y), calc(100% - var(--ref-h)));
+}
+.ref-body { flex: 1; min-height: 0; padding: 14px 14px 22px; overflow-y: auto; }
 .ref-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* Black on white, as on Bluebook's own sheet. */
 .ref-card {
   display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 8px 12px;
-  border: 1px solid var(--math-100); border-radius: var(--rad-md); background: var(--math-50); text-align: center;
+  border: 1px solid var(--n-200); border-radius: var(--rad-md); background: var(--n-0); text-align: center;
 }
-.ref-fig { width: 100%; max-width: 132px; height: auto; fill: none; stroke: var(--math-700); stroke-width: 1.6; stroke-linejoin: round; }
+.ref-fig { width: 100%; max-width: 132px; height: auto; fill: none; stroke: var(--n-900); stroke-width: 1.4; stroke-linejoin: round; }
 .ref-card.wide { grid-column: span 2; }
 .ref-card.wide .ref-fig { max-width: 264px; }
-.ref-fig .ref-dash { stroke-dasharray: 3 3; stroke-width: 1.2; }
-.ref-fig .ref-dot { fill: var(--math-700); }
-.ref-lbl { fill: var(--n-900); stroke: none; font-size: 10px; font-style: italic; font-family: Georgia, 'Times New Roman', serif; }
+.ref-fig .ref-dash { stroke-dasharray: 3 3; stroke-width: 1.1; }
+.ref-fig .ref-dot { fill: var(--n-900); }
+.ref-lbl { fill: var(--n-900); stroke: none; font-size: 10px; font-style: italic; font-family: var(--serif); }
 .ref-name { margin-top: 4px; font-size: 12px; font-weight: 650; color: var(--n-500); }
-.ref-f { font-family: Georgia, 'Times New Roman', serif; font-size: 15.5px; color: var(--n-900); }
+.ref-f { font-family: var(--serif); font-size: 15.5px; color: var(--n-900); }
 .ref-f sup, .ref-f sub { font-size: .68em; }
 .ref-facts { margin: 16px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.6; color: var(--n-700); }
 @media (max-width: 470px) {

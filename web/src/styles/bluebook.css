@@ -68,6 +68,7 @@
 .tool:disabled { opacity: .4; cursor: default; }
 .tool:disabled:hover { background: none; }
 .tool.static { cursor: default; font-variant-numeric: tabular-nums; }
+.tool-score { font-size: 15px; font-weight: 700; }
 .tool.static:hover { background: none; }
 
 /* ============================ body ============================ */
@@ -312,9 +313,14 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
   background-image: var(--rule);
   background-size: 100% 2px; background-repeat: repeat-x; background-position: left top;
 }
-.bottom-left { font-size: 17px; font-weight: 700; color: var(--ink); }
+.bottom-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bottom-left .wordmark { font-size: 18px; }
 .bottom-mid { display: flex; justify-content: center; }
-.bottom-right { display: flex; gap: 12px; justify-content: flex-end; }
+.bottom-right { display: flex; gap: 12px; justify-content: flex-end; min-width: 0; }
+/* A lone question's way on. Skill names run to 80 characters, so the skill
+   button truncates and carries the full name in its title. */
+.bottom-more { min-width: 0; max-width: 300px; }
+.btn-trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .navbtn {
   display: inline-flex; align-items: center; gap: 9px;
   background: var(--ink); color: #fff; border: none; border-radius: var(--r-sm);
@@ -423,6 +429,10 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
   /* Footer: Back and Next were being pushed off the right edge. */
   .bottombar { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 8px 12px; }
   .bottom-left { display: none; }   /* the wordmark is not worth a third of the bar */
+  /* No room for both beside the navigator: the phone keeps the next step, and
+     the skill button shows only when it is the sole way on. */
+  .app .btn.bottom-more { display: none; }
+  .bottom-right .btn { white-space: nowrap; }
   .bottom-mid { justify-content: flex-start; min-width: 0; }
   .navbtn { padding: 8px 11px; font-size: 13px; gap: 5px; }
   .bottom-right { gap: 8px; }
