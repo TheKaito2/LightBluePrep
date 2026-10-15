@@ -129,8 +129,9 @@ export function QuestionDetail({
     )
   }
 
-  const hasLog = Boolean(data.mistake
-    && (data.mistake.tags.length || data.mistake.note))
+  /** The mistake log when it holds anything; an empty one shows as none. */
+  const log = data.mistake && (data.mistake.tags.length || data.mistake.note) ? data.mistake : null
+  const hasLog = log !== null
   // The set's own attempt: the last one inside its window.
   const setAttempt = setWindow
     ? attempts.findLastIndex((a) => a.answered_at >= setWindow.from && a.answered_at <= setWindow.to)
@@ -276,19 +277,19 @@ export function QuestionDetail({
             </div>
           ) : null}
         </>
-      ) : hasLog ? (
+      ) : log ? (
         <>
           <h4 className="review-h">Mistake log</h4>
           <div className="review-mistake">
-            {data.mistake!.tags.length ? (
+            {log.tags.length ? (
               <div className="chips">
-                {data.mistake!.tags.map((t) => (
+                {log.tags.map((t) => (
                   <span key={t} className="chip on static">{TAG_LABEL[t]}</span>
                 ))}
               </div>
             ) : null}
-            {data.mistake!.note ? (
-              <p className="review-note">{data.mistake!.note}</p>
+            {log.note ? (
+              <p className="review-note">{log.note}</p>
             ) : null}
           </div>
         </>

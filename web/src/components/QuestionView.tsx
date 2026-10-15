@@ -140,10 +140,10 @@ export function QuestionView(props: Props) {
   const [passageTall, setPassageTall] = useState(false)
   const [passageOpen, setPassageOpen] = useState(false)
 
-  const answered = result !== null
   // Graded right here, as open practice is. A set holds its answers until the
   // end, so inside one nothing is graded and the choices stay live.
-  const graded = answered && !deferred
+  const verdict = deferred ? null : result
+  const graded = verdict !== null
   // Grading turns the cross-out tool off for this question: the column and the
   // ABC key go together, so the choices change width once and on purpose rather
   // than leaving a faded key with nothing to act on.
@@ -178,12 +178,10 @@ export function QuestionView(props: Props) {
   }
 
   /**
-   * Dismiss the highlight menu as soon as you interact anywhere else.
-   *
-   * It used to persist until you committed or hit the explicit cancel, so
-   * clicking away left it stranded over the passage. Pointer-down is the right
-   * signal: it fires when you click off AND when you start dragging a new
-   * selection, and it precedes the mouseup that would open the next menu.
+   * Dismiss the highlight menu as soon as you interact anywhere else, so it is
+   * never left stranded over the passage. Pointer-down is the right signal: it
+   * fires when you click off AND when you start dragging a new selection, and
+   * it precedes the mouseup that would open the next menu.
    *
    * Clicks inside the menu are exempt, otherwise focusing the note input would
    * close the very menu it belongs to.
@@ -255,7 +253,8 @@ export function QuestionView(props: Props) {
   }
   function onDividerMove(event: React.PointerEvent<HTMLDivElement>) {
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
-    const box = event.currentTarget.parentElement!.getBoundingClientRect()
+    const box = event.currentTarget.parentElement?.getBoundingClientRect()
+    if (!box) return
     setSplit(((event.clientX - box.left) / box.width) * 100)
   }
   function onDividerUp(event: React.PointerEvent<HTMLDivElement>) {
@@ -286,9 +285,9 @@ export function QuestionView(props: Props) {
   }
 
   /**
-   * A click on a highlight opens it for editing. It used to delete it outright,
-   * note and all, including when the click was only the start of a new
-   * selection; removing now takes the menu's own trash button.
+   * A click on a highlight opens it for editing, never deletes it: the click
+   * may only be the start of a new selection, and a note can go with it.
+   * Removing takes the menu's own trash button.
    */
   function handleAnnotationClick(id: number, rect: DOMRect) {
     const annotation = annotations.find((a) => a.id === id)
@@ -370,8 +369,8 @@ export function QuestionView(props: Props) {
             // A crossed-out key would otherwise grade as faded and struck through.
             const isCrossed = crossOut.has(option.label) && !graded
             const isPicked = response === option.label
-            const isKey = graded && result!.accepted.includes(option.label)
-            const isWrongPick = graded && isPicked && !result!.correct
+            const isKey = graded && verdict.accepted.includes(option.label)
+            const isWrongPick = graded && isPicked && !verdict.correct
             const crossLabel = isCrossed
               ? `Undo cross out of choice ${option.label}` : `Cross out choice ${option.label}`
             return (
@@ -428,7 +427,7 @@ export function QuestionView(props: Props) {
           <label htmlFor="spr-input">Enter your answer</label>
           {/* inputMode text, not decimal: iOS's decimal pad has no '/' or '-'. */}
           <input id="spr-input"
-                 className={graded ? `spr-input ${result!.correct ? 'is-right' : 'is-wrong'}` : 'spr-input'}
+                 className={graded ? `spr-input ${verdict.correct ? 'is-right' : 'is-wrong'}` : 'spr-input'}
                  value={response ?? ''}
                  disabled={graded} autoComplete="off"
                  maxLength={sprLimit(response ?? '')}
@@ -451,17 +450,17 @@ export function QuestionView(props: Props) {
         </div>
       )}
 
-      {deferred ? null : !answered ? (
+      {deferred ? null : !verdict ? (
         <button className="btn primary submit" disabled={!response} onClick={onSubmit}>
           Submit answer
         </button>
       ) : (
-        <Explanation result={result!} question={question} seconds={seconds} autoFocus />
+        <Explanation result={verdict} question={question} seconds={seconds} autoFocus />
       )}
 
       {/* Only when it went wrong: a log on a right answer is noise. Keyed so a
           new question starts blank rather than inheriting the last one's text. */}
-      {graded && !result!.correct ? (
+      {graded && !verdict.correct ? (
         <section className="mlog-practice" aria-label="Mistake log">
           <MistakeFields key={question.id} mistake={mistake} onSave={onSaveMistake}
                          lead="Why did you miss it?" id="mlog-inline" rows={3}
@@ -477,8 +476,8 @@ export function QuestionView(props: Props) {
   // Always rendered, so the verdict is a change to a live region that is
   // already there: a region that mounts with its text is often not announced.
   const status = !graded ? ''
-    : result!.correct ? 'Correct'
-      : `Incorrect. The correct answer is ${result!.accepted.join(' or ')}.`
+    : verdict.correct ? 'Correct'
+      : `Incorrect. The correct answer is ${verdict.accepted.join(' or ')}.`
 
   return (
     <div className="qview">

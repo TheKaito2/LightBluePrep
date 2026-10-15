@@ -24,6 +24,9 @@ export const SECTION_SHORT: Record<Section, string> = {
   MATH: 'Math',
 }
 
+/** The Icon.tsx glyph that stands for each section. */
+export const SECTION_ICON = { RW: 'book', MATH: 'sigma' } as const satisfies Record<Section, string>
+
 export const DIFFICULTIES: readonly Difficulty[] = ['E', 'M', 'H']
 
 export const DIFFICULTY_NAME: Record<Difficulty, string> = {

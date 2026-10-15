@@ -277,11 +277,11 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet, onS
     f === 'marked' ? items.filter((i) => i.flagged === 1 && inScope(i))
       : answered.filter((i) => inScope(i) && (
         f === 'incorrect' ? i.last_correct !== 1
-          : f === 'logged' ? logged.has(i.id) && (!t || logged.get(i.id)!.includes(t))
+          : f === 'logged' ? (t ? logged.get(i.id)?.includes(t) ?? false : logged.has(i.id))
             : f === 'slow' ? isSlow(i.section, i.last_seconds)
               : true)))
   const shown = pick(filter, tag)
-  const filterName = FILTERS.find(([f]) => f === filter)![1]
+  const filterName = FILTERS.find(([f]) => f === filter)?.[1] ?? 'All'
   const pileName = filter === 'logged' && tag ? TAG_LABEL[tag] : filterName
   const scopeName = scope === 'both' ? '' : ` · ${SECTION_NAME[scope]}`
 

@@ -109,7 +109,7 @@ npm run build         # -> dist/        localhost
 npm run build:pages   # -> dist-pages/  static, no server
 ```
 
-`?backend=local` or `?backend=http` overrides the choice for one page load, which is handy for testing the static path against the dev server without a separate build.
+On the dev server, `?backend=local` or `?backend=http` overrides the choice for one page load, which is handy for testing the static path without a separate build. Production builds ignore it.
 
 The two don't share progress. Answering on one doesn't show up on the other, and only the static build can sync.
 

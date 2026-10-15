@@ -9,7 +9,7 @@
  * first screen, and the two actions gathered in one card at the end.
  */
 import type { ReactNode } from 'react'
-import { PRIVACY_URL, REPO } from './Github'
+import { PRIVACY_URL, REPO } from '../lib/links'
 import { Icon } from './Icon'
 import { PageHead } from './PageHead'
 import { NoData, Stat, StatGroup } from './Stat'

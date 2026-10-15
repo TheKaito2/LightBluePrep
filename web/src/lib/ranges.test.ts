@@ -10,8 +10,9 @@ function mount(html: string): HTMLElement {
   return host
 }
 
+let lastId = 100
 function annotation(start: number, end: number, extra: Partial<Annotation> = {}): Annotation {
-  return { field: 'stem', start_offset: start, end_offset: end, color: 'yellow', note: null, ...extra }
+  return { id: ++lastId, field: 'stem', start_offset: start, end_offset: end, color: 'yellow', note: null, ...extra }
 }
 
 /** Concatenated annotatable text, i.e. the offset coordinate space. */

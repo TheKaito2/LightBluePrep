@@ -130,10 +130,7 @@
   clip-path: polygon(0 0, 100% 0, 100% 100%);
   width: 19px; height: 19px; background: var(--red);
 }
-/* There used to be a 4px dark triangle here, meant to read as the shadow under
-   a folded corner. At the size these cells actually render it just looked like
-   a stray artifact hanging off the ribbon, outside the cell border. The ribbon
-   alone reads fine. */
+/* The ribbon alone: a folded-corner shadow at this size reads as a stray mark. */
 .nav-cell-glyph { flex: none; }
 
 /* Open practice over every topic: one page of 100 cells at a time. */

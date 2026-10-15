@@ -47,7 +47,6 @@ export function Notes({ annotations, onRemove, onClose }: Props) {
   useEffect(() => {
     const found: Record<number, string> = {}
     for (const annotation of annotations) {
-      if (annotation.id === undefined) continue
       // One annotation can be split across several marks when it spans an
       // element boundary, so join every piece back together.
       const marks = document.querySelectorAll(`mark[data-ann-id="${annotation.id}"]`)
@@ -78,13 +77,13 @@ export function Notes({ annotations, onRemove, onClose }: Props) {
                   <span className={`note-swatch sw-${annotation.color}`} />
                   <span className="note-where">{fieldLabel(annotation.field)}</span>
                   <button type="button" className="note-del"
-                          onClick={() => annotation.id && onRemove(annotation.id)}
+                          onClick={() => onRemove(annotation.id)}
                           aria-label="Remove highlight" title="Remove highlight">
                     <Icon name="trash" size={15} />
                   </button>
                 </div>
                 <blockquote className="note-quote">
-                  {annotation.id !== undefined && quotes[annotation.id]
+                  {quotes[annotation.id]
                     ? quotes[annotation.id]
                     : <em className="note-missing">
                         {EXPLANATION.has(annotation.field)

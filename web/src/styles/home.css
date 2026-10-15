@@ -29,7 +29,7 @@
 /* ---- hero band (spec 8.1) ----
    Light brand fill, one Bulb, a real primary action and one score card.
    overflow: clip stops anything wide from making the band a scroll box (a
-   focused input used to scroll it 14px sideways on phones) while letting the
+   focused input can otherwise scroll it sideways on phones) while letting the
    ID results hang below it. Behind @supports, since minifiers drop a plain
    hidden-then-clip pair down to the last one. */
 .hero2 {
@@ -400,7 +400,7 @@
 .opt-dialog .field:disabled .seg-b.on { box-shadow: none; }
 .opt-dialog .sel { min-width: 240px; }
 .opt-reshuffle { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; }
-/* The label sits beside its box, always (it once wrapped under it). */
+/* The label sits beside its box, never wrapped under it. */
 .excl { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font: var(--type-ui); color: var(--fg-1); }
 .shell .excl input[type=checkbox] { margin-top: 1px; }
 .excl-hint { margin-left: 28px; }

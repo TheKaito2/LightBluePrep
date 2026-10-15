@@ -2,7 +2,7 @@
  * The static backend: no server at all.
  *
  * Fetches straight from College Board, normalises and grades in the browser,
- * and keeps everything in IndexedDB. This is what runs on GitHub Pages.
+ * and keeps everything in IndexedDB. This is what runs on Cloudflare Pages.
  *
  * Loading is deliberately two-tier, and that is the whole point of the design:
  *
@@ -33,7 +33,7 @@ import * as sync from './lib/sync'
 import * as usage from './lib/usage'
 import type {
   Annotation, Filters, GradeResult, Mistake, MistakeTag, PracticeSet, Question,
-  Section, SetAnswer, SetItem, Stats, StoredQuestion, TaxonomyRow,
+  Section, SetInput, SetItem, Stats, StoredQuestion, TaxonomyRow,
 } from './types'
 
 interface Cache {
@@ -407,10 +407,14 @@ export async function question(id: string): Promise<{
     question: strip(full),
     annotations: saved?.items ?? [],
     flagged: c.flagged.has(id),
-    mistake: store.isEmptyMistake(logged) ? null : {
-      tags: logged!.tags, note: logged!.note, updated_at: logged!.updated_at,
-    },
+    mistake: toMistake(logged),
   }
+}
+
+/** The stored row as the app sees it: an empty log is no log. */
+function toMistake(row: store.MistakeRecord | undefined): Mistake | null {
+  if (!row || store.isEmptyMistake(row)) return null
+  return { tags: row.tags, note: row.note, updated_at: row.updated_at }
 }
 
 export async function saveMistake(
@@ -418,12 +422,7 @@ export async function saveMistake(
 ): Promise<{ mistake: Mistake | null }> {
   await store.saveMistake(id, tags, note)
   sync.track('mistake', id)
-  const saved = await store.loadMistake(id)
-  return {
-    mistake: store.isEmptyMistake(saved) ? null : {
-      tags: saved!.tags, note: saved!.note, updated_at: saved!.updated_at,
-    },
-  }
+  return { mistake: toMistake(await store.loadMistake(id)) }
 }
 
 /** Every question with at least one attempt, most recently answered first. */
@@ -504,11 +503,19 @@ export async function flag(id: string, flagged: boolean): Promise<{ flagged: boo
 
 export async function saveAnnotations(id: string, annotations: Annotation[]):
     Promise<{ annotations: Annotation[] }> {
-  // Ids are assigned here rather than by a database autoincrement. Counting on
-  // from the highest, not by position: after a removal, position i + 1 could
-  // be an id still in use, and the highlight menu finds a highlight by id.
-  let last = Math.max(0, ...annotations.map((a) => a.id ?? 0))
-  const items = annotations.map((a) => ({ ...a, id: a.id ?? ++last }))
+  // The editor numbers new highlights (nextAnnotationId). A missing or repeated
+  // id, which the highlight menu would confuse with another highlight, is
+  // renumbered past the highest in use: never by position, since after a
+  // removal position i + 1 can be an id still taken. Integers only, because the
+  // sync Worker keeps nothing else.
+  const valid = (id: unknown): id is number => Number.isInteger(id) && (id as number) > 0
+  let last = Math.max(0, ...annotations.map((a) => (valid(a.id) ? a.id : 0)))
+  const taken = new Set<number>()
+  const items = annotations.map((a) => {
+    const id = valid(a.id) && !taken.has(a.id) ? a.id : ++last
+    taken.add(id)
+    return { ...a, id }
+  })
   await store.saveAnnotations(id, items)
   sync.track('annotation', id)
   return { annotations: items }
@@ -603,15 +610,6 @@ export async function deleteSet(id: string): Promise<void> {
     seconds: 0, filters: {}, items: [], deleted: true,
   })
   sync.track('set', id)
-}
-
-export interface SetInput {
-  id: string
-  created_at: number
-  finished_at: number | null
-  seconds: number
-  filters: Filters
-  items: SetAnswer[]
 }
 
 function summarise(row: store.SetRecord, withItems: boolean): PracticeSet {

@@ -6,11 +6,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Icon } from './Icon'
 import { Modal } from './Modal'
-import { DONATE, DONATE_ALT } from './Github'
+import { DONATE, DONATE_ALT, PROMPTPAY_QR } from '../lib/links'
 
 const EVENT = 'lbp:support'
-/** Path of the PromptPay QR image in public/. Unset hides the option. */
-export const PROMPTPAY_QR = (import.meta.env.VITE_PROMPTPAY_QR as string | undefined) || ''
 /**
  * `download` only works on a same-origin URL; on any other the browser just
  * opens the image. .env.pages sets a path in public/, so this holds there.

@@ -13,7 +13,7 @@ import * as fb from '../lib/feedback'
 import { toUserMessage } from '../lib/errors'
 import { Icon } from './Icon'
 import { Modal } from './Modal'
-import { PRIVACY_URL } from './Github'
+import { PRIVACY_URL } from '../lib/links'
 
 /** Short status words: the badge's name and tooltip. */
 const LABEL: Record<sync.SyncStatus, string> = {

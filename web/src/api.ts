@@ -5,7 +5,7 @@
  *   apiHttp   localhost. The Python server owns SQLite, does the grading, and
  *             withholds the answer key until you answer. Pulls the whole bank
  *             up front, which is fine because it is local.
- *   apiLocal  GitHub Pages. No server: fetches College Board directly, caches
+ *   apiLocal  Cloudflare Pages. No server: fetches College Board directly, caches
  *             in IndexedDB, grades in the browser. Loads the index up front
  *             (~1.7s) and question bodies on demand.
  *
@@ -15,8 +15,10 @@
  *   npm run build         -> http   (default)
  *   npm run build:pages   -> local
  *
- * `?backend=local` or `?backend=http` overrides it for one page load, so the
- * static path can be exercised against a dev server without a separate build.
+ * In development, `?backend=local` or `?backend=http` overrides it for one page
+ * load, so the static path can be exercised against a dev server without a
+ * separate build. Never in production: on Pages there is no /api/*, and a
+ * shared link carrying `?backend=http` would break every call.
  *
  * The two backends do NOT share progress. Answering on Pages does not appear on
  * localhost. That is deliberate.
@@ -26,19 +28,23 @@ import * as local from './apiLocal'
 import { filterByTypes, loadProcessTypes } from './lib/similar'
 import { skillDisplayName } from './lib/labels'
 import * as sync from './lib/sync'
-import type { Filters, SetItem } from './types'
+import type { Backend, Filters, SetItem } from './types'
 
 export type BackendName = 'http' | 'local'
 
 function choose(): BackendName {
-  const override = new URLSearchParams(window.location.search).get('backend')
-  if (override === 'local' || override === 'http') return override
+  if (import.meta.env.DEV) {
+    const override = new URLSearchParams(window.location.search).get('backend')
+    if (override === 'local' || override === 'http') return override
+  }
   return import.meta.env.VITE_BACKEND === 'local' ? 'local' : 'http'
 }
 
 export const backend: BackendName = choose()
 
-const impl = backend === 'local' ? local : http
+// Each checked on its own, so a drift is reported against the backend that drifted.
+const backends = { local: local satisfies Backend, http: http satisfies Backend }
+const impl: Backend = backends[backend]
 
 /**
  * Counts changes to what the taxonomy, the history and the question list rows
@@ -104,10 +110,9 @@ export async function question(id: string) {
 let pool: Promise<Map<string, SetItem>> | null = null
 /**
  * The whole bank keyed by id, in the order questionSet({}) gives it, built once
- * per progress version. Opening one question, a set, a list from Review or a
- * set's results all need it, and each used to fetch and sort the whole pool
- * again (PF-17). Its rows carry progress (last answer, flag), which is why a
- * progress change drops it.
+ * per progress version and shared by everything that opens a question, a set,
+ * a list from Review or a set's results (PF-17). Its rows carry progress (last
+ * answer, flag), which is why a progress change drops it.
  */
 export function questionsById(): Promise<Map<string, SetItem>> {
   if (!pool) {

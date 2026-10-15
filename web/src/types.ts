@@ -1,3 +1,5 @@
+import type { HistoryRow } from './lib/progress'
+
 export type Section = 'RW' | 'MATH'
 export type Difficulty = 'E' | 'M' | 'H'
 export type QuestionType = 'mcq' | 'spr'
@@ -68,7 +70,7 @@ export interface SetItem {
  * The full normalised record, key included, as it is stored locally.
  *
  * The HTTP backend deliberately never sends this to the browser before you
- * answer -- `Question` is the withheld shape. On GitHub Pages there is no
+ * answer -- `Question` is the withheld shape. On Cloudflare Pages there is no
  * server to withhold anything, so the key necessarily lives client-side and is
  * only hidden by the UI. That is a real capability difference between the two
  * backends, not an oversight.
@@ -80,8 +82,9 @@ export interface StoredQuestion extends Question {
   flags: string[]
 }
 
+/** One highlight. `id` is a small integer, unique within its question's list. */
 export interface Annotation {
-  id?: number
+  id: number
   field: string
   start_offset: number
   end_offset: number
@@ -214,4 +217,42 @@ export interface PracticeSet {
   correct: number
   /** Absent in the list view, present when one set is fetched on its own. */
   items?: SetAnswer[]
+}
+
+/** What a set save sends; the backend adds `updated_at` and the tallies. */
+export interface SetInput {
+  id: string
+  created_at: number
+  finished_at: number | null
+  seconds: number
+  filters: Filters
+  items: SetAnswer[]
+}
+
+/**
+ * What both data backends (apiHttp for localhost, apiLocal for the static
+ * build) provide. api.ts checks each against it, so the two cannot drift apart.
+ */
+export interface Backend {
+  taxonomy(): Promise<{ taxonomy: TaxonomyRow[]; stats: Stats }>
+  questionSet(filters: Filters): Promise<{ count: number; questions: SetItem[] }>
+  question(id: string): Promise<{
+    question: Question; annotations: Annotation[]; flagged: boolean; mistake: Mistake | null
+  }>
+  /** Warm the cache for questions likely to be opened next. Never throws. */
+  prefetch(ids: string[]): void
+  answer(id: string, response: string | null, seconds: number): Promise<GradeResult>
+  flag(id: string, flagged: boolean): Promise<{ flagged: boolean }>
+  saveAnnotations(id: string, annotations: Annotation[]): Promise<{ annotations: Annotation[] }>
+  explain(id: string, response: string | null): Promise<GradeResult>
+  attemptsFor(id: string): Promise<{ attempts: Attempt[] }>
+  loggedIds(): Promise<{ question_ids: string[]; tags: Record<string, MistakeTag[]> }>
+  saveMistake(id: string, tags: MistakeTag[], note: string | null): Promise<{ mistake: Mistake | null }>
+  reviewed(): Promise<{ questions: SetItem[] }>
+  stats(): Promise<Stats>
+  history(): Promise<{ history: HistoryRow[] }>
+  listSets(active?: boolean, limit?: number): Promise<PracticeSet[]>
+  getSet(id: string): Promise<PracticeSet>
+  saveSet(set: SetInput): Promise<PracticeSet>
+  deleteSet(id: string): Promise<void>
 }

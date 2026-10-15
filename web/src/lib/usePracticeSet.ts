@@ -37,10 +37,9 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
   /**
    * The same set, readable synchronously.
    *
-   * Answering twice in quick succession used to lose the first answer: both
-   * handlers closed over the `activeSet` of their own render, so the second one
-   * rebuilt `items` from a copy that did not have the first answer in it yet.
-   * Every write goes through this ref so it always starts from the latest. The
+   * Every write starts from this ref, never from the `activeSet` a handler
+   * closed over: two quick answers would otherwise both rebuild `items` from
+   * the same render, and the second would drop the first. The
    * practice screen's own effects run before this hook's, so entering a set
    * writes the ref at once rather than waiting for the sync below.
    */
@@ -71,11 +70,10 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
   /**
    * A set only exists while you are in it.
    *
-   * It used to outlive the practice screen: back out of a set halfway, then
-   * open plain practice from Home, Review or Stats, and the app still thought
-   * it was in the set. Every question rendered in set mode with no Submit
-   * button, and the answers went nowhere. Its progress is saved as you go, and
-   * Resume reloads it, so dropping it here loses nothing.
+   * Otherwise plain practice opened later from Home, Review or Stats would
+   * still run in set mode, with no Submit and nowhere for answers to go. Its
+   * progress is saved as you go and Resume reloads it, so dropping it here
+   * loses nothing.
    */
   useEffect(() => {
     if (view === 'practice') return

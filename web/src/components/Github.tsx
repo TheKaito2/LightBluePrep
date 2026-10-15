@@ -5,19 +5,7 @@
  * filled logo and would need a fill path in a component whose whole contract
  * is `stroke`.
  */
-export const REPO = 'https://github.com/TheKaito2/LightBluePrep'
-
-/** Donation page (Ko-fi or similar). Unset and the Support link does not render. */
-export const DONATE = (import.meta.env.VITE_DONATE_URL as string | undefined) || ''
-/** Optional second donation page, shown beside the first on About. */
-export const DONATE_ALT = (import.meta.env.VITE_DONATE_ALT_URL as string | undefined) || ''
-
-/**
- * The privacy policy. Pages serves public/privacy.html at /privacy, the URL in
- * the sitemap; /privacy.html only 308s there. The Python server has no such
- * rewrite, so that build keeps the file name.
- */
-export const PRIVACY_URL = import.meta.env.VITE_BACKEND === 'local' ? '/privacy' : '/privacy.html'
+import { REPO } from '../lib/links'
 
 export function GithubMark({ size = 16 }: { size?: number }) {
   return (

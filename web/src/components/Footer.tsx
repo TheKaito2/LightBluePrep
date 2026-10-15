@@ -7,7 +7,7 @@
  * files (see scripts/skill_pages.py and public/privacy.html).
  */
 import { FeedbackLink } from './Feedback'
-import { PRIVACY_URL, REPO } from './Github'
+import { PRIVACY_URL, REPO } from '../lib/links'
 import { available as feedbackAvailable } from '../lib/feedback'
 
 /** `context` tags a feedback message with the page it was sent from. */

@@ -147,6 +147,14 @@ export function applyHighlights(root: HTMLElement, annotations: Annotation[], id
 }
 
 /**
+ * The id for a new highlight: one past the highest in use. Not the list's
+ * length, because a removal leaves a gap and the length can name a live id.
+ */
+export function nextAnnotationId(list: readonly Annotation[]): number {
+  return list.reduce((max, a) => Math.max(max, a.id), 0) + 1
+}
+
+/**
  * Reading order for the Highlights & Notes panel: passage, question, answer
  * choices by letter, then explanation, each by position. Sorting on the field
  * name put "option:A" and "rationale" ahead of "stimulus".

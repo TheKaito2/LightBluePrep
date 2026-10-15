@@ -1,23 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Icon } from './Icon'
-import { Mascot } from './Mascot'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Footer } from './Footer'
-import { ProgressStrip } from './ProgressStrip'
-import { Modal } from './Modal'
 import { EmptyState } from './EmptyState'
-import { Segmented } from './Segmented'
-import { ResumeLabel, SetCard } from './SetCard'
+import { ActiveSets } from './home/ActiveSets'
+import { DifficultyChips } from './home/DifficultyChips'
+import type { TopicPicks } from './home/DomainCard'
+import { Hero } from './home/Hero'
+import { OptionsDialog } from './home/OptionsDialog'
+import { SectionPanel } from './home/SectionPanel'
+import { StartBar } from './home/StartBar'
+import { TopicsHead } from './home/TopicsHead'
+import { TopicsLoading } from './home/TopicsLoading'
 import { loadProcessTypes, typeCounts, type ProcessTypes } from '../lib/similar'
 import { whenIdle } from '../lib/idle'
 import { ensureMathJax } from '../lib/mathjax'
 import { setSeconds, formatClock } from '../lib/pacing'
-import { SIZES } from '../lib/prefs'
-import {
-  DIFFICULTIES, DIFFICULTY_NAME, SECTIONS, SECTION_NAME, SECTION_SHORT, andMore, describeSet, fmt, plural,
-} from '../lib/labels'
-import { graded } from '../lib/score'
+import { DIFFICULTY_NAME, SECTIONS, SECTION_NAME, andMore, fmt, plural } from '../lib/labels'
 import { rollup, type DomainTally } from '../lib/taxonomy'
-import { idNeedle } from '../lib/route'
 import type { Order } from '../lib/order'
 import type { HistoryRow } from '../lib/progress'
 import type {
@@ -62,102 +60,24 @@ interface Props {
   onOpenId: (id: string) => void
 }
 
-/**
- * Which questions inside the chosen topics. One choice, mapped onto `statuses`
- * (joined with "+"). "Not answered or incorrect" is what Stats' Practice
- * buttons pick, so Home can show that choice when you come back.
- */
-const WHICH: { key: string; label: string }[] = [
-  { key: 'all', label: 'All questions' },
-  { key: 'unseen', label: 'Not answered yet' },
-  { key: 'wrong', label: 'Incorrect' },
-  { key: 'unseen+wrong', label: 'Not answered or incorrect' },
-  { key: 'flagged', label: 'Marked for review' },
-  { key: 'correct', label: 'Correct' },
-]
-
-/** 0 is "no limit": practise the whole pool, open-ended. */
-const LENGTHS = SIZES.map((n) => ({ value: n, label: n ? String(n) : 'No limit' }))
-
-/** Test pace first, then easier, with the harder drill last. 0 is untimed. */
-const TIMERS = [
-  { value: 0, label: 'Untimed' },
-  { value: 1, label: '1× (test pace)' },
-  { value: 1.25, label: '1.25×' },
-  { value: 1.5, label: '1.5×' },
-  { value: 0.75, label: '0.75× speed drill' },
-]
-
-/** Random is a reshuffle of Shuffled, not a third order: it shows as Shuffled. */
-const ORDERS = [
-  { value: 'shuffled', label: 'Shuffled' },
-  { value: 'topic', label: 'By topic' },
-] as const
-
-
-const SECTION_ICON = { RW: 'book', MATH: 'sigma' } as const
-
-/** Unfinished sets shown before the rest fold behind "Show N more". */
-const SETS_SHOWN = 2
-
-/** How long the first load may run before saying the connection is slow. */
-const SLOW_MS = 8000
-
 /** The word after a filtered count on a skill row ("87 hard"). */
 const STATUS_WORD: Record<Status, string> = {
   unseen: 'not answered', wrong: 'incorrect', flagged: 'marked', correct: 'correct',
 }
 
 /**
- * Graded accuracy, and only from enough answers to judge: one lucky question
- * is not "100%". Below that the row's count says all there is to say.
+ * Home: the hero, unfinished sets, the topic picker and the start bar. The
+ * pieces live in ./home; what the picks mean (ticks, counts, the Start label)
+ * is worked out here, once, and handed down.
  */
-function Acc({ seen, correct }: { seen: number; correct: number }) {
-  const g = graded(seen, correct)
-  if (!g) return null
-  return <span className={`acc ${g.grade}`} title={`${fmt(correct)} of ${fmt(seen)} correct`}>{g.pct}%</span>
-}
-
-/**
- * The last ID search narrowed to a longer needle, shown while the new search
- * waits out its debounce so the list does not blink away on every keystroke.
- * Only when the last answer was complete: otherwise the new total is unknown.
- */
-function refine(found: { needle: string; hits: SetItem[]; total: number }, needle: string) {
-  if (!needle.startsWith(found.needle) || found.total > found.hits.length) return null
-  const hits = found.hits.filter((q) => (q.cb_id ?? '').toLowerCase().startsWith(needle))
-  return { needle, hits, total: hits.length }
-}
-
 export function Home({
   taxonomy, taxonomyLoading, onRetryBoot, facet, stats, history, value, items, loading, onChange, onOpen, onStart,
   order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId, onQuickStart, onScoreCheck,
 }: Props) {
   const [showOptions, setShowOptions] = useState(false)
-  /** Reshuffle was pressed while Options is open: say so, since the list it changed is behind the dialog. */
-  const [reshuffled, setReshuffled] = useState(false)
-  const [allSets, setAllSets] = useState(false)
-  /** The first load has run past SLOW_MS. */
-  const [slow, setSlow] = useState(false)
+  const closeOptions = useCallback(() => setShowOptions(false), [])
   const waiting = taxonomyLoading && !taxonomy.length
-  useEffect(() => {
-    if (!waiting) return
-    const t = window.setTimeout(() => setSlow(true), SLOW_MS)
-    return () => { window.clearTimeout(t); setSlow(false) }
-  }, [waiting])
-  const closeOptions = useCallback(() => { setShowOptions(false); setReshuffled(false) }, [])
-  const [query, setQuery] = useState('')
-  /** Hits for the needle they were found for, so a stale list never answers a newer query. */
-  const [found, setFound] = useState<{ needle: string; hits: SetItem[]; total: number } | null>(null)
-  /** The hit Arrow keys have moved to, -1 for none. */
-  const [active, setActive] = useState(-1)
-  const [idOpen, setIdOpen] = useState(false)
-  const idInput = useRef<HTMLInputElement>(null)
   const count = items.length
-  const needle = idNeedle(query)
-  const matches = needle.length < 3 || !found ? null
-    : found.needle === needle ? found
-      : refine(found, needle)
 
   /**
    * Process types, shown under a ticked skill to narrow it further. Fetched the
@@ -180,66 +100,6 @@ export function Home({
     return whenIdle(() => { void ensureMathJax().catch(() => {}) })
   }, [waiting])
   const ptCounts = useMemo(() => (pt ? typeCounts(pt) : null), [pt])
-
-  // ID search: look across the whole bank once the ID is long enough to mean something.
-  useEffect(() => {
-    setActive(-1)
-    if (needle.length < 3) return
-    let stale = false
-    // Typing an 8-character ID is 6 searches otherwise; wait for a pause.
-    const t = window.setTimeout(() => {
-      findIds(needle).then((d) => { if (!stale) setFound({ needle, ...d }) }).catch(() => {})
-    }, 120)
-    return () => { stale = true; window.clearTimeout(t) }
-  }, [needle, findIds])
-
-  // "/" jumps to the ID search from anywhere on Home that is not a field.
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return
-      const t = e.target as HTMLElement | null
-      if (t?.closest('input, textarea, select, [contenteditable="true"]') || document.querySelector('.modal')) return
-      e.preventDefault()
-      idInput.current?.focus()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [])
-
-  const shownHits = matches?.hits ?? []
-  /**
-   * Spoken by a live region that is always in the page: one that mounts with
-   * its first message is often not heard at all.
-   */
-  const matchNews = !matches ? ''
-    : !matches.total ? `No question with ID ${needle}`
-      : matches.total > shownHits.length ? `${plural(matches.total, 'match', 'matches')}, first ${shownHits.length} shown`
-        : plural(matches.total, 'match', 'matches')
-
-  function submitId() {
-    if (!matches?.total) return
-    if (active >= 0 && shownHits[active]) { onOpenId(shownHits[active].id); return }
-    // findIds puts an exact match first.
-    if (matches.total === 1 || shownHits[0].cb_id?.toLowerCase() === needle) { onOpenId(shownHits[0].id); return }
-    setActive(0)
-  }
-
-  function idKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Escape') { setIdOpen(false); setActive(-1); return }
-    if (!shownHits.length || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return
-    e.preventDefault()
-    setIdOpen(true)
-    const n = shownHits.length
-    setActive((a) => (e.key === 'ArrowDown' ? (a + 1) % n : (a <= 0 ? n - 1 : a - 1)))
-  }
-
-  function chooseTopics() {
-    const head = document.getElementById('topics-title')
-    if (!head) return
-    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    head.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' })
-    head.focus({ preventScroll: true })
-  }
 
   // The set touched most recently is the one the student means by "carry on".
   const resumable = activeSets.reduce<PracticeSet | null>(
@@ -277,10 +137,8 @@ export function Home({
   const secStats = useMemo(() => rollup(taxonomy).sections, [taxonomy])
 
   const totals = useMemo(() => {
-    const out = { all: 0, seen: 0, live: 0, RW: 0, MATH: 0 }
-    for (const row of taxonomy) {
-      out.all += row.n; out.seen += row.seen; out.live += row.live_n ?? 0; out[row.section] += row.n
-    }
+    const out = { all: 0, seen: 0, live: 0 }
+    for (const row of taxonomy) { out.all += row.n; out.seen += row.seen; out.live += row.live_n ?? 0 }
     return out
   }, [taxonomy])
 
@@ -291,11 +149,6 @@ export function Home({
   }, [items])
 
   function set(patch: Partial<Filters>) { onChange({ ...value, ...patch }) }
-
-  function toggle<T>(list: T[] | undefined, item: T): T[] | undefined {
-    const next = list?.includes(item) ? list.filter((x) => x !== item) : [...(list ?? []), item]
-    return next.length ? next : undefined
-  }
 
   /**
    * The picker is a set of ticked skills. Filters AND domain with skill, so a
@@ -328,6 +181,16 @@ export function Home({
     const next = new Set(ticked)
     if (next.has(code)) next.delete(code); else next.add(code)
     commit(next)
+  }
+
+  function tickType(ref: string) {
+    const next = value.types?.includes(ref) ? value.types.filter((r) => r !== ref) : [...(value.types ?? []), ref]
+    set({ types: next.length ? next : undefined })
+  }
+
+  const picks: TopicPicks = {
+    ticked, types: value.types, pt, ptCounts, facetCounts, facetWord,
+    onDomain: tickDomain, onSkill: tickSkill, onType: tickType,
   }
 
   const which = value.statuses?.length ? value.statuses.join('+') : 'all'
@@ -384,408 +247,50 @@ export function Home({
     })
   }
 
-  // Most recently touched first: that is the one "carry on" means.
-  const setsByRecent = useMemo(
-    () => [...activeSets].sort((a, b) => b.updated_at - a.updated_at), [activeSets])
-  const shownSets = allSets ? setsByRecent : setsByRecent.slice(0, SETS_SHOWN)
-  const hiddenSets = setsByRecent.length - shownSets.length
-
-  async function dropSet(id: string) {
-    const ok = await onAbandon(id)
-    // The row and its focused button are gone: land on the next set, or the topics.
-    if (ok) {
-      requestAnimationFrame(() => {
-        const next = document.querySelector<HTMLElement>('.qsets .setcard-main') ?? document.getElementById('topics-title')
-        next?.focus()
-      })
-    }
-    return ok
-  }
-
   function start() {
     if (value.size) { onStart(); return }
     onOpen(pool.firstNew < 0 ? 0 : pool.firstNew)
   }
 
-  /** Back to every question; the session length and timer are not filters, so they stay. */
-  function resetFilters() {
-    onChange({ size: value.size, speed: value.speed })
-  }
-
-  const tabs: { key: Section | undefined; label: string; short: string; n: number }[] = [
-    { key: undefined, label: 'All', short: 'All', n: totals.all },
-    { key: 'RW', label: SECTION_NAME.RW, short: SECTION_SHORT.RW, n: totals.RW },
-    { key: 'MATH', label: SECTION_NAME.MATH, short: SECTION_SHORT.MATH, n: totals.MATH },
-  ]
-
-  const difficultyChips = (
-    <div className="chips" role="group" aria-label="Difficulty">
-      <button type="button" aria-pressed={!value.difficulties?.length}
-              className={value.difficulties?.length ? 'chip' : 'chip on'}
-              onClick={() => set({ difficulties: undefined })}>
-        Any
-      </button>
-      {DIFFICULTIES.map((d) => (
-        <button key={d} type="button" aria-pressed={value.difficulties?.includes(d) ?? false}
-                className={value.difficulties?.includes(d) ? `chip on d-${d}` : `chip d-${d}`}
-                onClick={() => set({ difficulties: toggle(value.difficulties, d) })}>
-          {DIFFICULTY_NAME[d]}
-        </button>
-      ))}
-    </div>
-  )
+  const difficulty = <DifficultyChips value={value.difficulties} onChange={(difficulties) => set({ difficulties })} />
 
   return (
     <div className="home">
-      <section className="hero2" aria-label="Overview">
-        <div className="hero2-in">
-          <div className="hero2-copy">
-            <Mascot className="hero2-bulb" mood="cheer" size={88} />
-            <span className="hero2-eyebrow">
-              {totals.all ? `${fmt(totals.all)} official questions` : 'Official questions'} · Always free
-            </span>
-            <h1 className="hero2-t" tabIndex={-1}>Pick a topic.<br /><span className="hero2-hl">Start drilling.</span></h1>
-            <p className="hero2-sub">
-              <span className="desk">Every official College Board practice question, sorted by skill. No account, no ads.</span>
-              <span className="phone">Official College Board questions. Free, no account.</span>
-            </p>
-            <div className="hero2-go">
-              {resumable ? (
-                <button className="btn primary lg hero2-main" onClick={() => onResume(resumable.id)}>
-                  <span className="hero2-main-t">Resume · {describeSet(resumable, false)}</span>
-                  <span className="hero2-main-n">({fmt(resumable.answered)}/{fmt(resumable.total)})</span>
-                  <Icon name="arrow-right" size={16} strokeWidth={2.2} />
-                </button>
-              ) : (
-                <button className="btn primary lg hero2-main" onClick={onQuickStart} disabled={!totals.all}>
-                  <span className="desk">Start a 10-question set</span><span className="phone">Start 10 questions</span>
-                  <Icon name="arrow-right" size={16} strokeWidth={2.2} />
-                </button>
-              )}
-              <button className="btn lg" onClick={chooseTopics}>
-                <span className="desk">Choose topics</span><span className="phone">Topics</span>
-              </button>
-            </div>
-            <form className="qsearch-f" role="search" onSubmit={(e) => { e.preventDefault(); submitId() }}>
-              <label className="qsearch-l" htmlFor="qsearch">Have a question ID from a video?</label>
-              <div className="qsearch">
-                <Icon name="search" size={18} strokeWidth={2} />
-                <input ref={idInput} id="qsearch" type="search" value={query}
-                       placeholder="Question ID, e.g. d72b325e"
-                       role="combobox" aria-autocomplete="list" aria-controls="idres"
-                       aria-expanded={idOpen && shownHits.length > 0}
-                       aria-activedescendant={idOpen && active >= 0 ? `idhit-${active}` : undefined}
-                       autoCapitalize="off" autoCorrect="off" spellCheck={false} autoComplete="off"
-                       onChange={(e) => { setQuery(e.target.value); setIdOpen(true) }}
-                       onFocus={() => setIdOpen(true)} onBlur={() => setIdOpen(false)}
-                       onKeyDown={idKey} />
-                <kbd className="qsearch-kbd" aria-hidden="true">/</kbd>
-              </div>
-              {idOpen && matches ? (
-                <div className="idres">
-                  {shownHits.length ? (
-                    <ul id="idres" role="listbox" aria-label="Questions with this ID">
-                      {shownHits.map((q, i) => (
-                        // The input keeps focus (aria-activedescendant), so a press
-                        // must not blur it before the click lands.
-                        <li key={q.id} id={`idhit-${i}`} role="option" aria-selected={i === active}
-                            className={i === active ? 'idhit on' : 'idhit'}
-                            onMouseDown={(e) => e.preventDefault()} onClick={() => onOpenId(q.id)}>
-                          <code className="qid">{q.cb_id}</code>
-                          <span className="idhit-s">{q.skill_name}</span>
-                          <span className={`lvl d-${q.difficulty}`}>{DIFFICULTY_NAME[q.difficulty]}</span>
-                          <Icon name="arrow-right" size={15} />
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  <p className="idnote">
-                    {!matches.total
-                      ? <>No question with ID “{needle}”. IDs are 8 characters, shown under Info on any question.</>
-                      : matches.total > shownHits.length ? `and ${fmt(matches.total - shownHits.length)} more, keep typing` : null}
-                  </p>
-                </div>
-              ) : null}
-              <span className="sr-only" aria-live="polite" aria-atomic="true">{matchNews}</span>
-            </form>
-          </div>
-          <ProgressStrip history={history} covered={totals.seen} total={totals.all}
-                         attempts={stats?.attempts ?? 0} correct={stats?.correct ?? 0}
-                         onScoreCheck={onScoreCheck} />
-        </div>
-      </section>
+      <Hero total={totals.all} seen={totals.seen} resumable={resumable} onResume={onResume}
+            onQuickStart={onQuickStart} findIds={findIds} onOpenId={onOpenId}
+            history={history} stats={stats} onScoreCheck={onScoreCheck} />
 
       <div className="hwrap">
-        {activeSets.length ? (
-          <section className="qsets" aria-labelledby="qsets-t">
-            <h2 className="qsets-t" id="qsets-t">Pick up where you left off</h2>
-            <ul className="setlist">
-              {shownSets.map((s) => (
-                <SetCard key={s.id} set={s} onOpen={() => onResume(s.id)} onDelete={() => dropSet(s.id)}
-                         meta={`${fmt(s.answered)} of ${fmt(s.total)} answered`}
-                         progress={s.answered / Math.max(s.total, 1)}
-                         aside={<ResumeLabel />} />
-              ))}
-            </ul>
-            {hiddenSets > 0 ? (
-              <button type="button" className="link qsets-more" onClick={() => setAllSets(true)}>
-                Show {fmt(hiddenSets)} more
-              </button>
-            ) : null}
-          </section>
-        ) : null}
+        <ActiveSets sets={activeSets} onResume={onResume} onAbandon={onAbandon} />
 
-        <div className="topics-head">
-          <div className="topics-title">
-            <h2 className="h1-section" id="topics-title" tabIndex={-1}>Topics</h2>
-            <p className="topics-sub">
-              Pick skills to build a session, or select a whole domain.{' '}
-              {/* The static skill pages are the only indexable content; link them. */}
-              <a className="link" href="/skills/">Browse by skill</a>
-            </p>
-          </div>
-          <div className="seg sectabs" role="group" aria-label="Section">
-            {tabs.map((t) => (
-              <button key={t.label} aria-pressed={value.section === t.key}
-                      className={`seg-b${t.key ? ` sec-${t.key}` : ''}${value.section === t.key ? ' on' : ''}`}
-                      onClick={() => pickSection(t.key)}>
-                {t.key ? <Icon name={SECTION_ICON[t.key]} size={15} strokeWidth={2} /> : null}
-                <span className="long">{t.label}</span><span className="short">{t.short}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <TopicsHead section={value.section} onPick={pickSection} />
 
-        {waiting ? (
-          <div className="topics-wait">
-            <div className="topics-wait-msg" role="status" aria-live="polite">
-              <p>Loading the question list from College Board. First visit only, about 1.5 MB.</p>
-              {slow ? <p>Slow connection. This only happens once.</p> : null}
-            </div>
-            <div className="dgrid" aria-hidden="true">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="dcard dskel">
-                  <span className="skel skel-t" />
-                  {[0, 1, 2].map((j) => <span key={j} className="skel skel-row" />)}
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : !domains.length ? (
+        {waiting ? <TopicsLoading /> : !domains.length ? (
           <EmptyState mood="oops" className="topics-fail"
                       title="Couldn't reach College Board's question server"
                       body="Some school or office networks block it. Try another network, or retry."
                       action={{ label: 'Try again', onClick: onRetryBoot }} />
-        ) : SECTIONS.filter((s) => !value.section || s === value.section).map((sec) => {
-          const ss = secStats[sec]
-          const g = graded(ss.seen, ss.correct)
-          return (
-            <section key={sec} className={`spanel sec-${sec}`} aria-labelledby={`spanel-${sec}`}>
-              <header className="spanel-h">
-                <span className="spanel-ico"><Icon name={SECTION_ICON[sec]} size={24} strokeWidth={2} /></span>
-                <div className="spanel-txt">
-                  <h3 className="spanel-t" id={`spanel-${sec}`}>{SECTION_NAME[sec]}</h3>
-                  <p className="spanel-sub">
-                    <span>{plural(ss.n, 'question')}</span> · <span>{fmt(ss.seen)} answered</span>
-                  </p>
-                </div>
-                {g ? <span className="spanel-pct">{g.pct}<small>% correct</small></span> : null}
-              </header>
-              <div className="dgrid">
-                {domains.filter((d) => d.section === sec).map((d) => {
-                  const on = d.skills.filter((s) => ticked.has(s.code)).length
-                  const state = on === 0 ? 'off' : on === d.skills.length ? 'on' : 'mixed'
-                  return (
-                    <article key={d.code} className={`dcard is-${state}`}>
-                      <button className="dcard-h" onClick={() => tickDomain(d)}
-                              role="checkbox" aria-checked={state === 'mixed' ? 'mixed' : state === 'on'}>
-                        <span className={`box is-${state}`}><Icon name="check" size={12} strokeWidth={3} /></span>
-                        <span className="dcard-t">{d.name}</span>
-                        <span className="dcard-stat">
-                          {fmt(d.seen)} of {fmt(d.n)} answered
-                          <Acc seen={d.seen} correct={d.correct} />
-                        </span>
-                      </button>
-                      <span className="dmeter" aria-hidden="true">
-                        <span style={{ transform: `scaleX(${d.n ? d.seen / d.n : 0})` }} />
-                      </span>
-                      <ul className="sklist">
-                        {d.skills.map((s) => {
-                          const sOn = ticked.has(s.code)
-                          const g = graded(s.seen, s.correct)
-                          const left = facetCounts ? facetCounts.get(s.code) ?? 0 : null
-                          return (
-                            <li key={s.code}>
-                              <button className={sOn ? 'skrow on' : 'skrow'} role="checkbox" aria-checked={sOn}
-                                      onClick={() => tickSkill(s.code)}>
-                                <span className={`box sm is-${sOn ? 'on' : 'off'}`}>
-                                  <Icon name="check" size={10} strokeWidth={3.2} />
-                                </span>
-                                <span className="skrow-name">{s.name}</span>
-                                <span className="skrow-end">
-                                  {left !== null ? <span className="skrow-f">{fmt(left)} {facetWord}</span> : null}
-                                  {/* Compact on screen; spelled out for screen readers below. */}
-                                  <span className="skrow-n" aria-hidden="true">
-                                    {s.seen ? `${fmt(s.seen)}/${fmt(s.n)}` : fmt(s.n)}
-                                  </span>
-                                  <Acc seen={s.seen} correct={s.correct} />
-                                </span>
-                                <span className="sr-only">
-                                  {`, ${fmt(s.seen)} of ${fmt(s.n)} answered`}
-                                  {!s.seen ? ', not started' : g ? `, ${g.pct}% correct` : ''}
-                                </span>
-                                {s.seen ? (
-                                  <span className="skbar" aria-hidden="true">
-                                    <span style={{ transform: `scaleX(${s.seen / s.n})` }} />
-                                  </span>
-                                ) : null}
-                              </button>
-                              {sOn && pt?.types[s.code] ? (() => {
-                                const types = Object.entries(pt.types[s.code])
-                                const picked = types.filter(([key]) => value.types?.includes(`${s.code}.${key}`)).length
-                                return (
-                                  <div className="sktypes">
-                                    <span className="sktypes-cap">
-                                      {picked ? `${picked} of ${types.length} types` : 'All types · tap to narrow'}
-                                    </span>
-                                    <ul className="sktypes-list" aria-label={`${s.name}: question types`}>
-                                      {types.map(([key, t]) => {
-                                        const ref = `${s.code}.${key}`
-                                        const tOn = value.types?.includes(ref) ?? false
-                                        return (
-                                          <li key={key}>
-                                            <button className={tOn ? 'sktype on' : 'sktype'} role="checkbox" aria-checked={tOn}
-                                                    aria-describedby={`how-${ref}`}
-                                                    onClick={() => set({ types: toggle(value.types, ref) })}>
-                                              <span className={`box xs is-${tOn ? 'on' : 'off'}`}>
-                                                <Icon name="check" size={9} strokeWidth={3.4} />
-                                              </span>
-                                              <span className="sktype-name">{t.label}</span>
-                                              <span className="sktype-n">
-                                                {facetCounts
-                                                  ? `${fmt(facetCounts.get(ref) ?? 0)} ${facetWord}`
-                                                  : ptCounts?.get(ref) ?? 0}
-                                              </span>
-                                              {/* Shown on the picked or focused type; always the description. */}
-                                              <span className="sktype-how" id={`how-${ref}`} aria-hidden="true">{t.how}</span>
-                                            </button>
-                                          </li>
-                                        )
-                                      })}
-                                    </ul>
-                                  </div>
-                                )
-                              })() : null}
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    </article>
-                  )
-                })}
-              </div>
-            </section>
-          )
-        })}
+        ) : SECTIONS.filter((s) => !value.section || s === value.section).map((sec) => (
+          <SectionPanel key={sec} sec={sec} tally={secStats[sec]} picks={picks}
+                        domains={domains.filter((d) => d.section === sec)} />
+        ))}
 
       </div>
 
       <Footer context="home" />
 
-      <div className="startbar2">
-        <div className="startbar2-in">
-          <div className="sb-sum">
-            <div className="sb-line">
-              {pickedSections.map((s) => <i key={s} className={`sb-dot sec-${s}`} aria-hidden="true" />)}
-              <strong className="sb-name">{summary}</strong>
-              {ticked.size ? (
-                <button type="button" className="sb-clear" aria-label="Clear topics" title="Clear topics"
-                        onClick={() => commit(new Set())}>
-                  <Icon name="close" size={14} strokeWidth={2.4} />
-                </button>
-              ) : null}
-            </div>
-            {!loading && !count ? (
-              <span className="sb-meta sb-none">
-                <span aria-hidden="true">
-                  <span className="sb-none-long">No questions match</span><span className="sb-none-short">No match</span>
-                  {' · '}
-                </span>
-                <button type="button" className="sb-reset" onClick={resetFilters}>Reset filters</button>
-              </span>
-            ) : (
-              <span className="sb-meta" aria-hidden="true">
-                {loading ? 'Counting…' : plural(count, 'question')}
-                {!loading && pool.done ? ` · ${fmt(pool.done)} answered` : ''}
-              </span>
-            )}
-          </div>
-          <span className="sr-only" aria-live="polite" aria-atomic="true">{countNews}</span>
-          <div className="sb-diff">{difficultyChips}</div>
-          <button className="btn on-ink-secondary sb-opt" onClick={() => setShowOptions(true)}
-                  aria-haspopup="dialog" aria-expanded={showOptions}>
-            <Icon name="sliders" size={16} />
-            <span className="sb-opt-t">Options</span>
-            {hiddenCount ? <span className="opt-n wide">{hiddenCount}<span className="sr-only"> changed</span></span> : null}
-            {narrowCount ? <span className="opt-n narrow">{narrowCount}<span className="sr-only"> changed</span></span> : null}
-          </button>
-          <button className="btn on-ink lg sb-go" disabled={!count || loading} onClick={start}>
-            {startLabel}
-            <Icon name="arrow-right" size={16} strokeWidth={2.2} />
-          </button>
-        </div>
-      </div>
+      <StartBar sections={pickedSections} summary={summary} canClear={ticked.size > 0} onClear={() => commit(new Set())}
+                loading={loading} count={count} done={pool.done}
+                // Back to every question; the session length and timer are not filters, so they stay.
+                onReset={() => onChange({ size: value.size, speed: value.speed })}
+                countNews={countNews} difficulty={difficulty}
+                optionsOpen={showOptions} onOptions={() => setShowOptions(true)}
+                hiddenCount={hiddenCount} narrowCount={narrowCount} startLabel={startLabel} onStart={start} />
 
       {showOptions ? (
-        <Modal title="Practice options" onClose={closeOptions} className="opt-dialog" footer={<>
-          <button type="button" className="btn quiet lg" onClick={closeOptions}>Done</button>
-          <button type="button" className="btn primary lg" disabled={!count || loading}
-                  onClick={() => { closeOptions(); start() }}>
-            {loading ? 'Counting…' : startLabel}
-            <Icon name="arrow-right" size={16} strokeWidth={2.2} />
-          </button>
-        </>}>
-        <div className="opt-body">
-          <fieldset className="field">
-            <legend className="side-t">Difficulty</legend>
-            {difficultyChips}
-            <p className="field-hint">None selected means all</p>
-          </fieldset>
-          <div className="field">
-            <label className="side-t" htmlFor="opt-show">Show</label>
-            <select id="opt-show" className="sel" value={which}
-                    onChange={(e) => set({ statuses: e.target.value === 'all' ? undefined : e.target.value.split('+') as Status[] })}>
-              {WHICH.map((w) => <option key={w.key} value={w.key}>{w.label}</option>)}
-            </select>
-          </div>
-          <Segmented legend="Session length" options={LENGTHS} value={value.size ?? 0}
-                     onChange={(n) => set({ size: n || undefined })}
-                     hint="Sets are graded at the end, like Bluebook." />
-          <Segmented legend="Order" options={ORDERS} value={order === 'topic' ? 'topic' : 'shuffled'}
-                     onChange={(o) => onOrder(o === 'topic' ? 'topic' : 'mixed')}
-                     hint={<span aria-live="polite">{reshuffled ? 'New order, kept the same every visit' : 'Same order every visit'}</span>}
-                     aside={
-                       <button type="button" className="link opt-reshuffle"
-                               onClick={() => { onOrder('random'); setReshuffled(true) }}>
-                         <Icon name="refresh" size={14} strokeWidth={2.2} />Reshuffle
-                       </button>
-                     } />
-          {/* Always drawn, so picking a length does not make the dialog jump (H-39). */}
-          <Segmented legend="Timer" options={TIMERS} value={value.size ? value.speed ?? 0 : 0}
-                     onChange={(x) => set({ speed: x || undefined })} disabled={!value.size}
-                     hint={value.size ? undefined : 'Pick a session length to time it'} />
-          {totals.live ? (
-            <div className="field">
-              <label className="excl">
-                <input type="checkbox" checked={value.excludeLive ?? false} aria-describedby="opt-live-h"
-                       onChange={(e) => set({ excludeLive: e.target.checked || undefined })} />
-                Skip questions that appear on official practice tests
-              </label>
-              <p className="field-hint excl-hint" id="opt-live-h">Keeps the official practice tests fresh for later.</p>
-            </div>
-          ) : null}
-        </div>
-        </Modal>
+        <OptionsDialog value={value} onChange={set} which={which} order={order} onOrder={onOrder}
+                       hasLive={totals.live > 0} difficulty={difficulty} count={count} loading={loading}
+                       startLabel={startLabel} onStart={start} onClose={closeOptions} />
       ) : null}
     </div>
   )

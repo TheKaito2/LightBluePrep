@@ -1,7 +1,7 @@
 /**
  * The flat band at the top of every page except Home, which keeps its own
  * light hero. Three tones, each with a job: ink for the content pages, grey
- * for Settings so it no longer looks like About, and section for a finished
+ * for Settings so it reads apart from About, and section for a finished
  * set (its --sec-700, or ink when the set mixes sections).
  *
  * The aside is the stat strip: one <StatGroup> of <Stat size="l"> cells.

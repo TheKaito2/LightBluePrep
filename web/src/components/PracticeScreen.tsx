@@ -23,6 +23,7 @@ import { SECTION_NAME } from '../lib/labels'
 import { formatClock } from '../lib/pacing'
 import { Desmos, ReferenceSheet, SetReview } from '../lib/pages'
 import { titleFor, type View } from '../lib/route'
+import { nextAnnotationId } from '../lib/ranges'
 import { isBlank, nowSec } from '../lib/sets'
 import { COACH_KEY, getMeta, setMeta } from '../lib/store'
 import { loadProcessTypes, similarTo, typeOf } from '../lib/similar'
@@ -340,9 +341,8 @@ export function PracticeScreen({
           return
         }
         const now = annotationsNow.current
-        // Its id may have been handed to a highlight made since; let the save
-        // assign a fresh one rather than duplicate it.
-        const back = now.some((a) => a.id === removed.id) ? { ...removed, id: undefined } : removed
+        // Its id may have been handed to a highlight made since; take a fresh one.
+        const back = now.some((a) => a.id === removed.id) ? { ...removed, id: nextAnnotationId(now) } : removed
         void persistAnnotations([...now, back])
       },
     })
@@ -540,8 +540,8 @@ export function PracticeScreen({
                   on={showDesmos} onClick={() => setShowDesmos((v) => !v)} />
           ) : null}
           {section === 'MATH' && !DESMOS_EMBEDDED ? (
-            // No API key of our own yet: hand off to Desmos's free calculator
-            // site rather than embedding it. The second glyph says a tab opens.
+            // Fallback when VITE_DESMOS_KEY is unset: hand off to Desmos's free
+            // calculator site rather than embedding it. The second glyph says a tab opens.
             <Tool icon={<><Icon name="calculator" size={21} /><Icon name="external" size={15} /></>}
                   label="Calculator" href="https://www.desmos.com/calculator"
                   name="Calculator (opens desmos.com in a new tab)"
@@ -629,7 +629,7 @@ export function PracticeScreen({
               onToggleFlag={toggleFlag}
               onToggleCrossOutMode={() => setCrossOutMode((v) => !v)}
               onToggleCrossOut={toggleCrossOut}
-              onAddAnnotation={(a) => persistAnnotations([...annotations, a as Annotation])}
+              onAddAnnotation={(a) => persistAnnotations([...annotations, { ...a, id: nextAnnotationId(annotations) }])}
               onUpdateAnnotation={updateAnnotation}
               onRemoveAnnotation={removeAnnotation}
               mistake={mistake}

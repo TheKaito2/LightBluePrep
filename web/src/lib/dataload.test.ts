@@ -6,10 +6,13 @@
  * returns a handful of rows rather than the bank.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Annotation } from '../types'
 
 const never = new Promise<never>(() => {})
 const calls = { detail: 0, lookupStarted: false }
 let releaseIndex: () => void = () => {}
+/** The annotations store, kept so a save can be read back like a reload would. */
+const saved = new Map<string, { question_id: string; items: unknown[] }>()
 
 vi.mock('./cbApi', () => ({
   fetchIndex: () => new Promise((resolve) => {
@@ -39,12 +42,14 @@ vi.mock('./store', () => ({
   loadMarks: async () => [],
   loadQuestion: async () => undefined,
   saveQuestion: async () => {},
-  loadAnnotations: async () => undefined,
+  loadAnnotations: async (id: string) => saved.get(id),
+  saveAnnotations: async (id: string, items: unknown[]) => { saved.set(id, { question_id: id, items }) },
   loadMistake: async () => undefined,
   isEmptyMistake: () => true,
 }))
 
 const local = await import('../apiLocal')
+const { nextAnnotationId } = await import('./ranges')
 
 describe('static backend data layer', () => {
   beforeEach(() => { calls.detail = 0 })
@@ -75,5 +80,27 @@ describe('static backend data layer', () => {
     expect(found.hits.map((h) => h.cb_id)).toEqual(['abc1', 'abc12345'])
     const many = local.rankByCbId(Array.from({ length: 9 }, (_, i) => `x${9 - i}`), (s) => s, 'x')
     expect(many).toEqual({ hits: ['x1', 'x2', 'x3', 'x4', 'x5'], total: 9 })
+  })
+
+  it('keeps highlight ids stable across a removal and a reload', async () => {
+    let list: Annotation[] = []
+    // As the editor does it: each new highlight is numbered before it is saved.
+    for (const start of [0, 10, 20]) {
+      const draft = { field: 'stem', start_offset: start, end_offset: start + 5, color: 'yellow', note: null }
+      list = (await local.saveAnnotations('a', [...list, { ...draft, id: nextAnnotationId(list) }])).annotations
+    }
+    expect(list.map((x) => x.id)).toEqual([1, 2, 3])
+    await local.saveAnnotations('a', list.filter((x) => x.id !== 2))
+    const reloaded = (await local.question('a')).annotations
+    expect(reloaded.map((x) => [x.id, x.start_offset])).toEqual([[1, 0], [3, 20]])
+    // A new one after the gap takes 4, not 3 (the length plus one).
+    expect(nextAnnotationId(reloaded)).toBe(4)
+  })
+
+  it('renumbers a missing or repeated highlight id past the highest', async () => {
+    const base = { field: 'stem', start_offset: 0, end_offset: 4, color: 'yellow', note: null }
+    const sent = [{ ...base, id: 5 }, { ...base, id: 5 }, { ...base } as Annotation, { ...base, id: 2 }]
+    const { annotations } = await local.saveAnnotations('b', sent)
+    expect(annotations.map((x) => x.id)).toEqual([5, 6, 7, 2])
   })
 })

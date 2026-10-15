@@ -9,7 +9,7 @@
 import type { HistoryRow } from './lib/progress'
 import type {
   Annotation, Attempt, Filters, GradeResult, Mistake, MistakeTag, PracticeSet,
-  Question, SetAnswer, SetItem, Stats, TaxonomyRow,
+  Question, SetInput, SetItem, Stats, TaxonomyRow,
 } from './types'
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -138,13 +138,4 @@ export function deleteSet(id: string) {
   return call<{ deleted: string }>(
     `/api/sets/${encodeURIComponent(id)}/delete`, { method: 'POST' },
   ).then(() => undefined)
-}
-
-export interface SetInput {
-  id: string
-  created_at: number
-  finished_at: number | null
-  seconds: number
-  filters: Filters
-  items: SetAnswer[]
 }
