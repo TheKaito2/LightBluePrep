@@ -18,12 +18,15 @@ interface Props<T> {
   hint?: ReactNode
   /** Sits beside the track, after it (Order's Reshuffle). */
   aside?: ReactNode
+  /** Keep the legend for screen readers only, where the options name themselves. */
+  hideLegend?: boolean
+  className?: string
 }
 
 const STEP: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }
 
 export function Segmented<T extends string | number>({
-  legend, options, value, onChange, disabled, hint, aside,
+  legend, options, value, onChange, disabled, hint, aside, hideLegend, className,
 }: Props<T>) {
   const id = useId()
   const track = useRef<HTMLDivElement>(null)
@@ -40,8 +43,8 @@ export function Segmented<T extends string | number>({
   }
 
   return (
-    <fieldset className="field" disabled={disabled}>
-      <legend className="side-t" id={`${id}-l`}>{legend}</legend>
+    <fieldset className={className ? `field ${className}` : 'field'} disabled={disabled}>
+      <legend className={hideLegend ? 'side-t sr-only' : 'side-t'} id={`${id}-l`}>{legend}</legend>
       <div className="field-line">
         <div ref={track} className="seg" role="radiogroup" aria-labelledby={`${id}-l`}
              aria-describedby={hint ? `${id}-h` : undefined} aria-disabled={disabled || undefined} onKeyDown={onKey}>

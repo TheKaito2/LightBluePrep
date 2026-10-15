@@ -7,7 +7,7 @@
  * anything looking broken.
  */
 import { describe, expect, it } from 'vitest'
-import { MODULE, SECONDS_PER_QUESTION, duration, formatClock, setSeconds } from './pacing'
+import { MODULE, SECONDS_PER_QUESTION, duration, formatClock, isSlow, setSeconds } from './pacing'
 import type { Section } from '../types'
 
 const many = (section: Section, n: number): Section[] =>
@@ -88,5 +88,16 @@ describe('duration', () => {
     expect(duration(44.6)).toBe('45s')
     expect(duration(null)).toBe('—')
     expect(duration(undefined)).toBe('—')
+  })
+})
+
+describe('isSlow', () => {
+  it('flags only answers past a quarter over the real pace', () => {
+    // 1.25 x 71.1s = 88.9s for Reading and Writing; 1.25 x 95.5s = 119.3s for Math.
+    expect(isSlow('RW', 88)).toBe(false)
+    expect(isSlow('RW', 89)).toBe(true)
+    expect(isSlow('MATH', 119)).toBe(false)
+    expect(isSlow('MATH', 120)).toBe(true)
+    expect(isSlow('MATH', null)).toBe(false)
   })
 })

@@ -20,7 +20,7 @@ import { loadProcessTypes, similarTo, typeOf, type ProcessType } from '../lib/si
 import { RichText } from './RichText'
 import { Icon } from './Icon'
 import { duration } from '../lib/pacing'
-import { VERDICT, plural } from '../lib/labels'
+import { VERDICT } from '../lib/labels'
 import { toUserMessage } from '../lib/errors'
 import type {
   Annotation, Attempt, GradeResult, Mistake, MistakeTag, Question,
@@ -53,10 +53,17 @@ interface Props {
    * drops out when that attempt is the only one, since the row already says it.
    */
   setWindow?: { from: number; to: number }
+  /**
+   * The verdict stored when `response` was answered. The panel re-grades
+   * against today's key, which is the truth; when the two differ it says so,
+   * and `onRegrade` lets the row above it change its badge to match.
+   */
+  graded?: boolean
+  onRegrade?: (id: string, correct: boolean) => void
 }
 
 export function QuestionDetail({
-  id, response, seconds, onPractice, onLogged, editable, onPracticeMany, setWindow,
+  id, response, seconds, onPractice, onLogged, editable, onPracticeMany, setWindow, graded, onRegrade,
 }: Props) {
   const [data, setData] = useState<{
     question: Question; annotations: Annotation[]; mistake: Mistake | null
@@ -87,11 +94,14 @@ export function QuestionDetail({
       .then(([q, r, a]) => {
         if (stale) return
         setData(q); setResult(r); setAttempts(a.attempts)
+        // A highlight in the passage is a reason to open it.
+        setShowPassage(q.annotations.some((n) => n.field === 'stimulus'))
         onLogged?.(id, q.mistake ? q.mistake.tags : null)
+        if (response !== null && graded !== undefined && r.correct !== graded) onRegrade?.(id, r.correct)
       })
       .catch((e: Error) => !stale && setError(toUserMessage(e)))
     return () => { stale = true }
-  }, [id, response, onLogged])
+  }, [id, response, onLogged, graded, onRegrade])
 
   // Once the question is in, find the others of its process type.
   const q = data?.question
@@ -106,7 +116,18 @@ export function QuestionDetail({
   }, [q, onPracticeMany])
 
   if (error) return <p className="review-empty">{error}</p>
-  if (!data || !result) return <p className="review-empty">Loading…</p>
+  if (!data || !result) {
+    // The shape of what is coming, a stem line over four choices, so the
+    // panel opens at about its real height instead of jumping.
+    return (
+      <div className="review-detail" aria-busy="true">
+        <span className="sr-only" role="status">Loading the question</span>
+        <span className="skel qd-skel-stem" />
+        <span className="skel qd-skel-stem short" />
+        {[0, 1, 2, 3].map((i) => <span key={i} className="skel qd-skel-choice" />)}
+      </div>
+    )
+  }
 
   const hasLog = Boolean(data.mistake
     && (data.mistake.tags.length || data.mistake.note))
@@ -115,6 +136,7 @@ export function QuestionDetail({
     ? attempts.findLastIndex((a) => a.answered_at >= setWindow.from && a.answered_at <= setWindow.to)
     : -1
   const showAttempts = setWindow ? attempts.length > 1 : attempts.length > 0
+  const regraded = response !== null && graded !== undefined && result.correct !== graded
 
   function saveMistake(tags: MistakeTag[], note: string | null) {
     setLogError(null)
@@ -130,7 +152,8 @@ export function QuestionDetail({
   return (
     <div className={`review-detail sec-${data.question.section}`}>
       {/* The passage is the longest thing here and you usually remember it, so
-          it starts folded and the question stays at the top of the panel. */}
+          it starts folded and the question stays at the top of the panel,
+          unless you highlighted something in it. */}
       {data.question.stimulus_html ? (
         <>
           <button className="btn small review-toggle"
@@ -141,14 +164,14 @@ export function QuestionDetail({
           </button>
           {showPassage ? (
             <div className="review-passage">
-              <RichText html={data.question.stimulus_html} field="stimulus" annotations={[]} />
+              <RichText html={data.question.stimulus_html} field="stimulus" annotations={data.annotations} />
             </div>
           ) : null}
         </>
       ) : null}
 
       <div className="review-stem">
-        <RichText html={data.question.stem_html} field="stem" annotations={[]} />
+        <RichText html={data.question.stem_html} field="stem" annotations={data.annotations} />
       </div>
 
       {/* The explanation below talks about the choices by letter, so without
@@ -171,12 +194,19 @@ export function QuestionDetail({
                 <div className="choice-main">
                   <span className="bubble">{option.label}</span>
                   <RichText className="choice-text" html={option.html}
-                            field={`option:${option.label}`} annotations={[]} />
+                            field={`option:${option.label}`} annotations={data.annotations} />
                 </div>
               </li>
             )
           })}
         </ul>
+      ) : null}
+
+      {data.annotations.length ? (
+        <p className="review-anns">
+          <Icon name="highlighter" size={14} />
+          Your highlights are shown above.
+        </p>
       ) : null}
 
       {/* Marked but never answered: no attempts, no verdict. Inside a set the
@@ -206,7 +236,18 @@ export function QuestionDetail({
       </div>
       </>) : null}
 
-      {/* Editable where the verdict has just been revealed, read-only
+      {regraded ? (
+        <p className="review-regrade">
+          <Icon name="info" size={14} />
+          Re-graded against the current answer key.
+        </p>
+      ) : null}
+
+      <Explanation result={result} question={data.question}
+                   seconds={seconds} startOpen hideToggle unanswered={!attempts.length} />
+
+      {/* After the explanation: why you missed it comes once you have read
+          why the answer is what it is. Editable on a miss, read-only
           elsewhere. Nothing logged and nothing to log with means nothing to
           show: an empty section was just noise on every question you never
           wrote anything about. */}
@@ -218,8 +259,7 @@ export function QuestionDetail({
           <button className="btn small review-toggle mlog-toggle"
                   aria-expanded={showLog}
                   onClick={() => setShowLog((v) => !v)}>
-            Mistake Logging
-            {hasLog ? ` (${data.mistake!.tags.length || 1})` : ''}
+            {hasLog ? 'Your mistake log' : 'Log this mistake'}
             <Icon name={showLog ? 'chevron-up' : 'chevron-down'}
                   size={14} strokeWidth={2.2} />
           </button>
@@ -230,7 +270,8 @@ export function QuestionDetail({
                              id={`mlog-note-${id}`}
                              lead="Why did you miss this one? Pick as many as fit." />
               <p className="mlog-fine">
-                Saved automatically. Shows up on the Review page.
+                {/* Review is the page it shows up on; there, say nothing more. */}
+                Saved automatically.{setWindow ? ' Shows up on the Review page.' : ''}
               </p>
               {logError ? <p className="mlog-error">{logError}</p> : null}
             </div>
@@ -253,15 +294,6 @@ export function QuestionDetail({
           </div>
         </>
       ) : null}
-
-      {data.annotations.length ? (
-        <p className="review-anns">
-          {plural(data.annotations.length, 'highlight')} saved on this question.
-        </p>
-      ) : null}
-
-      <Explanation result={result} question={data.question}
-                   seconds={seconds} startOpen unanswered={!attempts.length} />
 
       {similar && similar.ids.length > 0 && onPracticeMany ? (
         <div className="similar">

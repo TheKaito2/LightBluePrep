@@ -949,7 +949,7 @@ export default function App() {
       ) : null),
       review: () => (
         <Review onPractice={practiceOne} onPracticeMany={practiceMany} onOpenSet={showSet}
-                onDeleteSet={dropSet} />
+                onDeleteSet={dropSet} onStart={() => navigate('home')} />
       ),
       stats: () => <StatsPage taxonomy={taxonomy} onPractice={practiceFilters} />,
     }

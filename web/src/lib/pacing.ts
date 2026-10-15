@@ -25,6 +25,17 @@ export const SECONDS_PER_QUESTION: Record<Section, number> = {
 }
 
 /**
+ * Slower than this share of the real pace counts as slow. A quarter over is
+ * past what one hard question can borrow from the easy ones around it on the
+ * day, so a right answer that took this long still needs a look.
+ */
+export const SLOW_FACTOR = 1.25
+
+export function isSlow(section: Section, seconds: number | null | undefined): boolean {
+  return (seconds ?? 0) > SLOW_FACTOR * SECONDS_PER_QUESTION[section]
+}
+
+/**
  * The pace multipliers offered, applied to the time rather than to the pace.
  * 0.75x is three quarters of the real allowance and so is the hard one; 1.5x
  * is half again as long.

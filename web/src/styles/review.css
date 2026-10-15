@@ -1,19 +1,59 @@
-/* Review (every attempt, by section then day; the redo tiles; one question
-   expanded) and the Results screen at the end of a set. */
+/* Review (one filter bar; every attempt by section then day; one question
+   expanded; finished sets last) and the Results screen at the end of a set. */
 .review { max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) 96px; }
-.review-filter { margin: 22px 0 10px; }
 .review-empty { margin: 20px 0; font: var(--type-body); color: var(--fg-3); }
+
+/* ---- the filter bar (spec 8.2): pile, section, and Redo for exactly what
+   the list shows. One line on desktop; stacked on phones, where the pile
+   track scrolls sideways. */
+.review-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3) var(--sp-4);
+  margin: 0 0 var(--sp-2);
+}
+.review-bar .seg-b { flex: none; }
+.review-scope-ico { display: inline-flex; color: var(--sec-600); }
+.shell .btn.review-redo { margin-left: auto; }
+.review-tags { margin: var(--sp-3) 0 0; }
+.shell .review-tags .chip:disabled { cursor: default; color: var(--fg-4); border-color: var(--hair-1); }
+.review-none { padding-bottom: 0; }
+@media (max-width: 819px) {
+  .review-bar { flex-direction: column; align-items: stretch; }
+  .review-bar .field { width: 100%; }
+  /* The track runs to the screen edge and ends on 16px of plain page, so a
+     cut-off item reads as "more this way" with no fade. */
+  .review-piles .field-line {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    margin-right: calc(var(--sp-4) * -1); padding-right: var(--sp-4);
+  }
+  .review-piles .field-line::-webkit-scrollbar { display: none; }
+  .review-piles .seg { flex: none; }
+  .review-scope .seg { flex: 1; }
+  .review-scope .seg-b { flex: 1 1 auto; padding: 0 8px; }
+  .shell .btn.review-redo { margin-left: 0; width: 100%; }
+}
 
 /* Section, then day. Reading and Maths are studied separately, so the top
    level splits them; the day says which sitting it was. */
-.review-section { margin-top: 30px; }
-.review-group { margin-top: 16px; }
-/* Day divider (spec 7.11): a label over the rows, 24px of air above. */
-.review-day {
-  margin: var(--sp-6) 0 0; padding: 0 0 8px; border-bottom: 1px solid var(--hair-2);
-  font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3);
+.review-section { margin-top: var(--sp-6); }
+/* Rows run edge to edge inside the panel, their text lined up with the
+   header's. */
+.review-section .review-list { margin: 0 calc(var(--sp-6) * -1); }
+.review-section .review-row { padding-left: var(--sp-6); padding-right: var(--sp-6); }
+.review-group + .review-group { margin-top: var(--sp-6); }
+/* Day divider (spec 7.11): the day on the left, how it went on the right.
+   The whole line folds the day; older days start folded. */
+.review-day { margin: 0; border-bottom: 1px solid var(--hair-2); }
+.review-day-b {
+  display: flex; align-items: center; gap: var(--sp-2); width: 100%; padding: 0 0 8px;
+  border: 0; background: none; cursor: pointer; text-align: left; color: var(--fg-3);
 }
+.review-day-b > svg { flex: none; }
+.review-day-t { font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; }
+.review-day-sum { margin-left: auto; font: var(--type-small); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.review-day-b:hover { color: var(--fg-1); }
+.shell .review-day-b:focus-visible { outline-offset: 2px; }
 .review-list { list-style: none; margin: 0; padding: 0; }
+.shell .btn.review-more { margin: var(--sp-3) 0 0 -12px; }
 
 /* Rows (spec 7.11): 56px, hairline between, a tint on hover; the open row
    keeps the tint and a 2px bar in the section colour. */
@@ -27,32 +67,66 @@
 }
 .review-row:hover { background: var(--surface-subtle); }
 .review-row > svg { flex: none; color: var(--fg-3); }
-/* Correct and Incorrect share one width so the titles after them line up. */
-.review-row .review-badge { min-width: 70px; justify-content: center; }
 /* The set's question number: a small ink square. */
 .review-row .q-num {
   flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
   border-radius: var(--rad-xs); background: var(--fg-1); color: var(--fg-inv-1);
   font: 700 13px/1 var(--sans); font-variant-numeric: tabular-nums;
 }
-.review-tags { margin: var(--sp-2) 0 var(--sp-4); }
-
 .review-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+/* Spec 7.11: the badge sizes to its word; the title gets two lines, the meta one. */
 .review-skill {
   font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.review-meta {
+  font: var(--type-small); color: var(--fg-3);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.review-meta { font: var(--type-small); color: var(--fg-3); }
+.review-dot {
+  display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; vertical-align: 0;
+}
+.review-dot.d-E { background: var(--ok-500); }
+.review-dot.d-M { background: var(--warn-500); }
+.review-dot.d-H { background: var(--bad-500); }
+.review-flag, .review-logged { display: inline-flex; margin-left: 6px; vertical-align: -1px; }
+.review-flag { color: var(--warn-700); }
+.review-logged { color: var(--fg-3); }
 .review-nums {
   flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
   font-variant-numeric: tabular-nums;
 }
 .review-time { font: var(--type-ui); color: var(--fg-2); }
 .review-tries { font-size: 12px; color: var(--fg-3); }
+/* Past a quarter over SAT pace (lib/pacing isSlow). */
+.review-time.slow { color: var(--warn-700); font-weight: 600; }
+.review-slow { font: 600 12px/16px var(--sans); color: var(--warn-700); }
+@media (max-width: 819px) {
+  /* Phones give the title the room: the badge keeps its icon and fill, and
+     its word stays for screen readers. Unanswered has no icon, so it keeps
+     its word. */
+  .review-list .review-badge:has(svg) { width: 22px; padding: 0; justify-content: center; }
+  .review-list .review-badge:has(svg) .badge-t {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+}
+
+/* Loading: six rows of the list's own shape. */
+.review-skel { margin-top: var(--sp-6); border: 1px solid var(--hair-1); border-radius: var(--rad-lg); overflow: hidden; }
+.review-skel .review-item { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 12px 16px; }
+.review-skel-b { flex: none; width: 72px; height: 22px; border-radius: var(--rad-pill); }
 
 /* ---- one expanded question ---- */
 /* Roomy left and right: this is a reading panel, not a table row. */
 .review-detail { padding: 10px 26px 30px; font-family: var(--sans); }
+.review-section .review-detail { padding-left: var(--sp-6); padding-right: var(--sp-6); }
+/* Loading: a stem over four choices, about the panel's real height. */
+.qd-skel-stem { width: 92%; height: 16px; margin: 6px 0 10px; }
+.qd-skel-stem.short { width: 58%; margin-bottom: 20px; }
+.qd-skel-choice { height: 50px; margin-top: 10px; border-radius: var(--rad-md); }
+/* Highlights are read back here, not edited. */
+.review-detail mark.hl { cursor: text; }
+.review-detail mark.hl-note { box-shadow: 0 2px 0 var(--brand-700); }
 
 /* Sans everywhere in here except the question itself. The explanation is prose
    about the question rather than part of it, so it reads as interface. */
@@ -87,13 +161,15 @@
 }
 
 .review-tablewrap { overflow-x: auto; }
-.review-table { width: 100%; border-collapse: collapse; font: var(--type-small); }
+/* As wide as its columns, not the panel: five short columns stretched to
+   960px left the answer and its result far apart. */
+.review-table { width: auto; min-width: 420px; border-collapse: collapse; font: var(--type-small); }
 .review-table th {
-  text-align: left; padding: 6px 10px 6px 0; font-weight: 600;
+  text-align: left; padding: 8px 20px 8px 0; font-weight: 600;
   color: var(--fg-3); border-bottom: 1px solid var(--hair-2); white-space: nowrap;
 }
 .review-table td {
-  padding: 7px 10px 7px 0; border-bottom: 1px solid var(--hair-1);
+  padding: 8px 20px 8px 0; border-bottom: 1px solid var(--hair-1);
   color: var(--fg-2); white-space: nowrap;
 }
 .review-table td.ok { color: var(--ok-700); font-weight: 600; }
@@ -105,13 +181,19 @@
   margin: 10px 0 0; padding: 10px 12px; border-left: 3px solid var(--hair-2);
   font: 400 14px/1.55 var(--sans); color: var(--fg-2); white-space: pre-wrap;
 }
-.review-anns { margin: 12px 0 0; font: var(--type-small); color: var(--fg-3); }
+.review-anns, .review-regrade {
+  display: flex; align-items: center; gap: 6px; margin: 12px 0 0; font: var(--type-small); color: var(--fg-3);
+}
+.review-regrade { margin-top: 22px; color: var(--fg-2); font-weight: 500; }
+.review-anns svg, .review-regrade svg { flex: none; }
 .review-again { margin-top: 20px; }
 
 @media (max-width: 819px) {
   .review { padding: var(--sp-6) var(--sp-4) var(--sp-8); }
   .review-row { padding: 12px 8px; gap: 10px; }
   .review-detail { padding: 10px 14px 24px; }
+  .review-section .review-list { margin: 0 calc(var(--sp-4) * -1); }
+  .review-section :is(.review-row, .review-detail) { padding-left: var(--sp-4); padding-right: var(--sp-4); }
 }
 
 /* ---- the score screen (spec 8.3) ----
@@ -145,23 +227,8 @@
 .setres-note { margin: 0 0 var(--sp-3); font: var(--type-small); color: var(--fg-3); }
 .setres-list { border-top: 1px solid var(--hair-1); }
 .setres-list .review-item:last-child { border-bottom: 1px solid var(--hair-1); }
-/* Spec 7.11: badges size to their word; titles get two lines, meta one. */
-.setres-list .review-badge { min-width: 0; }
-.setres-list .review-skill {
-  white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-}
-.setres-list .review-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .setres-skel-t { width: min(260px, 70%); height: 16px; }
 .setres-skel-m { width: min(180px, 50%); height: 12px; margin-top: 4px; }
-@media (max-width: 819px) {
-  /* Phones give the title the room: the badge keeps its icon and fill, and
-     its word stays for screen readers. Unanswered has no icon, so it keeps
-     its word. */
-  .setres-list .review-badge:has(svg) { width: 22px; padding: 0; justify-content: center; }
-  .setres-list .review-badge:has(svg) .badge-t {
-    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
-  }
-}
 .setres-all { margin: var(--sp-3) 0 0 -12px; }
 
 /* The set's own row in the attempts table. */
@@ -173,50 +240,22 @@
 /* The same mistake-log controls inline in an expanded review row, where the
    drawer's own padding would double up on the panel's. */
 .mlog-inline { padding: 0; overflow: visible; }
-/* Set off from the attempts table above, and tucked closer to the explanation
-   below, so the toggle reads as the start of its own section rather than as a
-   loose control floating between two. */
+/* After the explanation, set off from it so the toggle reads as the start of
+   its own section. */
 .review-toggle.mlog-toggle { margin-top: 26px; margin-bottom: 4px; }
 .mlog-inline .mlog-fine { margin-top: 8px; }
-.review-detail .mlog-inline + .explain,
-.review-toggle.mlog-toggle + .explain { margin-top: 8px; }
 
-/* ============================================================ review v2 */
-.review .review-filter { display: inline-flex; margin: var(--sp-6) 0 var(--sp-2); }
-.review .review-section { margin-top: var(--sp-6); }
-/* A day's rows inside the section panel: a hairline box, no fill. */
-.review .review-group {
-  margin-top: var(--sp-3); border: 1px solid var(--hair-1); border-radius: var(--rad-md); overflow: hidden;
-}
-.review .review-group .review-day { margin: 0; padding: var(--sp-3) var(--sp-4) var(--sp-2); }
-/* Section heading to content: 20px (phone 16). */
-.review .h1-section { margin-bottom: var(--sp-5); }
-@media (max-width: 819px) { .review .h1-section { margin-bottom: var(--sp-4); } }
-.review-bulb { margin: var(--sp-8) auto 0; }
-.review-bulb + .review-empty { margin-top: var(--sp-3); text-align: center; }
-
-/* ---- Review: Redo a whole pile ---- */
-.redo { margin-top: var(--sp-6); }
-.redo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-3); }
-.redo-tile {
-  display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; align-items: end;
-  padding: 14px 16px; border: 1px solid var(--hair-1); border-radius: var(--rad-md);
-  background: var(--surface); color: var(--fg-1); text-align: left; cursor: pointer;
-  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
-}
-.redo-tile svg { grid-column: 2; grid-row: 1 / 3; align-self: center; color: var(--brand-700); }
-.redo-n {
-  font: 800 var(--num-m)/1 var(--display); letter-spacing: var(--tr-num-m);
-  font-variant-numeric: tabular-nums lining-nums;
-}
-.redo-l { margin-top: 4px; font: 600 13px/18px var(--sans); color: var(--fg-2); }
-.redo-tile:hover:not(:disabled) { border-color: var(--hair-ctl); box-shadow: var(--sh-1); }
-.redo-tile:disabled { cursor: default; opacity: .45; }
-.redo-tile.is-tag { background: var(--rw-50); border-color: var(--rw-200); }
-.redo-tile.is-tag .redo-n { color: var(--rw-700); }
-.redo-tile.is-tag svg { color: var(--rw-700); }
-@media (max-width: 640px) {
-  .redo-grid { grid-template-columns: 1fr 1fr; }
+/* ---- Review: finished sets, last on the page ---- */
+.review-sets { margin-top: 56px; }
+.review-sets .h1-section { margin-bottom: var(--sp-5); }
+.setcard-pct { margin-left: var(--sp-2); }
+.setcard-chev { flex: none; color: var(--fg-3); }
+@media (max-width: 819px) {
+  .review-sets { margin-top: 40px; }
+  .review-sets .h1-section { margin-bottom: var(--sp-4); }
+  /* The name needs the room more than the badge, which repeats the score. */
+  .setcard-pct { display: none; }
+  .review-sets .setcard-t { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 }
 
 /* ---- Review: redo a whole section, practise similar ---- */

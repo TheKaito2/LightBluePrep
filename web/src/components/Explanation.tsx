@@ -16,13 +16,20 @@ interface Props {
   startOpen?: boolean
   /** Marked in Review but never answered: show the key, not a verdict. */
   unanswered?: boolean
+  /**
+   * No Hide button. A review panel is opened to read this, and the row above
+   * already folds the whole panel away.
+   */
+  hideToggle?: boolean
 }
 
 /**
  * Post-answer review. Every word here is College Board's own rationale text;
  * nothing is generated.
  */
-export function Explanation({ result, question, seconds, startOpen = false, unanswered = false }: Props) {
+export function Explanation({
+  result, question, seconds, startOpen = false, unanswered = false, hideToggle = false,
+}: Props) {
   const [open, setOpen] = useState(startOpen)
   const isMcq = question.type === 'mcq'
 
@@ -49,7 +56,7 @@ export function Explanation({ result, question, seconds, startOpen = false, unan
           </span>
           <span className="verdict-time">{duration(seconds)} on this question</span>
         </>)}
-        <button className="btn ghost" onClick={() => setOpen(false)}>Hide</button>
+        {hideToggle ? null : <button className="btn ghost" onClick={() => setOpen(false)}>Hide</button>}
       </div>
 
       <div className="explain-answer">

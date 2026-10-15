@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { andMore, byDomain, bySkill, describeSet, plural, setSection, skillDisplayName } from './labels'
+import {
+  andMore, byDomain, bySkill, dayLabel, daysAgo, describeSet, plural, setSection, shortDate, skillDisplayName,
+} from './labels'
 import type { Filters, PracticeSet } from '../types'
 
 const set = (filters: Filters, total = 10): PracticeSet => ({
@@ -93,5 +95,28 @@ describe('setSection', () => {
     expect(setSection({})).toBeUndefined()
     expect(setSection({ skills: ['NEW'] })).toBeUndefined()
     expect(setSection(undefined)).toBeUndefined()
+  })
+})
+
+describe('dayLabel', () => {
+  // Wednesday, Oct 14 2026, mid-afternoon local time.
+  const now = new Date(2026, 9, 14, 15, 0)
+  const at = (y: number, m: number, d: number, h = 9) => new Date(y, m, d, h).getTime() / 1000
+
+  it('says Today and Yesterday by calendar day, not by 24 hours', () => {
+    expect(dayLabel(at(2026, 9, 14, 0), now)).toBe('Today')
+    expect(dayLabel(at(2026, 9, 13, 23), now)).toBe('Yesterday')
+  })
+
+  it('names the weekday for the rest of the week, then the date', () => {
+    expect(dayLabel(at(2026, 9, 12), now)).toBe('Monday, Oct 12')
+    expect(dayLabel(at(2026, 9, 8), now)).toBe('Thursday, Oct 8')
+    expect(dayLabel(at(2026, 9, 7), now)).toBe('Oct 7')
+    expect(daysAgo(at(2026, 9, 7), now)).toBe(7)
+  })
+
+  it('adds the year only when it is not this one', () => {
+    expect(shortDate(at(2026, 0, 2), now)).toBe('Jan 2')
+    expect(shortDate(at(2025, 11, 30), now)).toBe('Dec 30, 2025')
   })
 })

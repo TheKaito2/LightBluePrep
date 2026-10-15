@@ -124,6 +124,37 @@ export function noun(n: number, one: string, many = `${one}s`): string {
   return n === 1 ? one : many
 }
 
+/** Whole calendar days from `ts` (unix seconds) to `now`; 0 is today. */
+export function daysAgo(ts: number, now = new Date()): number {
+  const then = new Date(ts * 1000)
+  then.setHours(0, 0, 0, 0)
+  const today = new Date(now)
+  today.setHours(0, 0, 0, 0)
+  // Rounded, since a day across a clock change is 23 or 25 hours long.
+  return Math.round((today.getTime() - then.getTime()) / 86400000)
+}
+
+/** "Oct 13", with the year only when it is not this one. */
+export function shortDate(ts: number, now = new Date()): string {
+  const d = new Date(ts * 1000)
+  return d.toLocaleDateString('en-US', d.getFullYear() === now.getFullYear()
+    ? { month: 'short', day: 'numeric' }
+    : { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+/**
+ * A day heading: "Today", "Yesterday", the weekday for the rest of the last
+ * week ("Monday, Oct 12"), and the plain date after that ("Sep 28"), when a
+ * weekday would no longer say which one.
+ */
+export function dayLabel(ts: number, now = new Date()): string {
+  const days = daysAgo(ts, now)
+  if (days <= 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  if (days < 7) return `${new Date(ts * 1000).toLocaleDateString('en-US', { weekday: 'long' })}, ${shortDate(ts, now)}`
+  return shortDate(ts, now)
+}
+
 /** "1 question", "1,200 questions". */
 export function plural(n: number, one: string, many = `${one}s`): string {
   return `${fmt(n)} ${noun(n, one, many)}`

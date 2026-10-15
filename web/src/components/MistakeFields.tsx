@@ -11,7 +11,7 @@ import { MISTAKE_TAGS, type Mistake, type MistakeTag } from '../types'
 
 export const TAG_LABEL: Record<MistakeTag, string> = {
   process: 'Process',
-  silly: 'Silly',
+  silly: 'Careless',
   knowledge: 'Knowledge',
   other: 'Other',
 }
