@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useId, useState } from 'react'
 import { Modal } from './Modal'
+import { Icon } from './Icon'
 import * as fb from '../lib/feedback'
 import { toUserMessage } from '../lib/errors'
 
@@ -82,7 +83,8 @@ export function FeedbackHost() {
   return (
     <Modal title={phase === 'sent' ? 'Thanks!' : 'Send feedback'} onClose={close} footer={footer}>
       {phase === 'sent' ? (
-        <div role="status">
+        <div className="fb-sent" role="status">
+          <Icon name="check-circle" size={40} strokeWidth={1.8} />
           <p className="fb-p">Got it. Every message gets read, and bugs get fixed as fast as I can.</p>
         </div>
       ) : (
@@ -111,12 +113,15 @@ export function FeedbackHost() {
                       placeholder={kind === 'bug'
                         ? 'e.g. wrong answer key, broken image, button not working…'
                         : 'What would make LightBluePrep better?'} />
-            <div className="fb-foot">
-              <span id={`${ids}note`} className="fb-note">Anonymous. No name or email is sent.</span>
-              <span id={`${ids}count`} className="fb-note fb-count">
-                {message.length}/{fb.MAX_CHARS}<span className="sr-only"> characters</span>
-              </span>
-            </div>
+            <span id={`${ids}count`}
+                  className={fb.MAX_CHARS - message.length <= 100 ? 'fb-note fb-count near' : 'fb-note fb-count'}>
+              {message.length.toLocaleString('en-US')} / {fb.MAX_CHARS.toLocaleString('en-US')}
+              <span className="sr-only"> characters</span>
+            </span>
+            <p id={`${ids}note`} className="fb-note">
+              Anonymous: no name or email is sent, so we can't reply. Please leave out
+              personal details.
+            </p>
           </div>
           {/* Honeypot: hidden from people, filled by bots. */}
           <input className="fb-hp" tabIndex={-1} autoComplete="off" aria-hidden="true"

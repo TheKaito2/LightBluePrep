@@ -20,19 +20,39 @@
 }
 .about-link:hover { color: var(--fg-link-hover); }
 
-/* ============================================================ settings
-   Settings is an About page with its own cards, so it reuses .about.
-
-   Two cards, one column (About's two-column flow left a blank side).
-   Delete buttons confirm inline rather than in a browser dialog. */
-.about.settings { columns: auto; max-width: 760px; }
-.settings-confirm {
-  padding: 16px 20px; border: 1px solid var(--bad-200); border-radius: var(--rad-md);
-  background: var(--bad-50);
+/* ============================================================ settings (spec 8.7)
+   A 720px column, its left edge in line with the band's title, split into
+   plain sections by a hairline (no cards). Deletes confirm in a dialog. */
+.settings { max-width: 1160px; margin: 0 auto; padding: var(--sp-2) var(--sp-8) 96px; }
+.settings > * { max-width: 720px; }
+.settings-sec { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-4); padding: 40px 0; }
+.settings-sec + .settings-sec { border-top: 1px solid var(--hair-1); }
+.settings-sec > * { margin: 0; }
+.settings-sec .about-h2 { padding: 0; border: 0; }
+.settings-sec .about-p { margin: 0; }
+.settings-stats { align-self: stretch; }
+.settings-fine { font: var(--type-small); color: var(--fg-3); }
+.settings-sec > [aria-live]:empty { display: none; }
+/* Success: a soft green banner with a check, so it does not read as one more
+   sentence of body text. */
+.settings-done {
+  display: flex; align-items: flex-start; gap: var(--sp-2); margin: 0;
+  padding: 10px 14px; border: 1px solid var(--ok-200); border-radius: var(--rad-sm);
+  background: var(--ok-50); font: 600 14px/20px var(--sans); color: var(--ok-700);
 }
-.settings-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.settings-done { margin: 12px 0 0; font-weight: 600; color: var(--fg-1); }
-.about .settings-fine { margin-top: 16px; font: var(--type-small); color: var(--fg-3); }
+.settings-done svg { flex: none; margin-top: 1px; }
+.settings-dialog { display: flex; flex-direction: column; gap: var(--sp-3); }
+.settings-check { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; cursor: pointer; font: var(--type-body); color: var(--fg-1); }
+.settings-check input { flex: none; width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--brand-700); }
+@media (max-width: 819px) {
+  .settings { padding: 0 var(--sp-4) var(--sp-8); }
+  .settings-sec { padding: 32px 0; }
+  /* Four short labels share the phone width in one row. */
+  /* A label that wraps ("Logged mistakes") pushes its number down; numbers
+     sit on the bottom edge instead, so the four stay on one line. */
+  .settings-stats > .stat { min-width: 0; justify-content: space-between; padding: var(--sp-3) var(--sp-2) var(--sp-3) var(--sp-3); }
+  .settings-stats .stat-l { overflow-wrap: anywhere; }
+}
 
 /* ============================================================ about v2 */
 /* Prose cards pack into two columns like the topic cards. */
@@ -196,16 +216,14 @@
 @media (max-width: 819px) { .inbox { padding: var(--sp-6) var(--sp-4) var(--sp-8); } }
 .inbox-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .inbox-head .qsub { margin: 0; }
-.inbox-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0 6px; }
-.inbox-stats div { border: 1px solid var(--hair-1); border-radius: var(--rad-md); padding: 12px 14px; background: var(--surface); }
-.inbox-stats b {
-  display: block; font: 800 var(--num-m)/1.1 var(--display); letter-spacing: var(--tr-num-m);
-  font-variant-numeric: tabular-nums lining-nums;
+.inbox-note { margin: 4px 0 0; font: var(--type-small); color: var(--fg-3); }
+/* Phone: four counts with sub lines do not fit one row; two by two. */
+@media (max-width: 819px) {
+  .phead .stat-group.inbox-strip { display: grid; grid-template-columns: 1fr 1fr; }
+  .phead .stat-group.inbox-strip > .stat:nth-child(3) { border-left: 0; }
+  .phead .stat-group.inbox-strip > .stat:nth-child(n+3) { border-top: 1px solid var(--hair-inv); }
 }
-.inbox-stats span { font: var(--type-small); color: var(--fg-2); }
-@media (max-width: 560px) {
-  .inbox-stats { grid-template-columns: repeat(2, 1fr); }
-}
+.inbox-purge { display: flex; align-items: center; gap: 4px; margin-top: 12px; font: var(--type-small); color: var(--fg-3); }
 .inbox-seg { display: inline-flex; margin: 16px 0 6px; }
 .inbox-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .inbox-item { border: 1px solid var(--hair-1); border-radius: var(--rad-md); padding: 14px 16px; background: var(--surface); }
@@ -215,5 +233,4 @@
 .inbox-kind.k-bug { background: var(--bad-50); color: var(--bad-700); }
 .inbox-kind.k-comment { background: var(--brand-50); color: var(--brand-800); }
 .inbox-msg { margin: 9px 0 12px; white-space: pre-wrap; overflow-wrap: anywhere; font: var(--type-body); color: var(--fg-1); }
-.inbox-actions { display: flex; gap: 8px; }
-.shell .btn.inbox-del { color: var(--bad-700); }
+.inbox-actions { display: flex; align-items: center; gap: 4px; }

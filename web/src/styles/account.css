@@ -45,22 +45,36 @@
   }
 }
 
+/* Popover (spec 7.10): 320px, anchored to the badge's right edge, and 8px
+   below the nav's bottom hairline rather than the badge, which sits 16px up
+   inside the bar. */
 .acct-panel {
-  position: absolute; right: 0; top: calc(100% + 8px); z-index: 40;
-  width: 340px; padding: 16px;
+  position: absolute; right: 0; top: calc(100% + (var(--navh) - 32px) / 2 + 8px); z-index: 40;
+  width: 320px; padding: 16px;
   background: var(--surface); border-radius: var(--rad-md); box-shadow: var(--sh-2);
-  text-align: left;
+  text-align: left; animation: acct-pop var(--dur-fast) var(--ease-out);
 }
-.acct-h { margin: 0 0 6px; font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
+.acct-panel:focus { outline: none; }
+.acct-panel:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@keyframes acct-pop { from { opacity: 0; transform: translateY(-4px); } }
+.acct-h { margin: 0 0 12px; font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
 .acct-p { margin: 0 0 12px; font: var(--type-small); color: var(--fg-3); }
+.acct-points { display: flex; flex-direction: column; gap: 8px; margin: 0 0 16px; padding: 0; list-style: none; }
+.acct-points li { display: flex; align-items: flex-start; gap: 8px; font: var(--type-small); color: var(--fg-2); }
+.acct-points svg { flex: none; margin-top: 2px; color: var(--ok-700); }
 .acct-status {
   display: flex; align-items: center; gap: 8px;
   margin: 0 0 12px; font: var(--type-small); color: var(--fg-2);
 }
-.acct-gbtn { display: flex; justify-content: center; min-height: 44px; margin-top: 4px; }
+.acct-gbtn { display: flex; justify-content: flex-start; min-height: 44px; }
 .acct-fine { margin: 12px 0 0; font: 400 12px/16px var(--sans); color: var(--fg-3); }
+.acct-privacy {
+  white-space: nowrap; font: 400 13px/16px var(--sans); color: var(--fg-link);
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+}
+.acct-privacy:hover { color: var(--fg-link-hover); }
 .acct-err {
-  margin: 10px 0 0; padding: 8px 10px; border-radius: var(--rad-sm);
+  margin: 10px 0 12px; padding: 8px 10px; border-radius: var(--rad-sm);
   background: var(--bad-50); color: var(--bad-700); font: var(--type-small);
 }
 
@@ -75,6 +89,9 @@
 }
 .acct-btn:hover:not(:disabled) { border-color: var(--hair-ctl); background: var(--surface-subtle); }
 .acct-btn:disabled { color: var(--fg-4); border-color: var(--hair-1); cursor: default; }
+/* The refresh icon turns while a sync runs. Under reduced motion base.css
+   stops it after one instant turn, so it simply sits still. */
+.acct-spin { animation: acct-spin .9s linear infinite; }
 .acct-btn.danger { border-color: var(--bad-200); color: var(--bad-700); }
 .acct-btn.danger:hover:not(:disabled) { background: var(--bad-50); border-color: var(--bad-200); }
 
@@ -87,16 +104,10 @@
 .acct-link:hover { color: var(--bad-700); }
 .acct-inbox { margin-top: 10px; width: 100%; }
 
-@media (max-width: 640px) {
-  /* Centred on the viewport rather than hung off the badge, which sits a
-     little in from the right edge. Fixed rather than absolute because the nav
-     does not scroll. */
-  .acct-panel {
-    position: fixed; top: calc(var(--navh) + 8px);
-    left: 50%; right: auto; transform: translateX(-50%);
-    width: min(340px, calc(100vw - 24px));
-  }
-}
+/* Phone: the panel is the shared bottom sheet (Modal). Its two actions share
+   the row and grow to a 44px touch height. */
+.acct-sheet .acct-actions > .acct-btn { flex: 1 1 0; min-height: 44px; }
+.acct-sheet .acct-inbox { min-height: 44px; }
 
 /* Phone header (spec 7.2): a 40px quiet icon button. The cloud always shows;
    the dot only once signed in, pinned to the cloud's top right. */
@@ -140,9 +151,14 @@
 /* Feedback can also open over practice, outside .shell's field focus rule. */
 .fb-text:focus-visible { outline: none; border-color: var(--brand-700); box-shadow: var(--focus-ring); }
 .fb-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
-.fb-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.fb-note { font: var(--type-small); color: var(--fg-3); }
-.fb-count { flex: none; font-variant-numeric: tabular-nums; }
+.fb-note { margin: 0; font: var(--type-small); color: var(--fg-3); }
+/* Under the field's right edge, apart from the privacy note so the two never
+   read as one sentence. Amber once 100 characters are left. */
+.fb-count { align-self: flex-end; font-variant-numeric: tabular-nums; }
+.fb-count.near { color: var(--warn-700); }
+/* Sent: one centred confirmation. A check, not Bulb (spec 7.15). */
+.fb-sent { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 8px 0; text-align: center; }
+.fb-sent svg { color: var(--ok-700); }
 .fb-err { margin: 0; font: var(--type-small); color: var(--bad-700); }
 .fb-p { margin: 0; font: var(--type-body); color: var(--fg-2); }
 
@@ -158,16 +174,17 @@
 .sp-opt:hover { border-color: var(--hair-ctl); background: var(--surface-subtle); }
 .sp-opt.on { border-color: var(--brand-600); background: var(--brand-50); }
 .sp-opt > svg { margin-left: auto; color: var(--fg-3); flex: none; }
-.sp-badge {
-  flex: none; width: 38px; height: 38px; border-radius: var(--rad-sm); display: inline-flex;
-  align-items: center; justify-content: center; font-weight: 700; font-size: 17px; color: var(--fg-inv-1);
+/* One treatment for every option: a neutral tile, so no option borrows the
+   R&W pink or the Math blue. */
+.sp-tile {
+  flex: none; width: 32px; height: 32px; border-radius: var(--rad-sm);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-subtle); color: var(--fg-1);
 }
-.sp-kofi { background: var(--rw-50); color: var(--rw-600); }
-.sp-bmc { background: var(--streak-50); color: var(--streak-700); }
-.sp-pp { background: var(--math-50); color: var(--math-700); }
 .sp-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .sp-text b { font: 600 15px/22px var(--sans); }
 .sp-text small { font: var(--type-small); color: var(--fg-3); }
-.sp-qr { margin: 14px 0 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.sp-qr { margin: 16px 0 0; display: flex; flex-direction: column; align-items: center; gap: 8px; scroll-margin-bottom: 16px; }
+.shell .btn.sp-save { margin-top: 4px; }
 .sp-qr img { width: 240px; height: auto; max-width: 100%; border-radius: var(--rad-md); border: 1px solid var(--hair-1); background: var(--surface); }
 .sp-qr figcaption { font: var(--type-small); color: var(--fg-2); text-align: center; }

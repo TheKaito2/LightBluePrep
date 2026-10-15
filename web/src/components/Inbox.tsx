@@ -5,6 +5,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as fb from '../lib/feedback'
 import { PageHead } from './PageHead'
+import { Stat, StatGroup } from './Stat'
+import { ConfirmDelete } from './ConfirmDelete'
+import { Icon } from './Icon'
 
 type Show = 'open' | 'done' | 'all'
 
@@ -28,42 +31,47 @@ export function Inbox() {
   }, [])
   useEffect(load, [load])
 
-  async function act(fn: () => Promise<void>) {
-    try { await fn(); load() } catch (e) { setError((e as Error).message) }
+  /** True once done, so ConfirmDelete knows whether to put its button back. */
+  async function act(fn: () => Promise<void>): Promise<boolean> {
+    try { await fn(); load(); return true } catch (e) { setError((e as Error).message); return false }
   }
 
   const shown = (items ?? []).filter((i) => show === 'all' || i.status === show)
   const openCount = (items ?? []).filter((i) => i.status === 'open').length
 
+  const total = (items ?? []).length
   return (
     <>
-    <PageHead tone="ink" title="Feedback inbox" sub="Messages from the feedback form. Only the site owner can see this." />
+    <PageHead tone="ink" eyebrow="Owner only" title="Feedback inbox"
+              sub="Messages from the feedback form, and the anonymous usage counts.">
+      {/* The anonymous counts from lib/usage.ts. Browsers, not people: one
+          person on two devices counts twice. The Worker's day is UTC. */}
+      {usage ? (
+        <StatGroup className="inbox-strip">
+          <Stat size="l" label="Tried it" value={usage.tried.toLocaleString('en-US')} sub="1+ question" />
+          <Stat size="l" label="Used it" value={usage.used.toLocaleString('en-US')} sub="10+ questions" />
+          <Stat size="l" label="New" value={usage.tried_today.toLocaleString('en-US')} sub="today (UTC)" />
+          <Stat size="l" label="Accounts" value={usage.accounts.toLocaleString('en-US')} sub="signed in" />
+        </StatGroup>
+      ) : null}
+    </PageHead>
     <div className="inbox">
       <div className="inbox-head">
         <p className="qsub">
-          {openCount} open · {(items ?? []).length} total
-          {(items ?? []).length >= 500 ? ' (showing the newest 500)' : ''}
+          {openCount} open · {total} total
+          {total >= 500 ? ' (showing the newest 500)' : ''}
         </p>
-        <button className="btn" onClick={load}>Refresh</button>
-      </div>
-      {usage ? (
-        <>
-          {/* The anonymous counts from lib/usage.ts. Browsers, not people:
-              one person on two devices counts twice. */}
-          <div className="inbox-stats" aria-label="Usage">
-            <div><b>{usage.tried}</b><span>tried it (1+ question)</span></div>
-            <div><b>{usage.used}</b><span>used it (10+ questions)</span></div>
-            <div><b>{usage.tried_today}</b><span>new today (UTC)</span></div>
-            <div><b>{usage.accounts}</b><span>signed in</span></div>
-          </div>
-          <p className="qsub">Counted since 12 October 2026, per browser.</p>
-        </>
-      ) : null}
-      {(items ?? []).some((i) => i.status === 'done') ? (
-        <button className="link"
-                onClick={() => { if (confirm('Delete every message marked done?')) act(fb.removeDone) }}>
-          Delete all done
+        <button className="btn sm" onClick={load}>
+          <Icon name="refresh" size={16} strokeWidth={2} />
+          Refresh
         </button>
+      </div>
+      {usage ? <p className="qsub inbox-note">Usage counted since 12 October 2026, per browser.</p> : null}
+      {(items ?? []).some((i) => i.status === 'done') ? (
+        <div className="inbox-purge">
+          <span>Delete all done</span>
+          <ConfirmDelete label="Delete every message marked done" onConfirm={() => act(fb.removeDone)} />
+        </div>
       ) : null}
 
       <div className="seg sm inbox-seg" role="group" aria-label="Show">
@@ -94,14 +102,11 @@ export function Inbox() {
             </div>
             <p className="inbox-msg">{i.message}</p>
             <div className="inbox-actions">
-              <button className="btn"
+              <button className="btn sm"
                       onClick={() => act(() => fb.setStatus(i.id, i.status === 'open' ? 'done' : 'open'))}>
                 {i.status === 'open' ? 'Mark done' : 'Reopen'}
               </button>
-              <button className="btn inbox-del"
-                      onClick={() => { if (confirm('Delete this message for good?')) act(() => fb.remove(i.id)) }}>
-                Delete
-              </button>
+              <ConfirmDelete label="Delete message" onConfirm={() => act(() => fb.remove(i.id))} />
             </div>
           </li>
         ))}

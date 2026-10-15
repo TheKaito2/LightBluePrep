@@ -5,7 +5,7 @@
 
 /* Bluebook palette: practice screen (.app) only. Any use under .shell is a bug. */
 :root {
-  --sans: "Noto Sans", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --sans: "Noto Sans", "Noto Sans Thai", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --serif: "Noto Serif", Charter, Georgia, "Times New Roman", serif;
 
   --ink: #1e1e1e;

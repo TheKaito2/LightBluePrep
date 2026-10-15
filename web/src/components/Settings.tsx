@@ -12,8 +12,12 @@ import { useCallback, useEffect, useState } from 'react'
 import * as api from '../api'
 import * as auth from '../lib/auth'
 import * as sync from '../lib/sync'
+import { countsPeople } from '../lib/usage'
 import { PageHead } from './PageHead'
 import { PRIVACY_URL } from './Github'
+import { Icon } from './Icon'
+import { Modal } from './Modal'
+import { Stat, StatGroup } from './Stat'
 import { plural } from '../lib/labels'
 import { toUserMessage } from '../lib/errors'
 
@@ -26,12 +30,13 @@ const DONE: Record<Action, string> = {
   cloud: 'Deleted from our server. You are signed out.',
 }
 
+/** The whole summary as one sentence, for screen readers; the eye gets the stat row. */
 function describe(s: Summary): string {
   const parts = [
     s.answers ? `${plural(s.answers, 'answer')} to ${plural(s.questions, 'question')}` : '',
     s.marked ? plural(s.marked, 'marked question') : '',
     s.highlights ? plural(s.highlights, 'highlight or note', 'highlights and notes') : '',
-    s.mistakes ? plural(s.mistakes, 'mistake log') : '',
+    s.mistakes ? plural(s.mistakes, 'logged mistake') : '',
     s.sets ? plural(s.sets, 'practice set') : '',
   ].filter(Boolean)
   if (!parts.length) return 'Nothing is saved on this device.'
@@ -42,6 +47,8 @@ function describe(s: Summary): string {
 export function Settings() {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [confirm, setConfirm] = useState<'local' | 'cloud' | null>(null)
+  /** Signed in, whether the local delete also takes the server copy. */
+  const [alsoServer, setAlsoServer] = useState(true)
   const [busy, setBusy] = useState(false)
   /** The last action and how it went; shown in the section it belongs to. */
   const [result, setResult] = useState<{ action: Action; error?: string } | null>(null)
@@ -55,6 +62,8 @@ export function Settings() {
   useEffect(count, [count])
   // A sync can pull rows in while this page is open (signing in, another device).
   useEffect(() => sync.subscribe(count), [count])
+
+  const keep = useCallback(() => { if (!busy) setConfirm(null) }, [busy])
 
   async function run(action: Action) {
     setBusy(true); setResult(null)
@@ -82,73 +91,56 @@ export function Settings() {
 
   /**
    * Outcome under the section it concerns. The live region is always rendered,
-   * so a screen reader announces the text when it appears: the button that
-   * started it is gone by then.
+   * so a screen reader announces the text when it appears: for the synced copy
+   * the button that started it is gone by then.
    */
   const status = (section: 'local' | 'cloud') => {
     const mine = result && (result.action === 'cloud' ? 'cloud' : 'local') === section
     return (
       <div aria-live="polite">
-        {mine && result.error ? <p className="fb-err" role="alert">{result.error}</p> : null}
-        {mine && !result.error ? <p className="settings-done">{DONE[result.action]}</p> : null}
+        {mine && result.error ? <p className="fb-err settings-msg" role="alert">{result.error}</p> : null}
+        {mine && !result.error ? (
+          <p className="settings-done">
+            <Icon name="check-circle" size={18} strokeWidth={2} />
+            {DONE[result.action]}
+          </p>
+        ) : null}
       </div>
     )
   }
 
-  const cancel = (
-    // Focus lands here when a confirm opens: the button that was clicked is gone.
-    <button className="btn quiet" disabled={busy} autoFocus onClick={() => setConfirm(null)}>
-      Cancel
-    </button>
-  )
+  const localAction: Action = signedIn && alsoServer ? 'both' : 'local'
 
   return (
     <>
-      <PageHead tone="grey" title="Settings"
-                sub="What LightBluePrep keeps about you, and how to delete it." />
-      <div className="about settings">
-        <section className="about-block">
-          <h2 className="about-h2">On this device</h2>
+      <PageHead tone="grey" title="Settings" sub="Your saved data, and the buttons that delete it." />
+      <div className="settings">
+        <section className="settings-sec" aria-labelledby="settings-local">
+          <h2 className="about-h2" id="settings-local">On this device</h2>
           {api.deleteLocalData ? (
             <>
-              <p className="about-p">{summary ? describe(summary) : 'Counting…'}</p>
-              {confirm === 'local' ? (
-                <div className="settings-confirm">
-                  <p className="about-p">
-                    This permanently deletes your answers, marks, highlights and notes,
-                    mistake log and practice sets from this browser. It cannot be undone.
-                    {signedIn ? ' You are signed in, so you will be signed out here.'
-                      + ' Your synced copy stays on our server unless you delete that too,'
-                      + ' and signing in again would bring it back.' : ''}
-                  </p>
-                  <div className="settings-actions">
-                    {signedIn ? (
-                      <>
-                        <button className="btn danger" disabled={busy} onClick={() => { void run('both') }}>
-                          {busy ? 'Deleting…' : 'Delete here and on the server'}
-                        </button>
-                        <button className="btn danger-secondary" disabled={busy} onClick={() => { void run('local') }}>
-                          Delete on this device only
-                        </button>
-                      </>
-                    ) : (
-                      <button className="btn danger" disabled={busy} onClick={() => { void run('local') }}>
-                        {busy ? 'Deleting…' : 'Yes, delete it'}
-                      </button>
-                    )}
-                    {cancel}
-                  </div>
-                </div>
-              ) : (
-                <button className="btn danger-secondary" onClick={() => { setConfirm('local'); setResult(null) }}>
-                  Delete my data on this device
-                </button>
-              )}
+              {summary ? (
+                <>
+                  <p className="sr-only">{describe(summary)}</p>
+                  <StatGroup className="settings-stats">
+                    <Stat label="Answers" value={summary.answers.toLocaleString('en-US')} />
+                    <Stat label="Marked" value={summary.marked.toLocaleString('en-US')} />
+                    <Stat label="Logged mistakes" value={summary.mistakes.toLocaleString('en-US')} />
+                    <Stat label="Sets" value={summary.sets.toLocaleString('en-US')} />
+                  </StatGroup>
+                </>
+              ) : <p className="about-p">Counting…</p>}
+              <button className="btn danger-secondary" onClick={() => { setConfirm('local'); setResult(null) }}>
+                <Icon name="trash" size={16} strokeWidth={2} />
+                Delete my data on this device
+              </button>
               {status('local')}
-              <p className="about-p settings-fine">
+              <p className="settings-fine">
                 Questions you have opened stay cached so the site keeps working offline.
-                They are College Board's questions, not your data. Full details are in
-                the <a className="about-link" href={PRIVACY_URL}>privacy policy</a>.
+                They are College Board's questions, not your data.
+                {countsPeople ? ' A single flag that you were already counted as a visitor'
+                  + ' also stays, so starting over does not count you twice. It holds no ID.' : ''}
+                {' '}Full details are in the <a className="about-link" href={PRIVACY_URL}>privacy policy</a>.
               </p>
             </>
           ) : (
@@ -160,47 +152,88 @@ export function Settings() {
         </section>
 
         {auth.configured ? (
-          <section className="about-block">
-            <h2 className="about-h2">Synced copy</h2>
+          <section className="settings-sec" aria-labelledby="settings-cloud">
+            <h2 className="about-h2" id="settings-cloud">Synced copy</h2>
             {signedIn ? (
               <>
                 <p className="about-p">
                   You are signed in, so your practice history is also stored on our
                   server under an anonymous account ID, never your name or email.
                 </p>
-                {confirm === 'cloud' ? (
-                  <div className="settings-confirm">
-                    <p className="about-p">
-                      This permanently deletes everything stored on our server for your
-                      account and signs you out. What is on this device is kept.
-                    </p>
-                    <div className="settings-actions">
-                      <button className="btn danger" disabled={busy} onClick={() => { void run('cloud') }}>
-                        {busy ? 'Deleting…' : 'Yes, delete it'}
-                      </button>
-                      {cancel}
-                    </div>
-                  </div>
-                ) : (
-                  <button className="btn danger-secondary" onClick={() => { setConfirm('cloud'); setResult(null) }}>
-                    Delete my synced data
-                  </button>
-                )}
+                <button className="btn danger-secondary" onClick={() => { setConfirm('cloud'); setResult(null) }}>
+                  <Icon name="trash" size={16} strokeWidth={2} />
+                  Delete my synced data
+                </button>
               </>
             ) : (
               <p className="about-p">
                 {result && !result.error && result.action !== 'local'
                   ? 'You are not signed in here, and your synced copy is deleted.'
-                  : 'You are not signed in here, so nothing from this device goes to our'
-                    + ' server. A copy you synced before stays there: sign in, then use'
-                    + ' Delete here and on the server above.'}
+                  : "You're not signed in, so nothing from this device is on our server."
+                    + ' If you synced before, sign in to see and delete that copy. Signing in'
+                    + " uploads this browser's history too, and Delete removes both."}
               </p>
             )}
             {status('cloud')}
           </section>
         ) : null}
-
       </div>
+
+      {confirm === 'local' ? (
+        <Modal title="Delete your data on this device?" onClose={keep}
+               footer={(
+                 <>
+                   {/* Focus starts on the safe choice. */}
+                   <button className="btn" disabled={busy} autoFocus onClick={keep}>Keep</button>
+                   <button className="btn danger" disabled={busy} onClick={() => { void run(localAction) }}>
+                     {busy ? 'Deleting…' : 'Delete'}
+                   </button>
+                 </>
+               )}>
+          <div className="settings-dialog">
+            <p className="fb-p">
+              This permanently deletes your answers, marks, highlights and notes,
+              mistake log and practice sets from this browser. It cannot be undone.
+            </p>
+            {signedIn ? (
+              <>
+                <p className="fb-p">
+                  You are signed in, so you will be signed out here. Signing in again
+                  would bring back whatever is still on our server.
+                </p>
+                <label className="settings-check">
+                  <input type="checkbox" checked={alsoServer} disabled={busy}
+                         onChange={(e) => setAlsoServer(e.target.checked)} />
+                  <span>Also delete my synced copy on our server</span>
+                </label>
+              </>
+            ) : null}
+          </div>
+        </Modal>
+      ) : null}
+
+      {confirm === 'cloud' ? (
+        <Modal title="Delete your synced data?" onClose={keep}
+               footer={(
+                 <>
+                   <button className="btn" disabled={busy} autoFocus onClick={keep}>Keep</button>
+                   <button className="btn danger" disabled={busy} onClick={() => { void run('cloud') }}>
+                     {busy ? 'Deleting…' : 'Delete'}
+                   </button>
+                 </>
+               )}>
+          <div className="settings-dialog">
+            <p className="fb-p">
+              This permanently deletes everything stored on our server for your
+              account and signs you out. What is on this device is kept.
+            </p>
+            <p className="fb-p">
+              Other devices you signed in on keep their own copy and are signed out.
+              Signing in on one of them uploads its copy again.
+            </p>
+          </div>
+        </Modal>
+      ) : null}
     </>
   )
 }

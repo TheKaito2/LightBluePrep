@@ -391,10 +391,11 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ------------------------------------------------------------------------------
-Noto Sans and Noto Serif (OFL-1.1), self-hosted from Google Fonts
+Noto Sans, Noto Serif and Noto Sans Thai (OFL-1.1), self-hosted
 ------------------------------------------------------------------------------
 
 Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+Copyright 2022 The Noto Project Authors (https://github.com/notofonts/thai)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

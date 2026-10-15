@@ -17,7 +17,9 @@
  */
 
 const TOKEN_KEY = 'bluebank.session'
-const GIS_SRC = 'https://accounts.google.com/gsi/client'
+// hl=en: without it Google picks the browser's language, and a Thai browser
+// drew a Thai button inside the English panel.
+const GIS_SRC = 'https://accounts.google.com/gsi/client?hl=en'
 
 /**
  * Trailing slashes are stripped. Pasting the Worker URL out of the Cloudflare
@@ -123,6 +125,10 @@ export async function renderButton(
     text: 'signin_with',
     shape: 'pill',
     logo_alignment: 'left',
+    locale: 'en',
+    // The 320px panel's content box (16px padding each side). 300 would
+    // overflow it; GIS accepts 200 to 400.
+    width: 288,
   })
 }
 
