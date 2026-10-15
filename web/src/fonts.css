@@ -1,6 +1,6 @@
 /* Self-hosted Noto, so the site makes no third-party request.
-   These were fetched from Google Fonts once and committed; nothing here is
-   generated at build time.
+   These were fetched from Google Fonts once and committed (latin-ext then
+   subset, below); nothing here is generated at build time.
 
    Variable weight ranges, not static weights. The stylesheets use 550, 620 and 650,
    which a static family silently rounds to whatever it actually ships.
@@ -8,6 +8,17 @@
    Subsets: latin, latin-ext, greek. latin carries U+2212, the unicode minus that
    answer text uses. Maths inside <math> is drawn by MathJax as SVG paths and
    does not touch these files.
+
+   latin-ext is cut down from Google's file to the accented letters a handful
+   of Reading and Writing passages use for names (PF-12), plus the script l
+   (U+2113) the Reference sheet writes lengths with, keeping the weight axis
+   and every layout feature:
+     pyftsubset <file> --unicodes="U+0100-024F,U+1E00-1E9F,U+1EF2-1EFF,U+2113" \
+       --layout-features='*' --flavor=woff2
+   Sans normal 168 -> 58 KB, Sans italic 189 -> 58, Serif normal 187 -> 56,
+   Serif italic 238 -> 70. Its unicode-range below is exactly that set, so a
+   character outside it falls through to the next font rather than to a face
+   that lacks the glyph. Re-run the command if the files are ever refetched.
 
    Thai: two static weights of Noto Sans Thai (400 and 600, the only weights
    Thai text uses: the Support dialog's PromptPay row and QR caption), from the
@@ -32,7 +43,7 @@
   font-weight: 400 700;
   font-display: swap;
   src: url('./fonts/NotoSans-italic-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range: U+0100-024F, U+1E00-1E9F, U+1EF2-1EFF, U+2113;
 }
 
 @font-face {
@@ -59,7 +70,7 @@
   font-weight: 400 700;
   font-display: swap;
   src: url('./fonts/NotoSans-normal-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range: U+0100-024F, U+1E00-1E9F, U+1EF2-1EFF, U+2113;
 }
 
 @font-face {
@@ -86,7 +97,7 @@
   font-weight: 400 700;
   font-display: swap;
   src: url('./fonts/NotoSerif-italic-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range: U+0100-024F, U+1E00-1E9F, U+1EF2-1EFF, U+2113;
 }
 
 @font-face {
@@ -113,7 +124,7 @@
   font-weight: 400 700;
   font-display: swap;
   src: url('./fonts/NotoSerif-normal-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range: U+0100-024F, U+1E00-1E9F, U+1EF2-1EFF, U+2113;
 }
 
 @font-face {

@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Icon } from './Icon'
 import { useStacked } from './QuestionView'
+import { DESMOS_KEY } from '../lib/desmos'
 
 // The embedded calculator needs this site's OWN Desmos API key (desmos.com/my-api).
 // Desmos keys belong to one developer, and public production use falls under
 // their commercial terms, so the key that came with upstream Bluebank was
 // removed. With no key set, the Calculator button opens desmos.com/calculator in
-// a new tab instead (see DESMOS_EMBEDDED in App.tsx).
+// a new tab instead (see DESMOS_EMBEDDED in lib/desmos.ts).
 //
 // A Desmos API key is a public identifier, not a secret: it travels in the
 // script URL and is visible in the browser on any site that uses one.
-const API_KEY = (import.meta.env.VITE_DESMOS_KEY as string | undefined) || ''
-export const DESMOS_EMBEDDED = Boolean(API_KEY)
-const SRC = `https://www.desmos.com/api/v1.11/calculator.js?apiKey=${API_KEY}`
+const SRC = `https://www.desmos.com/api/v1.11/calculator.js?apiKey=${DESMOS_KEY}`
 const SITE = 'https://www.desmos.com/calculator'
 
 interface Calculator {

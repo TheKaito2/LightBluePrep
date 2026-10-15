@@ -1,33 +1,27 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import {
+  lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode,
+} from 'react'
 import * as api from './api'
 import { Home } from './components/Home'
-import { Stats as StatsPage } from './components/Stats'
-import { About } from './components/About'
-import { Settings } from './components/Settings'
 import { AccountBadge } from './components/Account'
 import { GithubLink } from './components/Github'
 import { SupportHost, SupportLink } from './components/Support'
 import { Navigator } from './components/Navigator'
 import { Notes } from './components/Notes'
 import { QuestionInfo } from './components/QuestionInfo'
-import { ReferenceSheet } from './components/ReferenceSheet'
-import { Review } from './components/Review'
 import { QuestionView } from './components/QuestionView'
-import { Desmos, DESMOS_EMBEDDED } from './components/Desmos'
+import { DESMOS_EMBEDDED } from './lib/desmos'
 import { Icon } from './components/Icon'
 import { Mark } from './components/Mark'
 import { Footer } from './components/Footer'
-import { SetResults } from './components/SetResults'
 import type { CellState } from './components/Navigator'
-import { SetReview } from './components/SetReview'
 import { Directions, DIRECTIONS_ID } from './components/Directions'
 import { FeedbackHost } from './components/Feedback'
-import { Inbox } from './components/Inbox'
-import { Resources } from './components/Resources'
 import { ErrorBanner } from './components/ErrorBanner'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useToast } from './components/Toast'
 import { sample, sampleBalanced } from './lib/draw'
+import { whenIdle } from './lib/idle'
 import { arrange, type Order } from './lib/order'
 import { loadFilters, loadOrder, saveFilters, saveOrder } from './lib/prefs'
 import { COACH_KEY, getMeta, setMeta } from './lib/store'
@@ -80,6 +74,59 @@ const NAV = [
   { key: 'about', label: 'About', icon: 'info' },
 ] as const
 
+/**
+ * Screens a first paint of Home never needs, each its own chunk (PF-13).
+ * import() is cached per module, so the same loaders double as prefetches:
+ * a nav tab warms its page on hover or focus, before the click lands.
+ */
+const PAGE_CHUNKS = {
+  review: () => import('./components/Review'),
+  stats: () => import('./components/Stats'),
+  resources: () => import('./components/Resources'),
+  about: () => import('./components/About'),
+  settings: () => import('./components/Settings'),
+  inbox: () => import('./components/Inbox'),
+  results: () => import('./components/SetResults'),
+}
+// A failed prefetch is not an error: the click retries it.
+const prefetchPage = (view: View) => {
+  void (PAGE_CHUNKS as Partial<Record<View, () => Promise<unknown>>>)[view]?.().catch(() => {})
+}
+
+/**
+ * A chunk that will not load gets one reload. The usual cause is a tab left
+ * open across a deploy, asking for chunk names the deploy replaced; a reload
+ * fetches the new index.html. Not offline, and at most once a minute, so a
+ * chunk missing for any other reason reaches the page's error state instead
+ * of a reload loop.
+ */
+function chunk<T>(load: () => Promise<T>): Promise<T> {
+  return load().catch((error: unknown) => {
+    const KEY = 'lbp.chunkReload'
+    let last = 0
+    try { last = Number(sessionStorage.getItem(KEY)) || 0 } catch { /* storage blocked */ }
+    if (!navigator.onLine || Date.now() - last < 60_000) throw error
+    try { sessionStorage.setItem(KEY, String(Date.now())) } catch { throw error }
+    window.location.reload()
+    return new Promise<T>(() => {})
+  })
+}
+
+const Review = lazy(() => chunk(PAGE_CHUNKS.review).then((m) => ({ default: m.Review })))
+const StatsPage = lazy(() => chunk(PAGE_CHUNKS.stats).then((m) => ({ default: m.Stats })))
+const Resources = lazy(() => chunk(PAGE_CHUNKS.resources).then((m) => ({ default: m.Resources })))
+const About = lazy(() => chunk(PAGE_CHUNKS.about).then((m) => ({ default: m.About })))
+const Settings = lazy(() => chunk(PAGE_CHUNKS.settings).then((m) => ({ default: m.Settings })))
+const Inbox = lazy(() => chunk(PAGE_CHUNKS.inbox).then((m) => ({ default: m.Inbox })))
+const SetResults = lazy(() => chunk(PAGE_CHUNKS.results).then((m) => ({ default: m.SetResults })))
+// Practice overlays, warmed with the rest once the first screen is idle (App).
+const loadReference = () => import('./components/ReferenceSheet')
+const loadDesmos = () => import('./components/Desmos')
+const loadSetReview = () => import('./components/SetReview')
+const ReferenceSheet = lazy(() => chunk(loadReference).then((m) => ({ default: m.ReferenceSheet })))
+const Desmos = lazy(() => chunk(loadDesmos).then((m) => ({ default: m.Desmos })))
+const SetReview = lazy(() => chunk(loadSetReview).then((m) => ({ default: m.SetReview })))
+
 /** Links into the app that open practice; they win over Home's stored picks. */
 const DEEP_LINK_KEYS = ['q', 'skill', 'type']
 const hasDeepLink = () => DEEP_LINK_KEYS.some((k) => new URLSearchParams(window.location.search).has(k))
@@ -129,6 +176,15 @@ const qskelChoices = (
   </>
 )
 
+/**
+ * What a lazy page shows while its chunk loads: nothing, so a fast load does
+ * not flash a placeholder. Unmounting is the moment the page has arrived.
+ */
+function PageWait({ onDone }: { onDone: () => void }) {
+  useEffect(() => onDone, [onDone])
+  return <div aria-busy="true" />
+}
+
 /** Move focus to an in-page target without letting the hash reach the router. */
 function skipTo(id: string) {
   return (event: React.MouseEvent) => {
@@ -145,6 +201,16 @@ export default function App() {
   useEffect(() => { viewRef.current = view }, [view])
   /** The page under practice, which is where its back button goes (leavePractice). */
   const [practiceFrom, setPracticeFrom] = useState<View>('home')
+
+  // The rest of the app, once the first screen is idle: a few KB each, and
+  // fetched while online they are what lets every page open offline later
+  // (public/sw.js caches them on the way through).
+  useEffect(() => whenIdle(() => {
+    const loads: (() => Promise<unknown>)[] = [...Object.values(PAGE_CHUNKS), loadReference, loadSetReview]
+    if (DESMOS_EMBEDDED) loads.push(loadDesmos)
+    // A miss here costs nothing now: opening that page fetches it again.
+    for (const load of loads) void load().catch(() => {})
+  }, 8000), [])
 
   /**
    * Show `next` and give it a history entry, so Back and reload behave like
@@ -1188,16 +1254,26 @@ export default function App() {
    * first load: the browser puts a fresh page at the top already.
    */
   const focusedView = useRef(view)
+  const titlePending = useRef(false)
   useEffect(() => {
     if (focusedView.current === view) return
     focusedView.current = view
     // Where the document scrolls (phones), every view shares one scroll
     // position: a new one starts at its top, not wherever the last one was.
     window.scrollTo(0, 0)
-    const target = document.querySelector<HTMLElement>('#main h1, #view-title')
-      ?? document.getElementById('main')
-    target?.focus()
+    const title = document.querySelector<HTMLElement>('#main h1, #view-title')
+    // A page still fetching its chunk has no title yet: PageWait hands focus
+    // on once it arrives.
+    titlePending.current = !title
+    ;(title ?? document.getElementById('main'))?.focus()
   }, [view])
+  const refocusTitle = useCallback(() => {
+    if (!titlePending.current) return
+    titlePending.current = false
+    // Unless the student has moved on from where focus was parked.
+    if (document.activeElement !== document.getElementById('main')) return
+    document.querySelector<HTMLElement>('#main h1, #view-title')?.focus()
+  }, [])
 
   // Home's own failure state already says this, with its own Try again.
   const bootFailed = view === 'home' && !taxonomy.length && !taxonomyLoading
@@ -1264,6 +1340,8 @@ export default function App() {
                         className={current === t.key ? 'tab on' : 'tab'}
                         title={t.label} aria-label={t.label}
                         aria-current={current === t.key ? 'page' : undefined}
+                        onPointerEnter={() => prefetchPage(t.key)}
+                        onFocus={() => prefetchPage(t.key)}
                         onClick={() => navigate(t.key)}>
                   <span className="tab-ico"><Icon name={t.icon} size={18} strokeWidth={2} /></span>
                   <span className="tab-label">{t.label}</span>
@@ -1278,7 +1356,9 @@ export default function App() {
             <div className="navright">
               <button className="navicon" onClick={() => navigate('settings')}
                       aria-label="Settings" title="Settings"
-                      aria-current={view === 'settings' ? 'page' : undefined}>
+                      aria-current={view === 'settings' ? 'page' : undefined}
+                      onPointerEnter={() => prefetchPage('settings')}
+                      onFocus={() => prefetchPage('settings')}>
                 <Icon name="gear" size={20} strokeWidth={2} />
               </button>
               <GithubLink />
@@ -1290,9 +1370,16 @@ export default function App() {
         {banner}
         {/* Home scrolls inside its own .home, so its main only passes the height down. */}
         <main id="main" tabIndex={-1} className={view === 'home' ? 'page page-home' : 'page'}>
-          {pages[view]()}
-          {/* Home scrolls inside .home, so it renders its own footer in there. */}
-          {view === 'home' ? null : <Footer context={view} />}
+          {/* Keyed by view: a page whose chunk failed to load (offline, or a
+              deploy replaced it) shows Bulb in the page, and the next page
+              starts clean. */}
+          <ErrorBoundary key={view} context={`page:${view}`} onReset={() => navigate('home')}>
+            <Suspense fallback={<PageWait onDone={refocusTitle} />}>
+              {pages[view]()}
+              {/* Home scrolls inside .home, so it renders its own footer in there. */}
+              {view === 'home' ? null : <Footer context={view} />}
+            </Suspense>
+          </ErrorBoundary>
         </main>
         <FeedbackHost />
         <SupportHost />
@@ -1505,11 +1592,13 @@ export default function App() {
         {/* Math tools only over Math. Their open state is kept, so a Reading
             question in mixed practice hides them and the next Math one brings
             them back. */}
-        {showDesmos && DESMOS_EMBEDDED && section === 'MATH' ? (
-          <Desmos onClose={() => setShowDesmos(false)}
-                  onExpandedChange={setDesmosSplit} />
-        ) : null}
-        {showReference && section === 'MATH' ? <ReferenceSheet onClose={closeReference} /> : null}
+        <Suspense fallback={null}>
+          {showDesmos && DESMOS_EMBEDDED && section === 'MATH' ? (
+            <Desmos onClose={() => setShowDesmos(false)}
+                    onExpandedChange={setDesmosSplit} />
+          ) : null}
+          {showReference && section === 'MATH' ? <ReferenceSheet onClose={closeReference} /> : null}
+        </Suspense>
       </main>
 
       <footer className="bottombar">
@@ -1580,15 +1669,17 @@ export default function App() {
       ) : null}
 
       {showSetReview && activeSet ? (
-        <SetReview items={items} current={index} title={setTitle}
-                   states={setStates}
-                   remaining={remaining}
-                   clock={remaining === null ? null : formatClock(remaining)}
-                   onGo={go}
-                   onClose={() => setShowSetReview(false)}
-                   busy={finishing}
-                   banner={banner}
-                   onFinish={finishSet} />
+        <Suspense fallback={null}>
+          <SetReview items={items} current={index} title={setTitle}
+                     states={setStates}
+                     remaining={remaining}
+                     clock={remaining === null ? null : formatClock(remaining)}
+                     onGo={go}
+                     onClose={() => setShowSetReview(false)}
+                     busy={finishing}
+                     banner={banner}
+                     onFinish={finishSet} />
+        </Suspense>
       ) : null}
 
       {showNotes ? (

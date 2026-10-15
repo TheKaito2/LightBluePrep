@@ -36,3 +36,20 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 loadBeacon()
+
+// Offline support (public/sw.js). Production only: in dev it would cache
+// Vite's modules and serve stale code. After 'load', so registering never
+// competes with the first paint.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`)
+      .then(() => navigator.serviceWorker.ready)
+      .then((registration) => {
+        // This visit loaded its files before the worker existed, so hand it the
+        // list; it keeps the ones it caches (assets, MathJax, fonts).
+        const urls = performance.getEntriesByType('resource').map((entry) => entry.name)
+        registration.active?.postMessage({ type: 'cache', urls })
+      })
+      .catch((error: unknown) => console.warn('Offline support unavailable:', error))
+  })
+}

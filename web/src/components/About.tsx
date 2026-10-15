@@ -83,7 +83,8 @@ export function About({ taxonomy }: { taxonomy: TaxonomyRow[] }) {
         <p className="about-p">
           LightBluePrep does not host the questions. Your browser downloads them
           straight from College Board and keeps a copy, so the first visit takes
-          a few seconds and after that it is fast and works offline.
+          a few seconds and after that it is fast. Questions you've opened work
+          offline.
         </p>
       </Sec>
 

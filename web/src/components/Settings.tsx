@@ -172,7 +172,7 @@ export function Settings() {
               </button>
               {status('local')}
               <p className="settings-fine">
-                Questions you have opened stay cached so the site keeps working offline.
+                Questions you've opened stay cached, so they work offline.
                 They are College Board's questions, not your data.
                 {countsPeople ? ' A single flag that you were already counted as a visitor'
                   + ' also stays, so starting over does not count you twice. It holds no ID.' : ''}
