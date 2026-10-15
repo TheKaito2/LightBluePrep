@@ -9,6 +9,14 @@
    out-rank them. Ink surfaces are .tone-ink (page bands) and .startbar2. */
 .shell { height: 100%; display: flex; flex-direction: column; background: var(--surface); color: var(--fg-1); }
 .page { flex: 1; min-height: 0; overflow-y: auto; }
+/* The document never scrolls here: .page (or .home) does. An .sr-only span
+   (absolute, no positioned ancestor) escaped those scroll boxes at its static
+   position, and a footer link's " (opens in a new tab)" let a wheel scroll the
+   whole document, nav included. Positioned so it is their containing block
+   (the same box as the viewport here), clipped so it never becomes a scroll
+   box itself; hidden for browsers without clip. */
+.shell { position: relative; overflow: hidden; }
+@supports (overflow: clip) { .shell { overflow: clip; } }
 
 /* Home's .home is its own scroller; its main only hands the height down. */
 .page.page-home { display: flex; flex-direction: column; overflow: hidden; }
@@ -18,7 +26,7 @@
    the sticky nav and start bar inside it. The shell still fills the screen, so
    Home's start bar sits at the bottom of a short page. */
 @media (max-width: 819px), (max-height: 500px) and (orientation: landscape) {
-  .shell { height: auto; min-height: 100vh; min-height: 100dvh; }
+  .shell { height: auto; min-height: 100vh; min-height: 100dvh; position: static; overflow: visible; }
   .page, .page.page-home { flex: 1 0 auto; min-height: 0; overflow: visible; }
 }
 
