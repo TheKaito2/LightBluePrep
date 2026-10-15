@@ -7,15 +7,14 @@
    Everything here renders under .shell. The practice screen (.app) keeps its
    own Bluebook buttons and chips in bluebook.css, so nothing here has to
    out-rank them. Ink surfaces are .tone-ink (page bands) and .startbar2. */
-.shell { height: 100%; display: flex; flex-direction: column; background: var(--surface); color: var(--fg-1); }
-.page { flex: 1; min-height: 0; overflow-y: auto; }
 /* The document never scrolls here: .page (or .home) does. An .sr-only span
    (absolute, no positioned ancestor) escaped those scroll boxes at its static
    position, and a footer link's " (opens in a new tab)" let a wheel scroll the
    whole document, nav included. Positioned so it is their containing block
    (the same box as the viewport here), clipped so it never becomes a scroll
    box itself; hidden for browsers without clip. */
-.shell { position: relative; overflow: hidden; }
+.shell { position: relative; overflow: hidden; height: 100%; display: flex; flex-direction: column; background: var(--surface); color: var(--fg-1); }
+.page { flex: 1; min-height: 0; overflow-y: auto; }
 @supports (overflow: clip) { .shell { overflow: clip; } }
 
 /* Home's .home is its own scroller; its main only hands the height down. */

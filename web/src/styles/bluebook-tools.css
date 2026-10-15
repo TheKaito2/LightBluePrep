@@ -145,9 +145,9 @@
   margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--ink-2);
 }
 /* 16px so a phone does not zoom in when it takes focus. */
-.nav-goto input, .nav-goto .btn { box-sizing: border-box; height: 34px; }
+.nav-goto .btn { box-sizing: border-box; height: 34px; }
 .nav-goto input {
-  width: 92px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: var(--r-sm);
+  box-sizing: border-box; height: 34px; width: 92px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: var(--r-sm);
   font: inherit; font-size: 16px; font-weight: 400; color: var(--ink); background: var(--bg);
 }
 .nav-goto input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }

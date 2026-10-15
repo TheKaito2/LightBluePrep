@@ -50,7 +50,7 @@
 /* The page's h1, styled as the plain title it always was. */
 .section-name { margin: 0; font: inherit; letter-spacing: inherit; }
 .backbtn {
-  display: inline-flex; align-items: center; justify-content: center;
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
   width: 24px; height: 24px; margin-left: -5px; border-radius: 50%;
   border: none; background: none; cursor: pointer; color: var(--ink-2);
 }
@@ -60,7 +60,7 @@
    past each edge takes the touch, so the glyphs and the bar keep Bluebook's
    geometry. Measured at 390px they were 17 to 25px across. The cross-out
    circle already draws its strike with ::after. */
-.tool:not(.static), .backbtn, .hide-btn, .crossbtn { position: relative; }
+.tool:not(.static) { position: relative; }
 .tool:not(.static)::before, .backbtn::before, .hide-btn::before, .crossbtn::before {
   content: ''; position: absolute; inset: -10px;
 }
@@ -95,7 +95,7 @@
   font-size: 13px; font-weight: 600; box-shadow: var(--shadow);
 }
 .hide-btn {
-  border: 1.5px solid var(--ink); background: none; border-radius: 999px;
+  position: relative; border: 1.5px solid var(--ink); background: none; border-radius: 999px;
   padding: 1px 15px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--ink);
 }
 .hide-btn:hover { background: rgba(0, 0, 0, .06); }
@@ -330,9 +330,8 @@
 .spr-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 /* Graded grid-in: the same 2px state edge as a graded choice. The text fill
    overrides the faded grey the browser gives a disabled field. */
-.spr-input.is-right, .spr-input.is-wrong { opacity: 1; color: var(--ink); -webkit-text-fill-color: var(--ink); }
-.spr-input.is-right { border-color: var(--green); background: var(--green-soft); box-shadow: inset 0 0 0 1px var(--green); }
-.spr-input.is-wrong { border-color: var(--red); background: var(--red-soft); box-shadow: inset 0 0 0 1px var(--red); }
+.spr-input.is-right { opacity: 1; color: var(--ink); -webkit-text-fill-color: var(--ink); border-color: var(--green); background: var(--green-soft); box-shadow: inset 0 0 0 1px var(--green); }
+.spr-input.is-wrong { opacity: 1; color: var(--ink); -webkit-text-fill-color: var(--ink); border-color: var(--red); background: var(--red-soft); box-shadow: inset 0 0 0 1px var(--red); }
 .submit { margin-top: 26px; }
 .spr + .submit { margin-top: 18px; }
 
@@ -518,11 +517,11 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
      sense side by side and are horrible stacked, because the passage traps the
      scroll before you reach the choices. */
   .qview { overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  .split.stacked, .qskel-split { grid-template-columns: minmax(0, 1fr); }
+  .split.stacked { grid-template-columns: minmax(0, 1fr); }
   .qskel-divider { display: none; }
   .skel.qskel-passage { height: 160px; }
   /* Rows to their content, or the grid stretches them down the screen. */
-  .qskel-split { align-content: start; }
+  .qskel-split { grid-template-columns: minmax(0, 1fr); align-content: start; }
   .qskel-split > .pane:first-child { padding-bottom: 0; }
   .split.stacked .pane-stimulus {
     padding-bottom: 18px; margin-bottom: 2px;
@@ -670,17 +669,17 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
    Hide button rather than over it, and glyph-only tools, as on a phone. */
 @media (max-height: 500px) and (orientation: landscape) {
   :root { --bar: 48px; }
+  /* One row per column, or the stacked title, Directions and Hide make the
+     header 93px whatever --bar says. The title truncates (minmax(0, ...)). */
   .topbar {
     padding: calc(4px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
       4px max(16px, env(safe-area-inset-left));
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px;
   }
   .bottombar {
     padding: 4px max(16px, env(safe-area-inset-right))
       calc(4px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   }
-  /* One row per column, or the stacked title, Directions and Hide make the
-     header 93px whatever --bar says. The title truncates (minmax(0, ...)). */
-  .topbar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; }
   .topbar-left { flex-direction: row; align-items: center; gap: 10px; min-width: 0; }
   .section-title { font-size: 15px; min-width: 0; }
   .section-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
