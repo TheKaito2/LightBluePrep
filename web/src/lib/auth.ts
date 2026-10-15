@@ -57,7 +57,6 @@ interface GisIdApi {
     cancel_on_tap_outside: boolean
   }): void
   renderButton(parent: HTMLElement, options: Record<string, unknown>): void
-  disableAutoSelect(): void
 }
 declare global {
   interface Window { google?: { accounts: { id: GisIdApi } } }
@@ -160,8 +159,9 @@ export async function signOut(everywhere = false): Promise<void> {
   } else {
     try { await request('/signout', { method: 'POST' }) } catch { /* leaving anyway */ }
   }
+  // No disableAutoSelect() here: auto_select is always off, and calling it
+  // would load Google's script for someone who only came to sign out.
   setToken(null)
-  try { (await loadGis()).disableAutoSelect() } catch { /* nothing to disable */ }
 }
 
 /** Erases everything held server-side for this account. Local data survives. */

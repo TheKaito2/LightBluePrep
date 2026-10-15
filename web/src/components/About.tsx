@@ -111,9 +111,9 @@ export function About({ taxonomy }: { taxonomy: TaxonomyRow[] }) {
         {canSignIn ? (
           <p className="about-p">
             Signing in with Google syncs your practice history between devices.
-            We keep only an anonymous account ID from Google, never your email,
-            name, or photo, and you can delete everything on the server from the
-            sync panel.
+            Google gives us a random account number that is not your name or
+            email. Your practice history is linked only to that number, and you
+            can delete everything on the server from the sync panel.
           </p>
         ) : null}
         <p className="about-p">

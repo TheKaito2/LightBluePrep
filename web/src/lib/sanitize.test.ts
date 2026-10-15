@@ -46,8 +46,40 @@ describe('sanitize', () => {
     const html = '<p class="stem_paragraph" style="text-align: center;">Solve '
       + '<math alttext="x"><mrow><mi>x</mi><mo>+</mo><mn>2</mn></mrow></math></p>'
       + '<table><thead><tr><th>t</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table>'
-      + '<svg viewBox="0 0 10 10"><style>.a{fill:red}</style><rect class="a" width="5" height="5"></rect></svg>'
+      + '<svg viewBox="0 0 10 10"><rect class="a" width="5" height="5"></rect></svg>'
       + '<img alt="graph" src="data:image/png;base64,AAAA">'
     expect(clean(html).innerHTML).toBe(html)
+  })
+
+  it('refuses images from anywhere but the question itself', () => {
+    const host = clean('<img alt="a" src="https://example.com/beacon.png">'
+      + '<img alt="b" src="//example.com/x.png"><img alt="c" src="DATA:image/png;base64,AAAA">')
+    const srcs = [...host.querySelectorAll('img')].map((img) => img.getAttribute('src'))
+    expect(srcs).toEqual([null, null, 'DATA:image/png;base64,AAAA'])
+  })
+
+  it('scopes a figure\'s <style> to that figure', () => {
+    const host = clean('<svg><style>.st0{fill:red} *{stroke-linecap:butt}</style>'
+      + '<rect class="st0"></rect></svg><svg><style>.st0{fill:blue}</style></svg>')
+    const [one, two] = [...host.querySelectorAll('svg')]
+    const id = one!.getAttribute('data-css-scope')
+    expect(id).toMatch(/^f\d+$/)
+    expect(two!.getAttribute('data-css-scope')).not.toBe(id)
+    const css = one!.querySelector('style')!.textContent!
+    expect(css.startsWith(`[data-css-scope="${id}"] {`)).toBe(true)
+    expect(css).toContain('.st0 { fill: red; }')
+    expect(css).toContain('* { stroke-linecap: butt; }')
+    expect(css.trimEnd().endsWith('}')).toBe(true)
+  })
+
+  it('keeps a stray brace from closing the scope early', () => {
+    const host = clean('<svg><style>.a{fill:red} } body{display:none} .b{fill:blue}</style></svg>')
+    const css = host.querySelector('style')!.textContent!
+    expect(css).not.toContain('body')
+    expect(css.match(/{/g)!.length).toBe(css.match(/}/g)!.length)
+  })
+
+  it('drops a <style> that is not inside a figure', () => {
+    expect(clean('<style>body{display:none}</style><p>a</p>').innerHTML).toBe('<p>a</p>')
   })
 })

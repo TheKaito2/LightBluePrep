@@ -315,8 +315,8 @@ export function Settings() {
             {signedIn ? (
               <>
                 <p className="about-p">
-                  You're signed in, so your practice history is also stored on our
-                  server under an anonymous account ID, never your name or email.
+                  You're signed in, so a copy is also kept on our server. Google gives us a random account number that is not your
+                  name or email. Your practice history is linked only to that number.
                 </p>
                 <button className="btn danger-secondary" onClick={() => { setConfirm('cloud'); setResult(null) }}>
                   <Icon name="trash" size={16} strokeWidth={2} />
