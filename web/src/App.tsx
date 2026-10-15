@@ -951,7 +951,7 @@ export default function App() {
         <Review onPractice={practiceOne} onPracticeMany={practiceMany} onOpenSet={showSet}
                 onDeleteSet={dropSet} onStart={() => navigate('home')} />
       ),
-      stats: () => <StatsPage taxonomy={taxonomy} onPractice={practiceFilters} />,
+      stats: () => <StatsPage taxonomy={taxonomy} onPractice={practiceFilters} onStart={quickSet} />,
     }
     // Results is the end of a set, read back from Review, so Review stays lit.
     const current = view === 'results' ? 'review' : view

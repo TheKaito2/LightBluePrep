@@ -5,7 +5,7 @@
  * come from lib/progress.ts; this only draws them.
  */
 import { Icon } from './Icon'
-import { Stat } from './Stat'
+import { NoData, Stat } from './Stat'
 import { score, streak, UNLOCK_AFTER, type HistoryRow } from '../lib/progress'
 import { SECTIONS, SECTION_NAME, SECTION_SHORT, fmt, noun } from '../lib/labels'
 import { graded } from '../lib/score'
@@ -139,7 +139,7 @@ export function ProgressStrip({ history, covered, total, attempts, correct, onSc
           </div>
           <Stat label="Covered" value={fmt(covered)} sub={`of ${fmt(total)}`}
                 meter={total ? covered / total : 0} />
-          <Stat label="Accuracy" value={acc ? acc.pct : undefined} unit={acc ? '%' : undefined}
+          <Stat label="Accuracy" value={acc ? acc.pct : <NoData />} unit={acc ? '%' : undefined}
                 sub={acc ? undefined : 'After 5 answers'} />
         </div>
       </section>

@@ -1,23 +1,30 @@
-import { Fragment, useMemo } from 'react'
+import { useMemo } from 'react'
+import { EmptyState } from './EmptyState'
 import { Icon } from './Icon'
 import { PageHead } from './PageHead'
-import { Stat, StatGroup } from './Stat'
-import { DIFFICULTIES, DIFFICULTY_NAME, SECTIONS, SECTION_NAME, byDomain, bySkill, fmt } from '../lib/labels'
+import { NoData, Stat, StatGroup } from './Stat'
+import { DIFFICULTIES, DIFFICULTY_NAME, SECTIONS, SECTION_NAME, SECTION_SHORT, fmt } from '../lib/labels'
 import { MIN_ANSWERS, graded } from '../lib/score'
-import type { Filters, Section, TaxonomyRow } from '../types'
+import { focusSkills, rollup, type SkillTally, type Tally } from '../lib/taxonomy'
+import type { Filters, TaxonomyRow } from '../types'
 
 interface Props {
   taxonomy: TaxonomyRow[]
   onPractice: (filters: Filters) => void
+  /** Start a 10-question set from the whole bank. */
+  onStart: () => void
 }
 
+/**
+ * Answers a section needs before the page has anything worth drawing. Below
+ * this on both sections every block would be a row of dashes, so the page
+ * shows how close you are instead.
+ */
+const UNLOCK = 10
 
-interface Tally { n: number; seen: number; correct: number }
-const empty = (): Tally => ({ n: 0, seen: 0, correct: 0 })
-const add = (into: Tally, row: TaxonomyRow) => {
-  into.n += row.n; into.seen += row.seen; into.correct += row.correct
-}
 const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0)
+
+const SUB = 'Where you stand, where you are losing points, and what to drill next.'
 
 /**
  * Accuracy, graded only once there are enough answers to judge: one unlucky
@@ -25,7 +32,7 @@ const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0)
  * 4.5:1 on white.
  */
 function Accuracy({ t }: { t: Tally }) {
-  if (!t.seen) return <span className="acc none" title="Not tried yet">—</span>
+  if (!t.seen) return <span className="acc none"><NoData /></span>
   const g = graded(t.seen, t.correct)
   if (!g) {
     return <span className="acc none" title="Too few answers to judge">{fmt(t.correct)} of {fmt(t.seen)}</span>
@@ -37,195 +44,225 @@ function Accuracy({ t }: { t: Tally }) {
   )
 }
 
-/** Single-series magnitude bar. No legend: the row label names it. */
-function Bar({ value, total, title }: { value: number; total: number; title?: string }) {
+/** Accuracy as a bar, drawn from MIN_ANSWERS answers; an empty track before that. */
+function AccMeter({ t, className }: { t: Tally; className: string }) {
+  const g = graded(t.seen, t.correct)
   return (
-    <span className="bar" title={title}>
-      <span className="bar-fill" style={{ width: `${Math.max(Math.min(100, pct(value, total)), value ? 1.5 : 0)}%` }} />
+    <span className={`meter ${className}`} aria-hidden="true">
+      {g && t.correct ? <span className="meter-fill" style={{ width: `${g.pct}%` }} /> : null}
     </span>
   )
 }
 
-export function Stats({ taxonomy, onPractice }: Props) {
+/**
+ * A row label with its practice arrow. The arrow is glued to the last word so
+ * a wrapped name never leaves it alone on a line.
+ */
+function ArrowLabel({ name }: { name: string }) {
+  const cut = name.lastIndexOf(' ') + 1
+  return (
+    <span className="row-label">
+      {name.slice(0, cut)}
+      <span className="row-last">{name.slice(cut)}<Icon name="arrow-right" size={14} strokeWidth={2.2} /></span>
+    </span>
+  )
+}
+
+/** A strip cell for one section's accuracy. */
+function SectionStat({ label, short, t }: { label: string; short: string; t: Tally }) {
+  const g = graded(t.seen, t.correct)
+  return (
+    <Stat size="l" label={<><span className="long">{label}</span><span className="short">{short}</span></>}
+          value={g ? g.pct : <NoData />} unit={g ? '%' : undefined}
+          sub={g ? `${fmt(t.correct)} of ${fmt(t.seen)}` : t.seen ? `${fmt(t.seen)} answered` : 'None yet'} />
+  )
+}
+
+function FocusRow({ k, onPractice }: { k: SkillTally; onPractice: (f: Filters) => void }) {
+  const g = graded(k.seen, k.correct)
+  // What the button serves: the questions not answered yet or last answered
+  // wrong. Taxonomy `correct` counts questions whose last answer was right.
+  const pool = k.n - k.correct
+  const go = () => onPractice({
+    section: k.section, domains: [k.domain], skills: [k.code], statuses: ['unseen', 'wrong'],
+  })
+  return (
+    <li className={`focus-row sec-${k.section}`}>
+      <span className="focus-dot" aria-hidden="true" />
+      <div className="focus-id">
+        <span className="focus-name">{k.name}</span>
+        <span className="focus-meta">
+          <span className="focus-where">{k.domainName}</span>
+          <span className="focus-count">{fmt(k.correct)} of {fmt(k.seen)} correct</span>
+        </span>
+      </div>
+      <AccMeter t={k} className="focus-meter" />
+      {g ? <span className={`focus-acc grade-${g.grade}`}>{g.pct}%</span> : null}
+      <button type="button" className="btn sm focus-go" onClick={go}
+              title={`${fmt(pool)} not answered yet or answered incorrectly`}
+              aria-label={`Practice ${fmt(pool)} not answered or incorrect in ${k.name}`}>
+        Practice {fmt(pool)}
+        <Icon name="arrow-right" size={16} strokeWidth={2.2} />
+      </button>
+      <button type="button" className="btn icon focus-go-icon" onClick={go} aria-label={`Practice ${k.name}`}>
+        <Icon name="arrow-right" size={16} strokeWidth={2.2} />
+      </button>
+    </li>
+  )
+}
+
+/** Before the bank index arrives: the band, the shape of the strip and three rows. */
+function Loading() {
+  return (
+    <>
+      <PageHead tone="ink" title="Stats" sub={SUB}>
+        <div className="stat-group stats-skel-strip" aria-hidden="true">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="stat">
+              <span className="skel stats-skel-l" />
+              <span className="skel stats-skel-n" />
+            </div>
+          ))}
+        </div>
+      </PageHead>
+      <div className="stats" aria-busy="true">
+        <span className="sr-only" role="status">Loading your stats</span>
+        <ul className="focus" aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="focus-row stats-skel-row">
+              <span className="skel stats-skel-name" />
+              <span className="skel stats-skel-meta" />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  )
+}
+
+export function Stats({ taxonomy, onPractice, onStart }: Props) {
   const model = useMemo(() => {
-    const overall = empty()
-    const sections = new Map<Section, Tally>()
-    const domains = new Map<string, Tally & { name: string; section: Section; code: string }>()
-    const skills = new Map<string, Tally & {
-      name: string; code: string; domain: string; domainName: string; section: Section
-    }>()
-    const difficulty = new Map<string, Tally>()
-
-    for (const row of taxonomy) {
-      add(overall, row)
-
-      const s = sections.get(row.section) ?? empty()
-      add(s, row); sections.set(row.section, s)
-
-      const dKey = row.section + '|' + row.domain
-      const d = domains.get(dKey)
-        ?? { ...empty(), name: row.domain_name, section: row.section, code: row.domain }
-      add(d, row); domains.set(dKey, d)
-
-      const kKey = dKey + '|' + row.skill
-      const k = skills.get(kKey) ?? {
-        ...empty(), name: row.skill_name, code: row.skill,
-        domain: row.domain, domainName: row.domain_name, section: row.section,
-      }
-      add(k, row); skills.set(kKey, k)
-
-      const f = difficulty.get(row.difficulty) ?? empty()
-      add(f, row); difficulty.set(row.difficulty, f)
-
-    }
-
-    const domainList = [...domains.values()].sort(
-      (a, b) => SECTIONS.indexOf(a.section) - SECTIONS.indexOf(b.section) || byDomain(a, b))
-    const skillList = [...skills.values()].sort(bySkill)
-
-    // Ranked only from enough answers that a weak spot is real.
-    const focus = skillList
-      .filter((k) => k.seen >= MIN_ANSWERS)
-      .sort((a, b) => pct(a.correct, a.seen) - pct(b.correct, b.seen))
-      .slice(0, 5)
-
-    const untouched = skillList
+    const r = rollup(taxonomy)
+    const untouched = r.skills
       .filter((k) => k.seen === 0)
       .sort((a, b) => b.n - a.n)
       .slice(0, 5)
-
-    const biggestDomain = Math.max(1, ...domainList.map((d) => d.n))
-
-    return {
-      overall, sections, domainList, skillList, difficulty, focus, untouched,
-      biggestDomain,
-    }
+    return { ...r, focus: focusSkills(r.skills), untouched }
   }, [taxonomy])
 
-  const {
-    overall, sections, domainList, skillList, difficulty,
-    focus, untouched, biggestDomain,
-  } = model
+  if (!taxonomy.length) return <Loading />
 
-  const skillsFor = (section: Section, domain: string) =>
-    skillList.filter((k) => k.section === section && k.domain === domain)
+  const { total, sections, domains, difficulty, focus, untouched } = model
 
+  if (SECTIONS.every((s) => sections[s].seen < UNLOCK)) {
+    return (
+      <>
+        <PageHead tone="ink" title="Stats" sub={SUB} />
+        <div className="stats">
+          <EmptyState className="stats-locked" title={`Stats unlock at ${UNLOCK} answers per section`}
+                      body="Answer a few questions in each section and this page shows where you are losing points."
+                      action={{ label: `Start a ${UNLOCK}-question set`, onClick: onStart }}>
+            <ul className="unlock">
+              {SECTIONS.map((s) => {
+                const n = Math.min(sections[s].seen, UNLOCK)
+                return (
+                  <li key={s} className={`unlock-row sec-${s}`}>
+                    <span className="unlock-l">{SECTION_NAME[s]}</span>
+                    <span className="unlock-n">{n} / {UNLOCK}</span>
+                    <span className="meter" aria-hidden="true">
+                      {n ? <span className="meter-fill" style={{ width: `${(n / UNLOCK) * 100}%` }} /> : null}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </EmptyState>
+        </div>
+      </>
+    )
+  }
 
-  const accuracy = overall.seen ? pct(overall.correct, overall.seen) : null
-  const coverage = pct(overall.seen, overall.n)
+  const coverage = pct(total.seen, total.n)
 
   return (
     <>
-    <PageHead tone="ink" title="Stats"
-              sub="Where you stand, where you are losing points, and what to drill next.">
-      {/* Single headlines are stat tiles, not charts. */}
-      <StatGroup>
-        <Stat size="l" label="Accuracy" value={accuracy === null ? '—' : `${accuracy}%`}
-              sub={overall.seen ? `${fmt(overall.correct)} of ${fmt(overall.seen)}` : 'none yet'} />
-        <Stat size="l" label="Answered" value={fmt(overall.seen)}
-              sub={`${overall.seen && coverage < 1 ? '<1' : coverage}% of bank`} />
-        <Stat size="l" label={<><span className="long">Not tried yet</span><span className="short">Not tried</span></>} value={fmt(overall.n - overall.seen)}
-              sub={`of ${fmt(overall.n)}`} />
-        <Stat className="stat-wide" label="Bank progress" meter={overall.n ? overall.seen / overall.n : 0}
-              sub={`${fmt(overall.seen)} of ${fmt(overall.n)}`} />
+    <PageHead tone="ink" title="Stats" sub={SUB}>
+      <StatGroup className="stats-strip">
+        <Stat size="l" label="Accuracy" value={pct(total.correct, total.seen)} unit="%"
+              sub={`${fmt(total.correct)} of ${fmt(total.seen)}`} />
+        <Stat size="l" label="Answered" value={fmt(total.seen)}
+              sub={`${coverage < 1 ? '<1' : coverage}% of bank`} meter={total.seen / total.n} />
+        {SECTIONS.map((s) => (
+          <SectionStat key={s} label={SECTION_NAME[s]} short={SECTION_SHORT[s]} t={sections[s]} />
+        ))}
       </StatGroup>
     </PageHead>
     <div className="stats">
 
-      <section className="block">
+      <section className="block" aria-labelledby="focus-title">
         <div className="block-head">
-          <h2 className="h1-section">Where to focus</h2>
+          <h2 className="h1-section" id="focus-title">Where to focus</h2>
         </div>
         {focus.length ? (
           <ul className="focus">
-            {focus.map((k) => (
-              <li key={k.section + k.domain + k.code} className={`focus-row sec-${k.section}`}>
-                <div className="focus-id">
-                  <span className="focus-name">{k.name}</span>
-                  <span className="focus-where">{k.domainName}</span>
-                </div>
-                <Bar value={k.correct} total={k.seen}
-                     title={`${fmt(k.correct)} of ${fmt(k.seen)} correct`} />
-                <Accuracy t={k} />
-                <button className="btn small"
-                        onClick={() => onPractice({ section: k.section, domains: [k.domain], skills: [k.code] })}>
-                  Practice
-                </button>
-              </li>
-            ))}
+            {focus.map((k) => <FocusRow key={`${k.section}|${k.domain}|${k.code}`} k={k} onPractice={onPractice} />)}
           </ul>
         ) : (
           <>
-            <p className="hint">
-              Nothing has {MIN_ANSWERS} answers yet, so there is no reliable weak
-              spot to point at. These are the biggest areas you have not touched.
-            </p>
-            <ul className="focus">
-              {untouched.map((k) => (
-                <li key={k.section + k.domain + k.code} className={`focus-row sec-${k.section}`}>
-                  <div className="focus-id">
-                    <span className="focus-name">{k.name}</span>
-                    <span className="focus-where">{k.domainName}</span>
-                  </div>
-                  <Bar value={0} total={k.n} title={`${fmt(k.n)} not tried yet`} />
-                  <span className="acc none">{fmt(k.n)}</span>
-                  <button className="btn small"
-                          onClick={() => onPractice({ section: k.section, domains: [k.domain], skills: [k.code] })}>
-                    Practice
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <EmptyState className="focus-empty" title="No weak spots yet"
+                        body={`Answer ${MIN_ANSWERS} or more questions in a skill to rank it.`} />
+            {untouched.length ? (
+              <>
+                <h3 className="focus-new-t">Start with the biggest skills you haven't tried</h3>
+                <ul className="focus">
+                  {untouched.map((k) => (
+                    <li key={`${k.section}|${k.domain}|${k.code}`} className={`focus-row is-new sec-${k.section}`}>
+                      <span className="focus-dot" aria-hidden="true" />
+                      <div className="focus-id">
+                        <span className="focus-name">{k.name}</span>
+                        <span className="focus-meta"><span className="focus-where">{k.domainName}</span></span>
+                      </div>
+                      <span className="focus-new">{fmt(k.n)} new</span>
+                      <button type="button" className="btn sm focus-go"
+                              aria-label={`Practice ${k.name}`}
+                              onClick={() => onPractice({
+                                section: k.section, domains: [k.domain], skills: [k.code], statuses: ['unseen'],
+                              })}>
+                        Practice
+                        <Icon name="arrow-right" size={16} strokeWidth={2.2} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
           </>
         )}
       </section>
 
-      {/* Magnitude across categories -> horizontal bars, one series, so the row
-          label carries identity and no legend is needed. */}
-      <section className="block">
+      <section className="block" aria-labelledby="difficulty-title">
         <div className="block-head">
-          <h2 className="h1-section">Questions by domain</h2>
+          <h2 className="h1-section" id="difficulty-title">By difficulty</h2>
         </div>
-        <ul className="dbars">
-          {domainList.map((d, i) => (
-            <Fragment key={d.section + d.code}>
-              {i === 0 || domainList[i - 1].section !== d.section ? (
-                <li className={`dbar-group sec-${d.section}`}>{SECTION_NAME[d.section]}</li>
-              ) : null}
-            <li className={`dbar sec-${d.section}`}>
-              <span className="dbar-name" title={d.name}>{d.name}</span>
-              <span className="dbar-track" title={`${fmt(d.seen)} of ${fmt(d.n)} answered`}>
-                <span className="dbar-total" style={{ width: `${(d.n / biggestDomain) * 100}%` }}>
-                  <span className="dbar-seen"
-                        style={{ width: `${Math.max(pct(d.seen, d.n), d.seen ? 1.5 : 0)}%` }} />
-                </span>
-              </span>
-              <span className="dbar-n">{fmt(d.n)}</span>
-              <Accuracy t={d} />
-            </li>
-            </Fragment>
-          ))}
-        </ul>
-      </section>
-
-      <section className="block">
-        <div className="block-head">
-          <h2 className="h1-section">By difficulty</h2>
-        </div>
-        <ul className="dbars">
+        <ul className="diffs">
           {DIFFICULTIES.map((f) => {
-            const t = difficulty.get(f) ?? empty()
+            const t = difficulty[f]
+            const g = graded(t.seen, t.correct)
             return (
-              <li key={f} className={`dbar d-${f}`}>
-                <span className="dbar-name">{DIFFICULTY_NAME[f]}</span>
-                <span className="dbar-track" title={`${fmt(t.seen)} of ${fmt(t.n)} answered`}>
-                  <span className="dbar-total" style={{ width: '100%' }}>
-                    <span className="dbar-seen"
-                          style={{ width: `${Math.max(pct(t.seen, t.n), t.seen ? 1.5 : 0)}%` }} />
+              <li key={f} className={`diff d-${f}`}>
+                <span className="diff-l">
+                  <span className="diff-dot" aria-hidden="true" />
+                  <span className="diff-name">{DIFFICULTY_NAME[f]}</span>
+                  <span className="diff-meta">
+                    {' · '}{t.seen ? `${fmt(t.seen)} answered` : 'Not tried yet'}
+                    {g ? <>{' · '}<span className={`grade-${g.grade}`}>{g.pct}%</span></> : null}
                   </span>
                 </span>
-                <span className="dbar-n">{fmt(t.n)}</span>
-                <Accuracy t={t} />
+                {/* Neutral on purpose: the dot already carries the difficulty
+                    colour, and green, amber and red here would read as grades. */}
+                <span className="meter diff-bar" aria-hidden="true">
+                  {g && t.correct ? <span className="meter-fill" style={{ width: `${g.pct}%` }} /> : null}
+                </span>
               </li>
             )
           })}
@@ -233,41 +270,48 @@ export function Stats({ taxonomy, onPractice }: Props) {
       </section>
 
       {SECTIONS.map((section) => {
-        const t = sections.get(section) ?? empty()
+        const t = sections[section]
+        const g = graded(t.seen, t.correct)
         return (
-          <section className={`block spanel sec-${section}`} key={section}>
+          <section className={`block spanel sec-${section}`} key={section} aria-labelledby={`stats-${section}`}>
             <header className="spanel-h">
               <span className="spanel-ico">
-                <Icon name={section === 'RW' ? 'book' : 'sigma'} size={24} strokeWidth={2} />
+                <Icon name={section === 'RW' ? 'book' : 'sigma'} size={18} strokeWidth={2} />
               </span>
               <div className="spanel-txt">
-                <h2 className="spanel-t">{SECTION_NAME[section]}</h2>
-                <p className="spanel-sub">
-                  {fmt(t.seen)} of {fmt(t.n)} answered
-                </p>
+                <h2 className="spanel-t" id={`stats-${section}`}>{SECTION_NAME[section]}</h2>
+                <p className="spanel-sub">{fmt(t.seen)} of {fmt(t.n)} answered</p>
               </div>
-              <Accuracy t={t} />
+              {g ? <span className="spanel-pct">{g.pct}<small>%</small></span> : null}
+              <button type="button" className="btn on-colour sm" aria-label={`Practice ${SECTION_NAME[section]}`}
+                      onClick={() => onPractice({ section })}>
+                Practice
+                <Icon name="arrow-right" size={16} strokeWidth={2.2} />
+              </button>
             </header>
             <ul className="rows">
-              {domainList.filter((d) => d.section === section).map((d) => (
+              {domains.filter((d) => d.section === section).map((d) => (
                 <li key={d.code} className="domain-group">
-                  <div className="row-item is-domain">
-                    <span className="row-name">{d.name}</span>
-                    <span className="row-count">{fmt(d.seen)}<span className="dim"> / {fmt(d.n)}</span></span>
-                    <Bar value={d.seen} total={d.n} title={`${fmt(d.seen)} of ${fmt(d.n)} answered`} />
+                  <button type="button" className="row-item is-domain"
+                          onClick={() => onPractice({ section, domains: [d.code] })}>
+                    <span className="row-name">
+                      <span className="sr-only">Practice </span>
+                      <ArrowLabel name={d.name} />
+                    </span>
+                    <span className="row-count">{fmt(d.seen)} / {fmt(d.n)} answered</span>
+                    <AccMeter t={d} className="row-meter" />
                     <Accuracy t={d} />
-                  </div>
+                  </button>
                   <ul className="rows sub">
-                    {skillsFor(section, d.code).map((k) => (
+                    {d.skills.map((k) => (
                       <li key={k.code} className="row-item is-skill">
-                        <button className="row-name link"
-                                onClick={() => onPractice({ section, domains: [d.code], skills: [k.code] })}
-                                title={`Practice ${k.name}`}>
-                          {k.name}
-                          <Icon name="arrow-right" size={13} strokeWidth={2.2} />
+                        <button type="button" className="row-name"
+                                onClick={() => onPractice({ section, domains: [d.code], skills: [k.code] })}>
+                          <span className="sr-only">Practice </span>
+                          <ArrowLabel name={k.name} />
                         </button>
-                        <span className="row-count">{fmt(k.seen)}<span className="dim"> / {fmt(k.n)}</span></span>
-                        <Bar value={k.seen} total={k.n} title={`${fmt(k.seen)} of ${fmt(k.n)} answered`} />
+                        <span className="row-count">{fmt(k.seen)} / {fmt(k.n)}</span>
+                        <AccMeter t={k} className="row-meter" />
                         <Accuracy t={k} />
                       </li>
                     ))}

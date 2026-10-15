@@ -11,9 +11,10 @@ import { loadProcessTypes, typeCounts, type ProcessTypes } from '../lib/similar'
 import { setSeconds, formatClock } from '../lib/pacing'
 import { SIZES } from '../lib/prefs'
 import {
-  DIFFICULTIES, DIFFICULTY_NAME, SECTIONS, SECTION_NAME, SECTION_SHORT, andMore, byDomain, bySkill, describeSet, fmt, plural,
+  DIFFICULTIES, DIFFICULTY_NAME, SECTIONS, SECTION_NAME, SECTION_SHORT, andMore, describeSet, fmt, plural,
 } from '../lib/labels'
 import { graded } from '../lib/score'
+import { rollup, type DomainTally } from '../lib/taxonomy'
 import { idNeedle } from '../lib/route'
 import type { Order } from '../lib/order'
 import type { HistoryRow } from '../lib/progress'
@@ -86,11 +87,6 @@ const ORDERS = [
   { value: 'topic', label: 'By topic' },
 ] as const
 
-interface SkillRow { code: string; name: string; n: number; seen: number; correct: number }
-interface DomainRow {
-  code: string; name: string; section: Section
-  n: number; seen: number; correct: number; skills: SkillRow[]
-}
 
 const SECTION_ICON = { RW: 'book', MATH: 'sigma' } as const
 
@@ -201,25 +197,7 @@ export function Home({
   const resumable = activeSets.reduce<PracticeSet | null>(
     (best, s) => (!best || s.updated_at > best.updated_at ? s : best), null)
 
-  const domains = useMemo(() => {
-    const map = new Map<string, DomainRow>()
-    for (const row of taxonomy) {
-      if (value.section && row.section !== value.section) continue
-      const d = map.get(row.domain) ?? {
-        code: row.domain, name: row.domain_name, section: row.section,
-        n: 0, seen: 0, correct: 0, skills: [],
-      }
-      d.n += row.n; d.seen += row.seen; d.correct += row.correct
-      let s = d.skills.find((x) => x.code === row.skill)
-      if (!s) { s = { code: row.skill, name: row.skill_name, n: 0, seen: 0, correct: 0 }; d.skills.push(s) }
-      s.n += row.n; s.seen += row.seen; s.correct += row.correct
-      map.set(row.domain, d)
-    }
-    const out = [...map.values()].sort(
-      (a, b) => SECTIONS.indexOf(a.section) - SECTIONS.indexOf(b.section) || byDomain(a, b))
-    for (const d of out) d.skills.sort(bySkill)
-    return out
-  }, [taxonomy, value.section])
+  const domains = useMemo(() => rollup(taxonomy, value.section).domains, [taxonomy, value.section])
 
   /** Which section every skill and domain code belongs to, across the whole bank. */
   const sectionOf = useMemo(() => {
@@ -248,13 +226,7 @@ export function Home({
   const facetWord = d1 && !value.statuses?.length ? DIFFICULTY_NAME[d1].toLowerCase()
     : s1 && !value.difficulties?.length ? STATUS_WORD[s1] : 'match'
 
-  const secStats = useMemo(() => {
-    const out = { RW: { n: 0, seen: 0, correct: 0 }, MATH: { n: 0, seen: 0, correct: 0 } }
-    for (const row of taxonomy) {
-      out[row.section].n += row.n; out[row.section].seen += row.seen; out[row.section].correct += row.correct
-    }
-    return out
-  }, [taxonomy])
+  const secStats = useMemo(() => rollup(taxonomy).sections, [taxonomy])
 
   const totals = useMemo(() => {
     const out = { all: 0, seen: 0, live: 0, RW: 0, MATH: 0 }
@@ -297,7 +269,7 @@ export function Home({
       : { domains: undefined, skills: undefined, types: undefined })
   }
 
-  function tickDomain(d: DomainRow) {
+  function tickDomain(d: DomainTally) {
     const next = new Set(ticked)
     const all = d.skills.every((s) => next.has(s.code))
     for (const s of d.skills) { if (all) next.delete(s.code); else next.add(s.code) }

@@ -45,3 +45,11 @@ export function Stat({ label, value, unit, sub, meter, size = 'm', className }: 
 export function StatGroup({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={className ? `stat-group ${className}` : 'stat-group'}>{children}</div>
 }
+
+/**
+ * A figure that has nothing to show yet: a dash for the eye in --fg-3 (never
+ * the near-invisible greys it used to be), and words for a screen reader.
+ */
+export function NoData() {
+  return <span className="nodata"><span aria-hidden="true">—</span><span className="sr-only">No data yet</span></span>
+}
