@@ -140,13 +140,14 @@ export function QuestionDetail({
 
   function saveMistake(tags: MistakeTag[], note: string | null) {
     setLogError(null)
-    void api.saveMistake(id, tags, note)
+    // Returned so the fields can confirm "Saved"; rethrown so they do not.
+    return api.saveMistake(id, tags, note)
       .then((r) => {
         setData((d) => (d ? { ...d, mistake: r.mistake } : d))
         onLogged?.(id, r.mistake && (r.mistake.tags.length || r.mistake.note)
           ? r.mistake.tags : null)
       })
-      .catch((e: Error) => setLogError(toUserMessage(e)))
+      .catch((e: Error) => { setLogError(toUserMessage(e)); throw e })
   }
 
   return (
@@ -176,8 +177,8 @@ export function QuestionDetail({
 
       {/* The explanation below talks about the choices by letter, so without
           the choices themselves "Why B is wrong" says nothing. Same markup and
-          the same three colours practice uses once you have answered: green is
-          the key, red is a wrong pick, the blue ring is what you chose. */}
+          the same colours practice uses once you have answered: green is the
+          key and red is a wrong pick, so a green pick is a right answer. */}
       {data.question.type === 'mcq' && data.question.options ? (
         <ul className="choices static">
           {data.question.options.map((option) => {
@@ -268,11 +269,9 @@ export function QuestionDetail({
               <MistakeFields mistake={data.mistake}
                              onSave={saveMistake}
                              id={`mlog-note-${id}`}
-                             lead="Why did you miss this one? Pick as many as fit." />
-              <p className="mlog-fine">
-                {/* Review is the page it shows up on; there, say nothing more. */}
-                Saved automatically.{setWindow ? ' Shows up on the Review page.' : ''}
-              </p>
+                             lead="Why did you miss this one?"
+                             // Review is the page it shows up on; there, say nothing more.
+                             fine={`Saved automatically.${setWindow ? ' Shows up on the Review page.' : ''}`} />
               {logError ? <p className="mlog-error">{logError}</p> : null}
             </div>
           ) : null}

@@ -81,6 +81,12 @@
 .single { flex: 1; display: flex; justify-content: center; min-width: 0; }
 .single .pane { max-width: 780px; width: 100%; }
 .pane { overflow-y: auto; padding: 26px 0 60px; min-width: 0; }
+/* Single-pane Math sits a figure, a stem and four choices above Submit; the
+   tighter top and gaps keep Submit above the footer on a 900px screen. */
+@media (min-width: 820px) {
+  .single .pane { padding-top: 20px; }
+  .single .choices { gap: 10px; }
+}
 .prompt, .pane > .passage { padding: 0 var(--pane-pad); }
 
 .divider { position: relative; background: #888888; cursor: col-resize; }
@@ -171,12 +177,20 @@
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-ring);
 }
-.choice.is-key .choice-main { border-color: var(--green); background: var(--green-soft); }
-.choice.is-wrongpick .choice-main { border-color: var(--red); background: var(--red-soft); }
+/* Graded: a solid 2px state edge, which also replaces the selection ring. */
+.choice.is-key .choice-main {
+  border-color: var(--green); background: var(--green-soft); box-shadow: inset 0 0 0 1px var(--green);
+}
+.choice.is-wrongpick .choice-main {
+  border-color: var(--red); background: var(--red-soft); box-shadow: inset 0 0 0 1px var(--red);
+}
+/* Keyboard only, and offset so it never merges with a state edge. */
+.choice-main:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
 .choice.crossed .choice-main { opacity: .45; }
 .choice.crossed .choice-text { text-decoration: line-through; }
 
 .bubble {
+  position: relative;
   flex: none; width: 25px; height: 25px; border-radius: 50%;
   border: 1px solid var(--ink-2); color: var(--ink);
   display: inline-flex; align-items: center; justify-content: center;
@@ -185,6 +199,15 @@
 .choice.picked .bubble { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
 .choice.is-key .bubble { background: var(--green); border-color: var(--green); color: #fff; }
 .choice.is-wrongpick .bubble { background: var(--red); border-color: var(--red); color: #fff; }
+/* Right and wrong told apart by shape as well as colour: a tick or a cross
+   pinned to the letter's corner, so the letter itself stays readable. */
+.bubble-mark {
+  position: absolute; right: -9px; bottom: -7px; width: 17px; height: 17px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; color: #fff;
+}
+/* The ring is the choice's own fill, so the mark reads as cut out of the letter. */
+.choice.is-key .bubble-mark { background: var(--green); border: 2px solid var(--green-soft); }
+.choice.is-wrongpick .bubble-mark { background: var(--red); border: 2px solid var(--red-soft); }
 .choice-text { flex: 1; min-width: 0; font-family: var(--serif); font-size: 17px; line-height: 1.62; }
 
 /* The cross-out toggle sits outside the box: a lettered circle with a rule
@@ -211,18 +234,32 @@
   border: 1px solid var(--line-2); border-radius: var(--r-md); width: 240px; color: var(--ink);
 }
 .spr-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+/* Graded grid-in: the same 2px state edge as a graded choice. The text fill
+   overrides the faded grey the browser gives a disabled field. */
+.spr-input.is-right, .spr-input.is-wrong { opacity: 1; color: var(--ink); -webkit-text-fill-color: var(--ink); }
+.spr-input.is-right { border-color: var(--green); background: var(--green-soft); box-shadow: inset 0 0 0 1px var(--green); }
+.spr-input.is-wrong { border-color: var(--red); background: var(--red-soft); box-shadow: inset 0 0 0 1px var(--red); }
 .submit { margin-top: 26px; }
 
 /* ---------- explanation ---------- */
-.explain-bar { display: flex; align-items: center; gap: 14px; margin-top: 26px; }
-.explain { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 20px; }
-.explain-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
-.verdict {
-  font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 999px;
+.explain-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin-top: 26px;
+  /* Scrolled into view on grading: stop short of the footer, not flush with it. */
+  scroll-margin-bottom: 20px;
 }
-.verdict.ok { color: var(--green); background: var(--green-soft); }
-.verdict.no { color: var(--red); background: var(--red-soft); }
-.verdict-time { color: var(--muted); font-size: 13.5px; margin-right: auto; font-variant-numeric: tabular-nums; }
+.explain { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 20px; }
+/* The explanation is the last thing read: clear the footer rule rather than
+   finishing flush against it. */
+.app .prompt:has(> .explain) { padding-bottom: 120px; }
+.explain-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.explain-bar > .btn, .explain-head > .btn { margin-left: auto; }
+/* The status badge (shell.css) at the size this moment deserves. Review keeps
+   the shell status colours; practice keeps its own, which match them. */
+.verdict.badge { height: 28px; padding: 0 11px 0 9px; gap: 6px; font-size: 14px; font-weight: 700; }
+.app .verdict.badge.ok { color: var(--green); background: var(--green-soft); }
+.app .verdict.badge.bad { color: var(--red); background: var(--red-soft); }
+.verdict-answer { font-size: 14px; font-weight: 700; color: var(--green); font-variant-numeric: tabular-nums; }
+.verdict-time { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 
 .explain-answer { display: flex; gap: 36px; flex-wrap: wrap; margin: 14px 0 20px; }
 .explain-answer .label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 3px; }
@@ -232,6 +269,9 @@
 .explain-choices { display: flex; flex-direction: column; gap: 14px; }
 .why { border-left: 2px solid var(--line-2); padding-left: 16px; }
 .why h4 { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+/* Focused by script when the panel opens, as a reading start point, not a
+   control: a box around a caption would look like something to press. */
+.why h4:focus { outline: none; }
 .why-wrong { border-left-color: var(--red); }
 .why-right { border-left-color: var(--green); }
 .why > div { font-family: var(--serif); font-size: 16px; }
@@ -490,13 +530,18 @@ a.tool { text-decoration: none; color: inherit; }
 .app .btn.primary:hover:not(:disabled) { background: var(--accent-dark); }
 .app .btn.quiet { background: var(--bg); border-color: var(--line-2); color: var(--ink-2); }
 .app .btn.quiet:hover:not(:disabled) { background: var(--bg-soft); color: var(--ink); }
-.app .btn:disabled { opacity: .38; cursor: default; }
 .app .btn.small {
   padding: 6px 15px; border-radius: var(--rad-pill);
   font-family: var(--display); font-size: 13px; font-weight: 700;
   background: var(--bg); border: 1px solid var(--line-2); color: var(--ink);
 }
 .app .btn.small:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: var(--bg); }
+/* Bluebook's grey disabled. A faded royal read as a different lavender colour
+   rather than as "not now". After the variants, so it beats each fill. */
+.app .btn:disabled {
+  opacity: 1; cursor: default;
+  background: var(--chrome); border: 1px solid var(--chrome-line); color: #5d6478;
+}
 @media (max-width: 819px) {
   .app .btn { padding: 8px 14px; font-size: 13.5px; }
   /* Full width and one line. It was 173px wide and 72px tall, ie. wrapped over

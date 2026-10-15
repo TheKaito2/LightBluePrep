@@ -1149,11 +1149,11 @@ export default function App() {
               onRemoveAnnotation={(id) =>
                 persistAnnotations(annotations.filter((a) => a.id !== id))}
               mistake={mistake}
-              onSaveMistake={(tags, note) => {
-                void api.saveMistake(current.id, tags, note)
-                  .then((r) => setMistake(r.mistake))
-                  .catch((e: Error) => fail(e))
-              }}
+              // Returned so the mistake card can confirm "Saved"; rethrown so
+              // a failed save does not.
+              onSaveMistake={(tags, note) => api.saveMistake(current.id, tags, note)
+                .then((r) => setMistake(r.mistake))
+                .catch((e: Error) => { fail(e); throw e })}
             />
           </ErrorBoundary>
         ) : null}

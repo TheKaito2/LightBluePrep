@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { RichText } from './RichText'
+import { Icon } from './Icon'
 import { duration } from '../lib/pacing'
 import { VERDICT } from '../lib/labels'
 import type { GradeResult, Question } from '../types'
@@ -21,6 +22,22 @@ interface Props {
    * already folds the whole panel away.
    */
   hideToggle?: boolean
+  /**
+   * Just graded in practice: bring the verdict into view and put focus on the
+   * Explain button. Submit unmounts itself, so focus would otherwise fall to
+   * the body, and on a tall question the verdict landed below the fold.
+   */
+  autoFocus?: boolean
+}
+
+/** Status badge: an icon and the word, so the verdict is not colour alone. */
+function Verdict({ correct }: { correct: boolean }) {
+  return (
+    <span className={correct ? 'badge verdict ok' : 'badge verdict bad'}>
+      <Icon name={correct ? 'check' : 'close'} size={12} strokeWidth={2.8} />
+      {correct ? VERDICT.correct : VERDICT.incorrect}
+    </span>
+  )
 }
 
 /**
@@ -29,34 +46,56 @@ interface Props {
  */
 export function Explanation({
   result, question, seconds, startOpen = false, unanswered = false, hideToggle = false,
+  autoFocus = false,
 }: Props) {
   const [open, setOpen] = useState(startOpen)
   const isMcq = question.type === 'mcq'
+  const explainBtn = useRef<HTMLButtonElement>(null)
+  const panel = useRef<HTMLDivElement>(null)
+  // Where focus goes after the student opens or hides the panel. Null on
+  // mount, so a panel that starts open (Review) never steals focus.
+  const moveFocus = useRef<'panel' | 'button' | null>(autoFocus ? 'button' : null)
+
+  useEffect(() => {
+    const target = moveFocus.current
+    moveFocus.current = null
+    if (target === 'panel') {
+      // The first heading, or the Full explanation toggle when there is none.
+      panel.current?.querySelector<HTMLElement>('h4, summary')?.focus()
+    } else if (target === 'button' && explainBtn.current) {
+      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      explainBtn.current.parentElement?.scrollIntoView({ block: 'nearest', behavior: still ? 'auto' : 'smooth' })
+      explainBtn.current.focus({ preventScroll: true })
+    }
+  }, [open])
+
+  function toggle(next: boolean) {
+    moveFocus.current = next ? 'panel' : 'button'
+    setOpen(next)
+  }
 
   if (!open) {
     return (
       <div className="explain-bar">
-        <span className={result.correct ? 'verdict ok' : 'verdict no'}>
-          {result.correct ? VERDICT.correct : VERDICT.incorrect}
-        </span>
-        <span className="verdict-time">{duration(seconds)}</span>
-        <button className="btn primary" onClick={() => setOpen(true)}>
-          Explain answer choices
+        <Verdict correct={result.correct} />
+        {/* A wrong grid-in never showed the right value without a click. */}
+        <span className="verdict-answer">Answer: {result.accepted.join(' or ')}</span>
+        <span className="verdict-time">{duration(seconds)} on this question</span>
+        <button ref={explainBtn} className="btn primary" onClick={() => toggle(true)}>
+          {isMcq ? 'Explain answer choices' : 'Show explanation'}
         </button>
       </div>
     )
   }
 
   return (
-    <div className="explain">
+    <div className="explain" ref={panel}>
       <div className="explain-head">
         {unanswered ? <span className="verdict-time">{VERDICT.unanswered}</span> : (<>
-          <span className={result.correct ? 'verdict ok' : 'verdict no'}>
-            {result.correct ? VERDICT.correct : VERDICT.incorrect}
-          </span>
+          <Verdict correct={result.correct} />
           <span className="verdict-time">{duration(seconds)} on this question</span>
         </>)}
-        {hideToggle ? null : <button className="btn ghost" onClick={() => setOpen(false)}>Hide</button>}
+        {hideToggle ? null : <button className="btn quiet" onClick={() => toggle(false)}>Hide</button>}
       </div>
 
       <div className="explain-answer">
@@ -83,13 +122,13 @@ export function Explanation({
         <div className="explain-choices">
           {result.why_wrong_html ? (
             <section className="why why-wrong">
-              <h4>Why {result.response} is wrong</h4>
+              <h4 tabIndex={-1}>Why {result.response} is wrong</h4>
               <RichText html={result.why_wrong_html} field="why_wrong" />
             </section>
           ) : null}
           {result.why_right_html ? (
             <section className="why why-right">
-              <h4>Why {result.accepted[0]} is right</h4>
+              <h4 tabIndex={-1}>Why {result.accepted[0]} is right</h4>
               <RichText html={result.why_right_html} field="why_right" />
             </section>
           ) : null}
@@ -105,8 +144,8 @@ export function Explanation({
 
       {question.key_recovered ? (
         <p className="note small">
-          The answer key for this question was recovered from the official
-          rationale text, because the bank shipped it without one.
+          College Board's data was missing the answer key for this question, so
+          it was taken from the official explanation.
         </p>
       ) : null}
     </div>

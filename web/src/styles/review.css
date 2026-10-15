@@ -144,6 +144,9 @@
 .shell .explain-full summary { color: var(--brand-800); background: var(--brand-50); }
 .shell .explain-full summary:hover { background: var(--brand-100); }
 .shell .mlog-fine { font-size: 12px; color: var(--fg-3); }
+.shell .mlog-hint { color: var(--fg-3); }
+.shell .mlog-hint b { color: var(--fg-2); }
+.shell .mlog-saved { color: var(--ok-700); }
 .shell .why h4, .shell .verdict-time { font-size: 13px; }
 /* Practice drops answer text to 15.5px on phones to fit the pane; Review has
    the room, so it stays on the type scale. */

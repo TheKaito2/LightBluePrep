@@ -39,7 +39,7 @@ export function QuestionInfo({ question }: { question: Question }) {
         <div className="qinfo-pop" role="dialog" aria-label="Question info">
           {question.cb_id ? (
             <div className="qinfo-row">
-              <span className="qinfo-k">ID</span>
+              <span className="qinfo-k">CB question ID</span>
               {/* College Board's own id: the string videos and forums quote. */}
               <QuestionId id={question.cb_id} />
             </div>
@@ -50,12 +50,13 @@ export function QuestionInfo({ question }: { question: Question }) {
               {DIFFICULTY_NAME[question.difficulty] ?? question.difficulty}
             </span>
           </div>
-          {question.band ? (
+          {question.band ? (<>
             <div className="qinfo-row">
               <span className="qinfo-k">Score band</span>
               <span className="qinfo-v">{question.band} <span className="dim">of 7</span></span>
             </div>
-          ) : null}
+            <p className="qinfo-note">College Board's difficulty band: 1 is easiest, 7 is hardest.</p>
+          </>) : null}
         </div>
       ) : null}
     </div>

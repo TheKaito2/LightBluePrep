@@ -55,7 +55,7 @@ interface Props {
   deferred?: boolean
   /** Why you missed it. Asked inline, and only after a wrong answer. */
   mistake: Mistake | null
-  onSaveMistake: (tags: MistakeTag[], note: string | null) => void
+  onSaveMistake: (tags: MistakeTag[], note: string | null) => void | Promise<unknown>
   /** The one-time first-question tip, shown just above the choices. */
   coach?: ReactNode
 }
@@ -85,6 +85,13 @@ export function QuestionView(props: Props) {
   const dragging = useRef(false)
 
   const answered = result !== null
+  // Graded right here, as open practice is. A set holds its answers until the
+  // end, so inside one nothing is graded and the choices stay live.
+  const graded = answered && !deferred
+  // Grading turns the cross-out tool off for this question: the column and the
+  // ABC key go together, so the choices change width once and on purpose rather
+  // than leaving a faded key with nothing to act on.
+  const crossing = crossOutMode && !graded
   const hasStimulus = Boolean(question.stimulus_html?.trim())
   const isSplit = hasStimulus && question.section === 'RW'
 
@@ -184,11 +191,10 @@ export function QuestionView(props: Props) {
         {/* ID, difficulty and band live behind Info in the top bar. */}
         <span className="q-head-spacer" />
 
-        {question.type === 'mcq' ? (
+        {question.type === 'mcq' && !graded ? (
           <button className={crossOutMode ? 'strike on' : 'strike'}
                   onClick={onToggleCrossOutMode}
                   aria-pressed={crossOutMode}
-                  disabled={answered}
                   title="Cross out answer choices">
             <span className="strike-letters">ABC</span>
           </button>
@@ -204,27 +210,40 @@ export function QuestionView(props: Props) {
       {question.type === 'mcq' && question.options ? (
         <ul className="choices">
           {question.options.map((option) => {
-            const isCrossed = crossOut.has(option.label)
+            // A crossed-out key would otherwise grade as faded and struck through.
+            const isCrossed = crossOut.has(option.label) && !graded
             const isPicked = response === option.label
-            const isKey = !deferred && answered && result!.accepted.includes(option.label)
-            const isWrongPick = !deferred && answered && isPicked && !result!.correct
+            const isKey = graded && result!.accepted.includes(option.label)
+            const isWrongPick = graded && isPicked && !result!.correct
             return (
               <li key={option.label}
                   className={[
                     'choice',
-                    isPicked ? 'picked' : '',
+                    // Once graded the state edge says it all; the blue selection
+                    // ring around a red or green edge read as a glitch.
+                    isPicked && !graded ? 'picked' : '',
                     isCrossed ? 'crossed' : '',
                     isKey ? 'is-key' : '',
                     isWrongPick ? 'is-wrongpick' : '',
                   ].filter(Boolean).join(' ')}>
                 <button className="choice-main"
-                        disabled={(answered && !deferred) || isCrossed}
+                        disabled={graded || isCrossed}
                         onClick={() => onRespond(option.label)}>
-                  <span className="bubble">{option.label}</span>
+                  {/* The mark is the non-colour tell for right and wrong. */}
+                  <span className="bubble">
+                    {option.label}
+                    {isKey || isWrongPick ? (
+                      <span className="bubble-mark" aria-hidden="true">
+                        <Icon name={isKey ? 'check' : 'close'} size={10} strokeWidth={3.2} />
+                      </span>
+                    ) : null}
+                  </span>
                   <RichText className="choice-text" html={option.html}
                             field={`option:${option.label}`} annotations={annotations} />
+                  {isKey ? <span className="sr-only">, correct answer</span>
+                    : isWrongPick ? <span className="sr-only">, your answer, incorrect</span> : null}
                 </button>
-                {crossOutMode && (!answered || deferred) ? (
+                {crossing ? (
                   <button className={isCrossed ? 'crossbtn on' : 'crossbtn'}
                           title={isCrossed ? 'Undo cross out' : `Cross out ${option.label}`}
                           onClick={() => onToggleCrossOut(option.label)}>
@@ -238,8 +257,10 @@ export function QuestionView(props: Props) {
       ) : (
         <div className="spr">
           <label htmlFor="spr-input">Enter your answer</label>
-          <input id="spr-input" className="spr-input" value={response ?? ''}
-                 disabled={answered && !deferred} autoComplete="off" placeholder="—"
+          <input id="spr-input"
+                 className={graded ? `spr-input ${result!.correct ? 'is-right' : 'is-wrong'}` : 'spr-input'}
+                 value={response ?? ''}
+                 disabled={graded} autoComplete="off" placeholder="—"
                  onChange={(e) => onRespond(e.target.value)}
                  onKeyDown={(e) => { if (e.key === 'Enter' && response && !deferred) onSubmit() }} />
         </div>
@@ -250,16 +271,16 @@ export function QuestionView(props: Props) {
           Submit answer
         </button>
       ) : (
-        <Explanation result={result!} question={question} seconds={seconds} />
+        <Explanation result={result!} question={question} seconds={seconds} autoFocus />
       )}
 
       {/* Only when it went wrong: a log on a right answer is noise. Keyed so a
           new question starts blank rather than inheriting the last one's text. */}
-      {answered && !deferred && !result!.correct ? (
+      {graded && !result!.correct ? (
         <section className="mlog-practice" aria-label="Mistake log">
           <MistakeFields key={question.id} mistake={mistake} onSave={onSaveMistake}
-                         lead="Why did you miss it?" id="mlog-inline" rows={3} />
-          <p className="mlog-fine">Saved automatically. Shows up on Review.</p>
+                         lead="Why did you miss it?" id="mlog-inline" rows={3}
+                         fine="Saved automatically to your mistake log on Review." />
         </section>
       ) : null}
 
@@ -268,8 +289,15 @@ export function QuestionView(props: Props) {
     </div>
   )
 
+  // Always rendered, so the verdict is a change to a live region that is
+  // already there: a region that mounts with its text is often not announced.
+  const status = !graded ? ''
+    : result!.correct ? 'Correct'
+      : `Incorrect. The correct answer is ${result!.accepted.join(' or ')}.`
+
   return (
     <div className="qview">
+      <p className="sr-only" role="status">{status}</p>
       {isSplit && stacked ? (
         // No inline grid-template-columns and no divider: the columns are a
         // desktop affordance, and a 4px drag handle is not usable by thumb.
