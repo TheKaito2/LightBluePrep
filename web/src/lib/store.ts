@@ -413,6 +413,12 @@ export const setMeta = <T>(key: string, value: T) => put(STORE_META, value, key)
 export const COACH_KEY = 'coach-tip-shown'
 
 /**
+ * Meta key: the install bar was dismissed, or the install prompt answered.
+ * Shown once ever, like the tip; deleting your data brings it back.
+ */
+export const INSTALL_KEY = 'install-bar-dismissed'
+
+/**
  * Ask the browser not to evict this site's data under storage pressure.
  *
  * Without this, progress and the question cache are disposable data and can

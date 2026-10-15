@@ -5,6 +5,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { FeedbackHost } from './components/Feedback'
 import { Footer } from './components/Footer'
 import { Home } from './components/Home'
+import { InstallBar } from './components/InstallBar'
 import { PracticeScreen } from './components/PracticeScreen'
 import { SupportHost } from './components/Support'
 import { SkipLink, TopNav } from './components/TopNav'
@@ -123,7 +124,7 @@ export default function App() {
     }).catch((e: Error) => fail(e))
   }, [order, seed, setFilters, setItems, setIndex, fail, navigate])
 
-  useDeepLinks({ practiceOne, practiceFilters, fail })
+  useDeepLinks({ practiceOne, practiceFilters, scoreCheck: set.scoreCheck, fail })
 
   /** Home's "Try again" when the first load failed: the topics and the pool both. */
   const retryBoot = useCallback(() => { setError(null); reload(); loadList() }, [reload, loadList])
@@ -195,6 +196,7 @@ export default function App() {
       <SkipLink to="main">Skip to content</SkipLink>
       <TopNav view={view} navigate={navigate} />
       {banner}
+      <InstallBar answered={stats?.attempts ?? 0} />
       {/* Home scrolls inside its own .home, so its main only passes the height down. */}
       <main id="main" tabIndex={-1} className={view === 'home' ? 'page page-home' : 'page'}>
         {/* Keyed by view: a page whose chunk failed to load (offline, or a

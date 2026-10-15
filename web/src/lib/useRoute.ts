@@ -8,7 +8,7 @@ import { parseHash, titleFor, urlFor, type View } from './route'
 import type { Filters } from '../types'
 
 /** Links into the app that open practice; they win over Home's stored picks. */
-const DEEP_LINK_KEYS = ['q', 'skill', 'type']
+const DEEP_LINK_KEYS = ['q', 'skill', 'type', 'start']
 export const hasDeepLink = () => DEEP_LINK_KEYS.some((k) => new URLSearchParams(window.location.search).has(k))
 
 /** index.html's own title, which Home goes back to. */
@@ -94,13 +94,15 @@ export function useRoute(beforePop: RefObject<(from: View) => boolean>) {
 /**
  * Links into the app: ?q=<College Board ID> opens that question, ?skill=<code>
  * practices a skill and ?type=<skill.key> one question type. They come from
- * Info's Link button, video descriptions and the static /skills pages. Read
+ * Info's Link button, video descriptions and the static /skills pages.
+ * ?start=score starts a Score check: the installed app's shortcut. Read
  * once on load, then dropped from the address bar (with any hash) so a reload
  * lands on Home, and so does Back: Home is the entry practice is pushed over.
  */
-export function useDeepLinks({ practiceOne, practiceFilters, fail }: {
+export function useDeepLinks({ practiceOne, practiceFilters, scoreCheck, fail }: {
   practiceOne: (id: string) => void
   practiceFilters: (filters: Filters) => void
+  scoreCheck: () => void
   fail: (e: unknown) => void
 }) {
   useEffect(() => {
@@ -108,7 +110,8 @@ export function useDeepLinks({ practiceOne, practiceFilters, fail }: {
     const q = params.get('q')?.trim().toLowerCase()
     const skill = params.get('skill')
     const type = params.get('type')
-    if (!q && !skill && !type) return
+    const score = params.get('start') === 'score'
+    if (!q && !skill && !type && !score) return
     // A URL object, like the #inbox handler: "//?q=" must not throw.
     const url = new URL(window.location.href)
     for (const key of DEEP_LINK_KEYS) url.searchParams.delete(key)
@@ -122,6 +125,8 @@ export function useDeepLinks({ practiceOne, practiceFilters, fail }: {
       practiceFilters({ skills: [type.slice(0, type.lastIndexOf('.'))], types: [type] })
     } else if (skill) {
       practiceFilters({ skills: [skill] })
+    } else if (score) {
+      scoreCheck()
     }
     // Once, on load: these callbacks change identity as the list loads, and
     // re-running would reopen the link every time.

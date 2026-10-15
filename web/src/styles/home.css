@@ -187,6 +187,10 @@
 .scard-stats .stat-n small { font-size: 13px; }
 .st-streak .stat-n svg { align-self: center; margin-right: 4px; color: var(--streak-500); }
 .st-streak.none .stat-n svg { color: var(--fg-4); }
+/* The label row carries the streak's Share button; the 32px button hangs into
+   the gap around the 16px label rather than pushing the figure down. */
+.st-top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); height: 16px; }
+.shell .btn.st-share { margin: -8px -6px -8px 0; color: var(--fg-3); }
 .days { list-style: none; display: flex; gap: 2px; margin: 4px 0 0; padding: 0; }
 /* Letters are 11px here, the one exception to the 12px floor (spec 4). */
 .day {

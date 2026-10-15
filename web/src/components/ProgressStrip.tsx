@@ -7,8 +7,9 @@
 import { Icon } from './Icon'
 import { NoData, Stat } from './Stat'
 import { score, streak, UNLOCK_AFTER, type HistoryRow } from '../lib/progress'
-import { SECTIONS, SECTION_NAME, SECTION_SHORT, fmt, noun } from '../lib/labels'
+import { SECTIONS, SECTION_NAME, SECTION_SHORT, fmt, noun, plural } from '../lib/labels'
 import { graded } from '../lib/score'
+import { useShareCard } from '../lib/share'
 import type { Section } from '../types'
 
 /** Two letters, so Tuesday and Thursday (and the weekend) stop sharing one. */
@@ -66,6 +67,7 @@ export function ProgressStrip({ history, covered, total, attempts, correct, onSc
   const sc = score(history, now)
   const trend = sc.series.filter((p) => p.total !== null).map((p) => p.total as number).slice(-30)
   const acc = graded(attempts, correct)
+  const card = useShareCard()
 
   return (
     <div className="scard-wrap">
@@ -111,7 +113,20 @@ export function ProgressStrip({ history, covered, total, attempts, correct, onSc
           {/* Built by hand rather than with <Stat>: the day dots are a list, and a
               list cannot sit in Stat's inline sub line. */}
           <div className={`stat st-streak${st.atRisk ? ' at-risk' : ''}${st.current ? '' : ' none'}`}>
-            <span className="stat-l">Streak</span>
+            <div className="st-top">
+              <span className="stat-l">Streak</span>
+              {st.current ? (
+                <button type="button" className="btn quiet sm icon st-share" disabled={card.busy}
+                        aria-label="Share your streak" title="Share your streak"
+                        onClick={() => card.share({
+                          value: fmt(st.current), unit: noun(st.current, 'day'), line: 'SAT practice streak',
+                          text: `${plural(st.current, 'day')} of SAT practice in a row on LightBluePrep, free SAT practice.`,
+                          name: 'lightblueprep-streak',
+                        })}>
+                  <Icon name="share" size={16} />
+                </button>
+              ) : null}
+            </div>
             <span className="stat-n">
               <Icon name="flame" size={20} strokeWidth={2.2} />{fmt(st.current)}<small>{noun(st.current, 'day')}</small>
             </span>

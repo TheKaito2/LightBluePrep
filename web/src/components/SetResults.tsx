@@ -16,6 +16,7 @@ import { duration } from '../lib/pacing'
 import { DIFFICULTY_NAME, VERDICT, describeSet, fmt, plural, setSection } from '../lib/labels'
 import { dayKey, setGains, streak, type HistoryRow } from '../lib/progress'
 import { nowSec } from '../lib/sets'
+import { useShareCard } from '../lib/share'
 import type { PracticeSet, SetAnswer, SetItem } from '../types'
 
 interface Props {
@@ -46,6 +47,7 @@ export function SetResults({ set, history, onPractice, onPracticeMany, onRedo, o
    */
   const [open, setOpen] = useState<string | null>(missed[0]?.question_id ?? null)
   const [showAll, setShowAll] = useState(false)
+  const card = useShareCard()
 
   // The snapshot stores ids and outcomes, not skill names. Those come from the
   // bank so the list can say what each question was about.
@@ -131,6 +133,19 @@ export function SetResults({ set, history, onPractice, onPracticeMany, onRedo, o
           ) : (
             <button className="btn on-colour" onClick={() => onRedo(set)}>Do this set again</button>
           )}
+          {total ? (
+            <button className="btn on-ink-secondary" disabled={card.busy}
+                    onClick={() => card.share({
+                      value: fmt(set.correct), unit: `/ ${fmt(total)}`, line: topic,
+                      sub: `${pct}% correct`, section,
+                      text: `I got ${fmt(set.correct)}/${fmt(total)}${topic === 'All topics' ? '' : ` on ${topic}`}`
+                        + ' with LightBluePrep, free SAT practice.',
+                      name: 'lightblueprep-score',
+                    })}>
+              <Icon name="share" size={16} />
+              Share
+            </button>
+          ) : null}
           <ConfirmDelete label="Delete set" confirmText="Delete this set" cancelText="Cancel"
                          onConfirm={() => onDelete(set.id)} />
         </div>
