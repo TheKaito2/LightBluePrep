@@ -1,6 +1,7 @@
 """Regression tests. Every case here is a real shape found in the bank, not a
 made-up example; the comment names the question it came from.
 """
+import json
 import os
 import shutil
 import sqlite3
@@ -11,47 +12,42 @@ import uuid
 from bluebank import db, grading, pipeline, rationale, session
 
 
-class TestCanonical(unittest.TestCase):
-    def test_leading_and_trailing_zeros(self):
-        self.assertEqual(grading.canonical("0.25"), ".25")
-        self.assertEqual(grading.canonical("1.50"), "1.5")
-        self.assertEqual(grading.canonical("  3 / 17 "), "3/17")
-        self.assertEqual(grading.canonical("1,200"), "1200")
-        self.assertEqual(grading.canonical("−4"), "-4")   # unicode minus
-        self.assertEqual(grading.canonical("0.0"), "0")
+GRADING_CASES = os.path.join(os.path.dirname(__file__), "fixtures", "grading.json")
 
+
+class TestSharedGradingCases(unittest.TestCase):
+    """The rows in fixtures/grading.json, which web/src/lib/grading.test.ts runs
+    against the TypeScript port. Two graders that each pass their own cases can
+    still disagree; one table both have to pass cannot."""
+
+    @classmethod
+    def setUpClass(cls):
+        with open(GRADING_CASES, encoding="utf-8") as f:
+            cls.cases = json.load(f)
+
+    def test_canonical(self):
+        for row in self.cases["canonical"]:
+            with self.subTest(row["why"], value=row["value"]):
+                self.assertEqual(grading.canonical(row["value"]), row["canonical"])
+
+    def test_spr(self):
+        for row in self.cases["spr"]:
+            with self.subTest(row["why"], response=row["response"]):
+                self.assertEqual(grading.grade_spr(row["response"], row["accepted"]),
+                                 (row["correct"], row["match"]))
+
+    def test_mcq(self):
+        for row in self.cases["mcq"]:
+            with self.subTest(row["why"], response=row["response"]):
+                self.assertEqual(grading.grade_mcq(row["response"], row["accepted"]),
+                                 (row["correct"], row["match"]))
+
+
+class TestGrading(unittest.TestCase):
     def test_fraction_parsing(self):
         self.assertEqual(grading.as_fraction("3/2"), grading.as_fraction("1.5"))
         self.assertIsNone(grading.as_fraction("three halves"))
         self.assertIsNone(grading.as_fraction("1/0"))
-
-
-class TestGrading(unittest.TestCase):
-    def test_alternate_spellings_are_accepted(self):
-        # 65ac5dc5: both truncated and rounded decimals plus the fraction
-        accepted = [".1764", ".1765", "3/17"]
-        for response in ("0.1764", ".1764", "3/17", "0.1765"):
-            self.assertEqual(grading.grade_spr(response, accepted), (True, "listed"), response)
-        self.assertEqual(grading.grade_spr("0.18", accepted), (False, None))
-
-    def test_numerically_equal_but_unlisted(self):
-        self.assertEqual(grading.grade_spr("1.5", ["3/2"]), (True, "equivalent"))
-
-    def test_blank_response_is_wrong_not_an_error(self):
-        self.assertEqual(grading.grade_spr("", ["4"]), (False, None))
-        self.assertEqual(grading.grade_spr(None, ["4"]), (False, None))
-        self.assertEqual(grading.grade_mcq(None, ["A"]), (False, None))
-
-    def test_several_genuinely_different_answers(self):
-        # 070631-DC: "what is one possible value of x"
-        accepted = ["10/3", "15/4", "25/6", "3.333", "3.75", "4.166", "4.167"]
-        for response in ("10/3", "3.75", "4.167"):
-            self.assertTrue(grading.grade_spr(response, accepted)[0], response)
-        self.assertFalse(grading.grade_spr("5", accepted)[0])
-
-    def test_mcq_is_case_insensitive(self):
-        self.assertEqual(grading.grade_mcq("b", ["B"]), (True, "listed"))
-        self.assertEqual(grading.grade_mcq("C", ["B"]), (False, None))
 
     def test_review_payload_carries_every_accepted_form(self):
         question = {"id": "x", "type": "spr", "correct": ["10/3", "3.75"],

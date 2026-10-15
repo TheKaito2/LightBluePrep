@@ -13,7 +13,7 @@ import { toUserMessage } from '../lib/errors'
 
 const EVENT = 'lbp:feedback'
 
-export function openFeedback(ctx: fb.FeedbackContext & { kind?: fb.FeedbackKind } = {}) {
+function openFeedback(ctx: fb.FeedbackContext & { kind?: fb.FeedbackKind } = {}) {
   window.dispatchEvent(new CustomEvent(EVENT, { detail: ctx }))
 }
 

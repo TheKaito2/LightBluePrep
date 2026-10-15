@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef } from 'react'
 import { annotationIdAt, applyHighlights, selectionToOffsets } from '../lib/ranges'
 import { typeset } from '../lib/mathjax'
 import { sanitize } from '../lib/sanitize'
@@ -61,7 +61,7 @@ const FIGURE_MIN = 120
 function svgLength(value: string | null): number {
   const match = /^\s*([\d.]+)\s*(px|pt)?\s*$/.exec(value ?? '')
   if (!match) return NaN
-  return parseFloat(match[1]) * (match[2] === 'pt' ? 4 / 3 : 1)
+  return parseFloat(match[1]!) * (match[2] === 'pt' ? 4 / 3 : 1)
 }
 
 /**
@@ -162,7 +162,8 @@ export function RichText({
   // The latest report, so the document listeners below are added once per
   // mount rather than on every render of the question.
   const reportRef = useRef(report)
-  reportRef.current = report
+  // A layout effect, so it is current before any listener can fire.
+  useLayoutEffect(() => { reportRef.current = report })
 
   /**
    * Mouseup alone missed phones and keyboards: a long-press selection fires no

@@ -6,19 +6,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Icon } from './Icon'
 import { Modal } from './Modal'
-import { DONATE, DONATE_ALT, PROMPTPAY_QR } from '../lib/links'
+import { DONATE, DONATE_ALT, PROMPTPAY_QR, SUPPORT_EVENT, openSupport, supportAvailable } from '../lib/links'
 
-const EVENT = 'lbp:support'
 /**
  * `download` only works on a same-origin URL; on any other the browser just
  * opens the image. .env.pages sets a path in public/, so this holds there.
  */
 const QR_SAVABLE = Boolean(PROMPTPAY_QR) && new URL(PROMPTPAY_QR, window.location.href).origin === window.location.origin
-export const supportAvailable = Boolean(DONATE || DONATE_ALT || PROMPTPAY_QR)
-
-export function openSupport() {
-  window.dispatchEvent(new Event(EVENT))
-}
 
 export function SupportHost() {
   const [open, setOpen] = useState(false)
@@ -32,8 +26,8 @@ export function SupportHost() {
 
   useEffect(() => {
     const onOpen = () => { setOpen(true); setShowQr(false) }
-    window.addEventListener(EVENT, onOpen)
-    return () => window.removeEventListener(EVENT, onOpen)
+    window.addEventListener(SUPPORT_EVENT, onOpen)
+    return () => window.removeEventListener(SUPPORT_EVENT, onOpen)
   }, [])
 
   if (!open || !supportAvailable) return null

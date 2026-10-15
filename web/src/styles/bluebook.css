@@ -512,7 +512,7 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
    The stacking itself is not done here. QuestionView writes
    grid-template-columns inline, which no media query can beat, so it drops the
    inline style and the divider and renders .split.stacked below 820px. Keep
-   STACK_BELOW there and this breakpoint in step. */
+   STACK_BELOW in lib/useStacked.ts and this breakpoint in step. */
 @media (max-width: 819px) {
   /* One scroll for the whole question. Two independently scrolling panes make
      sense side by side and are horrible stacked, because the passage traps the

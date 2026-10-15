@@ -262,7 +262,7 @@ function strip(q: StoredQuestion): Question {
 
 function lastAttempt(c: Cache, id: string): store.Attempt | null {
   const list = c.attempts.get(id)
-  return list?.length ? list[list.length - 1] : null
+  return list?.at(-1) ?? null
 }
 
 /** OR within a filter, AND between filters. An empty list is not a filter. */

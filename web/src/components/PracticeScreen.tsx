@@ -5,26 +5,26 @@
  */
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as api from '../api'
-import { Directions, DIRECTIONS, DIRECTIONS_ID } from './Directions'
+import { Directions, DIRECTIONS_ID } from './Directions'
 import { ErrorBoundary } from './ErrorBoundary'
 import { FeedbackHost } from './Feedback'
 import { Icon } from './Icon'
 import { Mark } from './Mark'
-import { Navigator, type CellState } from './Navigator'
+import { Navigator } from './Navigator'
 import { Notes } from './Notes'
 import { PracticeClock } from './PracticeClock'
 import { QuestionInfo } from './QuestionInfo'
 import { QuestionView } from './QuestionView'
 import { SupportHost } from './Support'
-import { useToast } from './Toast'
+import { useToast } from '../lib/toast'
 import { SkipLink } from './TopNav'
 import { DESMOS_EMBEDDED } from '../lib/desmos'
-import { SECTION_NAME } from '../lib/labels'
+import { DIRECTIONS, SECTION_NAME } from '../lib/labels'
 import { formatClock } from '../lib/pacing'
 import { Desmos, ReferenceSheet, SetReview } from '../lib/pages'
 import { titleFor, type View } from '../lib/route'
 import { nextAnnotationId } from '../lib/ranges'
-import { isBlank, nowSec } from '../lib/sets'
+import { isBlank, nowSec, type CellState } from '../lib/sets'
 import { COACH_KEY, getMeta, setMeta } from '../lib/store'
 import { loadProcessTypes, similarTo, typeOf } from '../lib/similar'
 import type { PracticeSetApi } from '../lib/usePracticeSet'
@@ -233,6 +233,7 @@ export function PracticeScreen({
         setLoading(false)
       })
     return () => { stale = true; window.clearTimeout(slow) }
+  // oxlint-disable-next-line react-hooks/exhaustive-deps -- keyed by question id: the list and the set change on every answer, which must not reload the question
   }, [current?.id, reloadKey, fail, reload])
 
   const go = useCallback((next: number) => {
@@ -481,6 +482,7 @@ export function PracticeScreen({
       setSimilar({ ids, title: `Similar: ${typeOf(current.cb_id, pt)?.label ?? current.skill_name}` })
     }).catch(() => { /* the skill button alone still leads on */ })
     return () => { stale = true }
+  // oxlint-disable-next-line react-hooks/exhaustive-deps -- keyed by question id: a new object for the same question changes nothing
   }, [single, current?.id])
   // Reads like Bluebook's "Section 1, Module 2: Reading and Writing": the
   // section, then whatever the filters narrowed it to.

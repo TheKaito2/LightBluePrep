@@ -207,7 +207,7 @@ export function Home({
   const n = Math.min(value.size ?? 0, count)
   const plannedSeconds = value.size && value.speed
     ? setSeconds(Array.from({ length: n }, (_, i): Section =>
-      pickedSections.length === 1 ? pickedSections[0] : i % 2 ? 'MATH' : 'RW'), value.speed)
+      pickedSections.length === 1 ? pickedSections[0]! : i % 2 ? 'MATH' : 'RW'), value.speed)
     : 0
   /** One wording for the bar and the dialog footer. */
   const startLabel = !count && !loading ? 'Start' : !value.size ? 'Start · no limit'

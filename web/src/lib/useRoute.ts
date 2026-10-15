@@ -125,5 +125,6 @@ export function useDeepLinks({ practiceOne, practiceFilters, fail }: {
     }
     // Once, on load: these callbacks change identity as the list loads, and
     // re-running would reopen the link every time.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- once, on load: see above
   }, [fail])
 }

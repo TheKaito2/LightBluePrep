@@ -39,7 +39,6 @@ const INDEX_TRIES = { attempts: 3, timeoutMs: 20_000 }
 
 interface Tries { attempts: number; timeoutMs: number }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 type Json = any
 
 async function request(

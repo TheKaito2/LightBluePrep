@@ -37,8 +37,8 @@ describe('sanitize', () => {
       + '<animate attributeName="href" to="javascript:x()"></animate>'
       + '<set attributeName="href" to="javascript:x()"></set></svg>')
     const uses = host.querySelectorAll('use')
-    expect(uses[0].getAttribute('xlink:href')).toBe('#p1')
-    expect(uses[1].hasAttribute('href')).toBe(false)
+    expect(uses[0]!.getAttribute('xlink:href')).toBe('#p1')
+    expect(uses[1]!.hasAttribute('href')).toBe(false)
     expect(host.querySelector('animate, set')).toBeNull()
   })
 

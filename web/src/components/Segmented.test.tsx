@@ -34,7 +34,7 @@ describe('Segmented', () => {
 
   it('arrows move, pick and wrap; Home and End jump', () => {
     act(() => root.render(<Harness />))
-    radios()[1].focus()
+    radios()[1]!.focus()
     press('ArrowRight')
     expect(state()).toEqual(['No limit', '10', '20*^'])
     expect(document.activeElement?.textContent).toBe('20')

@@ -14,7 +14,8 @@
 import { useId, useRef, type ReactNode } from 'react'
 import { Icon } from './Icon'
 import { useDialogFocus } from '../lib/useFocusTrap'
-import { NavCell, cellState, type CellState } from './Navigator'
+import { NavCell } from './Navigator'
+import { cellState, type CellState } from '../lib/sets'
 import { VERDICT, fmt, plural } from '../lib/labels'
 import type { SetItem } from '../types'
 
@@ -39,7 +40,7 @@ interface Props {
 export function SetReview({
   items, current, title, remaining, clock, onGo, onClose, onFinish, states, busy, banner,
 }: Props) {
-  const stateAt = (i: number) => states?.[i] ?? cellState(items[i])
+  const stateAt = (i: number) => states?.[i] ?? cellState(items[i]!)
   const unanswered = items.filter((_, i) => stateAt(i) === 'unanswered').length
   const marked = items.filter((i) => i.flagged).length
   const titleId = useId()

@@ -58,7 +58,7 @@ export function streak(rows: readonly HistoryRow[], now: Date = new Date()): Str
 
   let best = 0
   for (const key of days) {
-    const [y, m, d] = key.split('-').map(Number)
+    const [y = 0, m = 1, d = 1] = key.split('-').map(Number)
     const date = new Date(y, m - 1, d)
     // Only count a run from its first day, so each run is walked once.
     if (days.has(dayKey(addDays(date, -1)))) continue

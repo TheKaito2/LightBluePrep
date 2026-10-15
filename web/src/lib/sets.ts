@@ -2,7 +2,7 @@
  * The pure half of a practice set's lifecycle: building one, holding answers,
  * banking time and grading at the end. usePracticeSet is the stateful half.
  */
-import type { Filters, SetAnswer } from '../types'
+import type { Filters, SetAnswer, SetItem } from '../types'
 
 /** Now, in the Unix seconds every stored timestamp uses. */
 export const nowSec = () => Math.floor(Date.now() / 1000)
@@ -83,4 +83,17 @@ export async function gradeItems(
     } catch (e) { failure = e; return i }
   }))
   return { items: out, failure }
+}
+
+export type CellState = 'unanswered' | 'answered' | 'first' | 'retry' | 'wrong'
+
+/**
+ * White until you answer, green if you got it first time, yellow if it took
+ * more than one go, red if your latest attempt was wrong.
+ */
+export function cellState(item: SetItem): CellState {
+  const attempts = item.attempt_count ?? 0
+  if (!attempts || item.last_correct === null) return 'unanswered'
+  if (item.last_correct === 0) return 'wrong'
+  return attempts > 1 ? 'retry' : 'first'
 }

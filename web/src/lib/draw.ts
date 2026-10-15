@@ -23,8 +23,8 @@ export function sample<T>(pool: readonly T[], n: number, random = Math.random): 
   for (let i = 0; i < wanted; i++) {
     // Pick from what is left, then park the winner at the front.
     const j = i + Math.floor(random() * (copy.length - i))
-    const tmp = copy[i]
-    copy[i] = copy[j]
+    const tmp = copy[i]!
+    copy[i] = copy[j]!
     copy[j] = tmp
   }
   return copy.slice(0, wanted)

@@ -24,6 +24,7 @@ export function Inbox() {
   const [usage, setUsage] = useState<fb.UsageStats | null>(null)
 
   const load = useCallback(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- clears the last error for the fetch this starts
     setError(null)
     fb.list().then(setItems).catch((e: Error) => setError(e.message))
     // The list call above already reports a refusal; this one just stays hidden.

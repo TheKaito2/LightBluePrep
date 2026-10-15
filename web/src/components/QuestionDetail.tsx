@@ -15,12 +15,12 @@
 import { useEffect, useState } from 'react'
 import * as api from '../api'
 import { Explanation } from './Explanation'
-import { MistakeFields, TAG_LABEL } from './MistakeFields'
+import { MistakeFields } from './MistakeFields'
 import { loadProcessTypes, similarTo, typeOf, type ProcessType } from '../lib/similar'
 import { RichText } from './RichText'
 import { Icon } from './Icon'
 import { duration } from '../lib/pacing'
-import { VERDICT } from '../lib/labels'
+import { TAG_LABEL, VERDICT } from '../lib/labels'
 import { toUserMessage } from '../lib/errors'
 import type {
   Annotation, Attempt, GradeResult, Mistake, MistakeTag, Question,

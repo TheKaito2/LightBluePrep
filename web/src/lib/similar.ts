@@ -70,7 +70,7 @@ export function filterByTypes<T extends Pick<SetItem, 'cb_id' | 'skill'>>(
 ): T[] {
   const picked = new Set(types)
   const narrowed = new Set(types.map((r) => r.slice(0, r.lastIndexOf('.'))))
-  return items.filter((i) => !narrowed.has(i.skill) || (i.cb_id != null && picked.has(pt.q[i.cb_id])))
+  return items.filter((i) => !narrowed.has(i.skill) || (i.cb_id != null && picked.has(pt.q[i.cb_id] ?? '')))
 }
 
 /** Below this many others of the same type, fall back to the whole skill. */

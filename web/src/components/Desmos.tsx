@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Icon } from './Icon'
-import { useStacked } from './QuestionView'
+import { useStacked } from '../lib/useStacked'
 import { DESMOS_KEY } from '../lib/desmos'
 
 // The embedded calculator needs this site's OWN Desmos API key (desmos.com/my-api).

@@ -20,8 +20,8 @@ export function useFocusTrap(ref: RefObject<HTMLElement | null>, active: boolean
       const items = [...box.querySelectorAll<HTMLElement>(FOCUSABLE)]
         .filter((el) => el.getClientRects().length > 0)
       if (!items.length) return
-      const first = items[0]
-      const last = items[items.length - 1]
+      const first = items[0]!
+      const last = items.at(-1)!
       const inside = box.contains(document.activeElement)
       if (e.shiftKey && (!inside || document.activeElement === first)) {
         e.preventDefault(); last.focus()

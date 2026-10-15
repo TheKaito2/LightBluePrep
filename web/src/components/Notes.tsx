@@ -53,6 +53,7 @@ export function Notes({ annotations, onRemove, onClose }: Props) {
       const text = [...marks].map((m) => m.textContent ?? '').join('').trim()
       if (text) found[annotation.id] = text
     }
+    // oxlint-disable-next-line react/set-state-in-effect -- reads the marks applyHighlights put in the DOM, which exist only after commit
     setQuotes(found)
   }, [annotations])
 

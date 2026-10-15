@@ -13,6 +13,7 @@ export function QuestionInfo({ question }: { question: Question }) {
   const wrap = useRef<HTMLDivElement>(null)
 
   // Close on a new question, a click anywhere else, or Escape.
+  // oxlint-disable-next-line react/set-state-in-effect -- resets on a new question
   useEffect(() => { setOpen(false) }, [question.id])
   useEffect(() => {
     if (!open) return

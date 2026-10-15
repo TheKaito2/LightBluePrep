@@ -9,11 +9,10 @@
  * first screen, and the two actions gathered in one card at the end.
  */
 import type { ReactNode } from 'react'
-import { PRIVACY_URL, REPO } from '../lib/links'
+import { PRIVACY_URL, REPO, openSupport, supportAvailable } from '../lib/links'
 import { Icon } from './Icon'
 import { PageHead } from './PageHead'
 import { NoData, Stat, StatGroup } from './Stat'
-import { openSupport, supportAvailable } from './Support'
 import { backend } from '../api'
 import { configured } from '../lib/auth'
 import * as fb from '../lib/feedback'

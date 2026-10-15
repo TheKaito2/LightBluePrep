@@ -3,7 +3,8 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Navigator, type CellState } from './Navigator'
+import { Navigator } from './Navigator'
+import type { CellState } from '../lib/sets'
 import type { SetItem } from '../types'
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -32,10 +33,10 @@ const button = (text: string) =>
 describe('Navigator', () => {
   it('names each cell with its state and marks the current one', () => {
     act(() => root.render(<Navigator items={make(10)} current={2} title="T" onGo={() => {}} onClose={() => {}} />))
-    expect(cells()[6].getAttribute('aria-label')).toBe('Question 7, incorrect, marked for review. Skill, Easy')
-    expect(cells()[6].querySelector('svg')).not.toBeNull()
-    expect(cells()[0].getAttribute('aria-label')).toBe('Question 1, unanswered. Skill, Easy')
-    expect(cells()[2].getAttribute('aria-current')).toBe('step')
+    expect(cells()[6]!.getAttribute('aria-label')).toBe('Question 7, incorrect, marked for review. Skill, Easy')
+    expect(cells()[6]!.querySelector('svg')).not.toBeNull()
+    expect(cells()[0]!.getAttribute('aria-label')).toBe('Question 1, unanswered. Skill, Easy')
+    expect(cells()[2]!.getAttribute('aria-current')).toBe('step')
     expect(host.querySelector('.nav-foot')!.textContent).toContain('10 questions in this list')
   })
 
@@ -44,17 +45,17 @@ describe('Navigator', () => {
     act(() => root.render(<Navigator items={make(10)} current={0} title="T" states={states}
                                      onGo={() => {}} onClose={() => {}} />))
     expect(host.querySelector('.nav-foot')!.textContent).toContain('10 questions in this set')
-    expect(cells()[6].getAttribute('aria-label')).toBe('Question 7, answered, marked for review. Skill, Easy')
-    expect(cells()[6].querySelector('svg')).toBeNull()
+    expect(cells()[6]!.getAttribute('aria-label')).toBe('Question 7, answered, marked for review. Skill, Easy')
+    expect(cells()[6]!.querySelector('svg')).toBeNull()
   })
 
   it('pages a long list by 100 around the current question, with Go to #', () => {
     const onGo = vi.fn()
     act(() => root.render(<Navigator items={make(3767)} current={250} title="T" onGo={onGo} onClose={() => {}} />))
     expect(cells()).toHaveLength(100)
-    expect(cells()[0].textContent).toBe('201')
+    expect(cells()[0]!.textContent).toBe('201')
     act(() => button('Next 100').click())
-    expect(cells()[0].textContent).toBe('301')
+    expect(cells()[0]!.textContent).toBe('301')
     expect(host.querySelector('.nav-range')!.textContent).toBe('301–400 of 3,767')
 
     const input = host.querySelector<HTMLInputElement>('#nav-goto-n')!

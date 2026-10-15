@@ -26,9 +26,8 @@ import { SetCard } from './SetCard'
 import { Stat, StatGroup } from './Stat'
 import { EmptyState } from './EmptyState'
 import { Segmented } from './Segmented'
-import { TAG_LABEL } from './MistakeFields'
 import {
-  DIFFICULTIES, DIFFICULTY_NAME, SECTIONS, SECTION_NAME, VERDICT, dayLabel, daysAgo, fmt, plural, shortDate,
+  DIFFICULTIES, DIFFICULTY_NAME, SECTIONS, SECTION_NAME, TAG_LABEL, VERDICT, dayLabel, daysAgo, fmt, plural, shortDate,
 } from '../lib/labels'
 import { loadProcessTypes, typeOf, type ProcessTypes } from '../lib/similar'
 import { duration, isSlow } from '../lib/pacing'

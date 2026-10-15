@@ -5,21 +5,11 @@
  * a message. A new toast replaces the old one. Confirmations clear themselves
  * after 4s; errors stay until closed, so a slow reader never loses one.
  */
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Icon } from './Icon'
+import { ToastContext, type Show, type ToastOptions } from '../lib/toast'
 
-export interface ToastOptions {
-  tone?: 'ok' | 'bad'
-  /** Shows an "Undo" action; the toast closes after it runs. */
-  onUndo?: () => void
-}
-
-type Show = (text: string, options?: ToastOptions) => void
 interface Current extends ToastOptions { text: string; key: number }
-
-const ToastContext = createContext<Show>(() => {})
-
-export const useToast = () => useContext(ToastContext)
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<Current | null>(null)

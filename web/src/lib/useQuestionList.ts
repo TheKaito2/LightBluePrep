@@ -84,6 +84,7 @@ export function useQuestionList({ view, dataVersion, fail }: {
     // The effect above already loaded on mount.
     if (!mounted.current) { mounted.current = true; return }
     if (view === 'home') return loadList()
+  // oxlint-disable-next-line react-hooks/exhaustive-deps -- loadList is left out: the effect above already runs it when the filters change
   }, [view, dataVersion])
 
   return {

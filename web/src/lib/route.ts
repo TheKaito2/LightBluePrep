@@ -62,5 +62,6 @@ export function idNeedle(raw: string): string {
   const s = raw.trim()
   const m = /[?&]q=([^&#\s]+)/.exec(s)
   if (!m) return s.toLowerCase()
-  try { return decodeURIComponent(m[1]).trim().toLowerCase() } catch { return m[1].toLowerCase() }
+  const q = m[1]!
+  try { return decodeURIComponent(q).trim().toLowerCase() } catch { return q.toLowerCase() }
 }

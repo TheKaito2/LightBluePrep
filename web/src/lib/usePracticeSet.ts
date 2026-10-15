@@ -252,6 +252,7 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
     return () => clearInterval(tick)
     // activeSet.id rather than activeSet: re-running this on every answer would
     // restart the clock from the top each time.
+  // oxlint-disable-next-line react-hooks/exhaustive-deps -- activeSet.seconds is read once per set: see above
   }, [practising, activeSet?.id, activeSet?.filters?.speed, items])
 
   useEffect(() => {

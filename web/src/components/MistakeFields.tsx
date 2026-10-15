@@ -8,16 +8,10 @@
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from './Icon'
+import { TAG_LABEL } from '../lib/labels'
 import { MISTAKE_TAGS, type Mistake, type MistakeTag } from '../types'
 
-export const TAG_LABEL: Record<MistakeTag, string> = {
-  process: 'Process',
-  silly: 'Careless',
-  knowledge: 'Knowledge',
-  other: 'Other',
-}
-
-export const TAG_HINT: Record<MistakeTag, string> = {
+const TAG_HINT: Record<MistakeTag, string> = {
   process: 'Wrong method, or the right one applied in the wrong order',
   silly: 'Knew it, slipped anyway',
   knowledge: "Didn't know the thing being tested",
@@ -56,11 +50,15 @@ export function MistakeFields({ mistake, onSave, lead, id = 'mlog-note', rows = 
    * folding this section away or closing the row it sits in would drop a note
    * you had just finished typing. The cleanup below flushes it. Held in a ref
    * because that cleanup runs once, long after the render it closed over.
+   * Written after each commit rather than during render, where a render React
+   * throws away would leave values behind that were never on screen.
    */
   const live = useRef({ tags, note, saved: (mistake?.note ?? '').trim(), onSave })
-  live.current.tags = tags
-  live.current.note = note
-  live.current.onSave = onSave
+  useEffect(() => {
+    live.current.tags = tags
+    live.current.note = note
+    live.current.onSave = onSave
+  })
 
   function save(nextTags: MistakeTag[], nextNote: string) {
     live.current.saved = nextNote.trim()

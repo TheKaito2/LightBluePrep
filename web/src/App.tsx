@@ -59,6 +59,7 @@ export default function App() {
 
   /** Title for a list opened from Review ("Review: Incorrect"). */
   const [listTitle, setListTitle] = useState<string | null>(null)
+  // oxlint-disable-next-line react/set-state-in-effect -- resets on leaving practice
   useEffect(() => { if (view !== 'practice') setListTitle(null) }, [view])
 
   const practiceMany = useCallback((ids: string[], title: string) => {
@@ -114,7 +115,7 @@ export default function App() {
       // keep the session length and timer chosen there: neither changes the pool.
       setFilters((prev) => ({
         size: prev.size, speed: prev.speed,
-        ...(next.skills?.length === 1 && !next.section ? { ...next, section: d.questions[0].section } : next),
+        ...(next.skills?.length === 1 && !next.section ? { ...next, section: d.questions[0]!.section } : next),
       }))
       // Its title comes from these filters, not from a list opened before it.
       setListTitle(null)

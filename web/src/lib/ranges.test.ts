@@ -82,7 +82,7 @@ describe('applyHighlights', () => {
     applyHighlights(host, [annotation(0, 5), annotation(11, 16, { color: 'blue' })])
     const marks = [...host.querySelectorAll('mark.hl')]
     expect(marks.map((m) => m.textContent)).toEqual(['alpha', 'gamma'])
-    expect(marks[1].className).toContain('hl-blue')
+    expect(marks[1]!.className).toContain('hl-blue')
     expect(host.textContent).toBe('alpha beta gamma')
   })
 

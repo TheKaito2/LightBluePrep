@@ -1,6 +1,6 @@
 name: CI
 
-# Tests and a build on every push and pull request. Nothing is deployed from
+# Lint, tests and a build on every push and pull request. Nothing is deployed from
 # here: the site goes out with `wrangler pages deploy` (see README), whose
 # _headers carry the CSP. The upstream workflow this replaces published to
 # GitHub Pages, which ignores _headers, so enabling Actions would have put a
@@ -46,6 +46,13 @@ jobs:
       - name: Install
         working-directory: web
         run: npm ci
+
+      # Warnings fail the build too, so lint cannot drift back to dozens of
+      # ignored warnings. A deliberate exception is an inline disable with its
+      # reason, and a stale one fails as well.
+      - name: Lint
+        working-directory: web
+        run: npm run lint
 
       - name: Web tests
         working-directory: web

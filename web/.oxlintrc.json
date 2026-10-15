@@ -1,8 +1,18 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "oxc"],
+  // public/ holds vendored, minified MathJax; dist*/ is build output.
+  "ignorePatterns": ["public/**", "dist/**", "dist-pages/**"],
   "rules": {
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+  },
+  "overrides": [
+    {
+      // Hook tests capture what the hook returns through variables outside the
+      // harness component; that is the point of the harness, not a side effect.
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": { "react/globals": "off" }
+    }
+  ]
 }

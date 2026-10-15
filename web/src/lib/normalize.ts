@@ -39,7 +39,6 @@ interface Normalised {
   flags: string[]
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 type Raw = Record<string, any>
 
 function normaliseExternal(raw: Raw): Normalised {
@@ -56,7 +55,7 @@ function normaliseExternal(raw: Raw): Normalised {
   // option the `correct_answer` letter does.
   if (type === 'mcq' && correct.length && raw.keys?.length) {
     const index = String(correct[0]).trim().toUpperCase().charCodeAt(0) - 65
-    if (!(index >= 0 && index < rawOptions.length) || rawOptions[index].id !== raw.keys[0]) {
+    if (!(index >= 0 && index < rawOptions.length) || rawOptions[index]?.id !== raw.keys[0]) {
       flags.push('keys_letter_disagreement')
     }
   }

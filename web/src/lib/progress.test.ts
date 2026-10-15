@@ -78,7 +78,7 @@ describe('score', () => {
   it('ignores retries of the same question', () => {
     const base = many(12, 1, 4)
     const retried = [...base, ...Array.from({ length: 30 }, (_, i) =>
-      row(at(NOW, 0) + 100 + i, 1, base[0].question_id))]
+      row(at(NOW, 0) + 100 + i, 1, base[0]!.question_id))]
     expect(score(retried, NOW).math).toBe(score(base, NOW).math)
   })
 

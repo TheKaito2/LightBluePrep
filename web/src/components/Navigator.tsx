@@ -2,6 +2,7 @@ import { memo, useRef, useState, type FormEvent } from 'react'
 import { Icon } from './Icon'
 import { useDialogFocus } from '../lib/useFocusTrap'
 import { DIFFICULTY_NAME, VERDICT, fmt, plural } from '../lib/labels'
+import { cellState, type CellState } from '../lib/sets'
 import type { SetItem } from '../types'
 
 interface Props {
@@ -26,19 +27,6 @@ interface Props {
   states?: CellState[]
 }
 
-export type CellState = 'unanswered' | 'answered' | 'first' | 'retry' | 'wrong'
-
-/**
- * White until you answer, green if you got it first time, yellow if it took
- * more than one go, red if your latest attempt was wrong.
- */
-export function cellState(item: SetItem): CellState {
-  const attempts = item.attempt_count ?? 0
-  if (!attempts || item.last_correct === null) return 'unanswered'
-  if (item.last_correct === 0) return 'wrong'
-  return attempts > 1 ? 'retry' : 'first'
-}
-
 const SPOKEN: Record<CellState, string> = {
   unanswered: VERDICT.unanswered,
   answered: 'answered',
@@ -52,7 +40,7 @@ const SPOKEN: Record<CellState, string> = {
  * review. Words in Context, Hard". The skill and difficulty used to sit in a
  * title tooltip that keyboard, touch and screen readers never got.
  */
-export function cellLabel(index: number, state: CellState, item: SetItem) {
+function cellLabel(index: number, state: CellState, item: SetItem) {
   return `Question ${index + 1}, ${SPOKEN[state].toLowerCase()}${item.flagged ? ', marked for review' : ''}`
     + `. ${item.skill_name}, ${DIFFICULTY_NAME[item.difficulty] ?? item.difficulty}`
 }

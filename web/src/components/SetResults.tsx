@@ -70,7 +70,7 @@ export function SetResults({ set, history, onPractice, onPracticeMany, onRedo, o
   const span = { from: set.created_at, to: finished }
   // Older sets split the clock evenly across their questions; a column of
   // identical times says nothing true, so it goes.
-  const timed = total > 1 && items.some((i) => i.seconds !== items[0].seconds)
+  const timed = total > 1 && items.some((i) => i.seconds !== items[0]?.seconds)
 
   const gains = setGains(history, items.map((i) => i.question_id), set.created_at, finished)
   // The streak is today's; it only belongs on a set finished today.

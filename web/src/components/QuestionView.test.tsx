@@ -48,17 +48,17 @@ it('keeps a crossed choice focusable, names the controls, and un-crosses on pick
   const choices = [...host.querySelectorAll<HTMLButtonElement>('button.choice-main')]
   expect(choices.map((c) => c.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false'])
 
-  const crossed = choices[1]
+  const crossed = choices[1]!
   expect(crossed.disabled).toBe(false)
   expect(crossed.getAttribute('aria-disabled')).toBe('true')
   expect(crossed.textContent).toContain('(crossed out)')
-  expect(choices[0].hasAttribute('aria-disabled')).toBe(false)
+  expect(choices[0]!.hasAttribute('aria-disabled')).toBe(false)
 
   const strikes = [...host.querySelectorAll('button.crossbtn')]
-  expect(strikes[0].getAttribute('aria-label')).toBe('Cross out choice A')
-  expect(strikes[0].getAttribute('aria-pressed')).toBe('false')
-  expect(strikes[1].getAttribute('aria-label')).toBe('Undo cross out of choice B')
-  expect(strikes[1].getAttribute('aria-pressed')).toBe('true')
+  expect(strikes[0]!.getAttribute('aria-label')).toBe('Cross out choice A')
+  expect(strikes[0]!.getAttribute('aria-pressed')).toBe('false')
+  expect(strikes[1]!.getAttribute('aria-label')).toBe('Undo cross out of choice B')
+  expect(strikes[1]!.getAttribute('aria-pressed')).toBe('true')
   expect(host.querySelector('.strike')?.getAttribute('aria-label')).toBe('Cross out answer choices')
   expect(host.querySelector('.markbtn')?.getAttribute('aria-pressed')).toBe('true')
 
@@ -66,7 +66,7 @@ it('keeps a crossed choice focusable, names the controls, and un-crosses on pick
   expect(onToggleCrossOut).toHaveBeenCalledWith('B')
   expect(onRespond).toHaveBeenCalledWith('B')
 
-  act(() => choices[2].click())
+  act(() => choices[2]!.click())
   expect(onToggleCrossOut).toHaveBeenCalledTimes(1)
   expect(onRespond).toHaveBeenLastCalledWith('C')
 })

@@ -123,7 +123,7 @@ export function applyHighlights(root: HTMLElement, annotations: Annotation[], id
     const fragment = document.createDocumentFragment()
     let cursor = 0
     while (cursor < text.length) {
-      const current = owner[cursor]
+      const current = owner[cursor] ?? null
       let end = cursor + 1
       while (end < text.length && owner[end] === current) end++
       const slice = text.slice(cursor, end)

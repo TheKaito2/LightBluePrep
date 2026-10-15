@@ -36,7 +36,7 @@ function Sparkline({ values }: { values: number[] }) {
   return (
     <svg className="spark" viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
       <path d={d} className="spark-line" />
-      <circle cx={x(values.length - 1)} cy={y(values[values.length - 1])} r="3" className="spark-dot" />
+      <circle cx={x(values.length - 1)} cy={y(values.at(-1)!)} r="3" className="spark-dot" />
     </svg>
   )
 }

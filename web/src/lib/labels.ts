@@ -9,7 +9,7 @@
  * beside a component because a shared helper in a component file breaks fast
  * refresh.
  */
-import type { Difficulty, Filters, PracticeSet, Section, Status } from '../types'
+import type { Difficulty, Filters, MistakeTag, PracticeSet, Section, Status } from '../types'
 
 export const SECTIONS: readonly Section[] = ['RW', 'MATH']
 
@@ -40,6 +40,26 @@ export const VERDICT = {
   unanswered: 'Unanswered',
   retry: 'Correct on retry',
 } as const
+
+/** Why a question went wrong, as the mistake log's chips name it. */
+export const TAG_LABEL: Record<MistakeTag, string> = {
+  process: 'Process',
+  silly: 'Careless',
+  knowledge: 'Knowledge',
+  other: 'Other',
+}
+
+/** Each section's own instructions, as Bluebook words them. */
+export const DIRECTIONS = {
+  RW: [
+    'The questions in this section address a number of important reading and writing skills. Each question includes one or more passages, which may include a table or graph. Read each passage and question carefully, and then choose the best answer to the question based on the passage(s).',
+    'All questions in this section are multiple-choice with four answer choices. Each question has a single best answer.',
+  ],
+  MATH: [
+    'The questions in this section address a number of important math skills. Use of a calculator is permitted for all questions.',
+    'For multiple-choice questions, solve each problem and choose the correct answer from the choices provided. For student-produced response questions, solve each problem and enter your answer.',
+  ],
+} as const satisfies Record<Section, readonly string[]>
 
 /**
  * The bank's domains and skills in College Board's own order, the order its
@@ -195,7 +215,7 @@ function topic(f: Filters): string {
     }
     for (const d of domains) {
       if (d.skills.every((s) => picked.has(s))) names.push(d.name)
-      else names.push(...d.skills.filter((s) => picked.has(s)).map((s) => SKILL_NAME[s]))
+      else names.push(...d.skills.filter((s) => picked.has(s)).map((s) => SKILL_NAME[s] ?? s))
     }
   }
   if (wholeSections === SECTIONS.length) return 'All topics'

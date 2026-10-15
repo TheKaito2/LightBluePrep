@@ -48,15 +48,15 @@ describe('set steps', () => {
     const next = holdItem(items, 'a', 'D', 12)
     expect(next[0]).toMatchObject({ response: 'D', seconds: 12 })
     expect(next[1]).toBe(items[1])
-    expect(holdItem(next, 'a', null, 12)[0].response).toBeNull()
+    expect(holdItem(next, 'a', null, 12)[0]!.response).toBeNull()
   })
 
   it('never lowers a question\'s time', () => {
     const items = [row('a', 'B', 30)]
-    expect(holdItem(items, 'a', 'C', 5)[0].seconds).toBe(30)
+    expect(holdItem(items, 'a', 'C', 5)[0]!.seconds).toBe(30)
     expect(commitItem(items, 'a', 30)).toBeNull()
     expect(commitItem(items, 'a', 12)).toBeNull()
-    expect(commitItem(items, 'a', 31)?.[0].seconds).toBe(31)
+    expect(commitItem(items, 'a', 31)?.[0]?.seconds).toBe(31)
     expect(commitItem(items, 'missing', 99)).toBeNull()
   })
 
@@ -131,7 +131,7 @@ describe('usePracticeSet finish', () => {
     expect(finished[0]).toMatchObject({ answered: 2, correct: 1, seconds: 10 })
     expect(view).toBe('results')
     expect(hook.activeSet).toBeNull()
-    expect(hook.shownSet?.id).toBe(finished[0].id)
+    expect(hook.shownSet?.id).toBe(finished[0]!.id)
     act(() => root.unmount())
   })
 })

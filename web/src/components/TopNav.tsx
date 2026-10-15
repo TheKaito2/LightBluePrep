@@ -47,6 +47,7 @@ export function TopNav({ view, navigate }: { view: View; navigate: (next: View) 
     const onWindow = () => setScrolled(window.scrollY > 0)
     main.addEventListener('scroll', onScroll, { capture: true, passive: true })
     window.addEventListener('scroll', onWindow, { passive: true })
+    // oxlint-disable-next-line react/set-state-in-effect -- the first read of the scroll position, which only the DOM knows
     setScrolled(window.scrollY > 0 || read(main) || read(main.querySelector('.home')))
     return () => {
       main.removeEventListener('scroll', onScroll, { capture: true })

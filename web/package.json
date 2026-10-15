@@ -9,7 +9,7 @@
     "dev": "vite",
     "prebuild": "node ../scripts/copy_fonts.mjs",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "lint": "oxlint --deny-warnings --report-unused-disable-directives",
     "preview": "vite preview",
     "test": "vitest run",
     "prebuild:pages": "node ../scripts/copy_fonts.mjs",

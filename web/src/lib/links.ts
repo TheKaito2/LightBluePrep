@@ -11,6 +11,15 @@ export const DONATE = (import.meta.env.VITE_DONATE_URL as string | undefined) ||
 export const DONATE_ALT = (import.meta.env.VITE_DONATE_ALT_URL as string | undefined) || ''
 /** Path of the PromptPay QR image in public/. Unset hides the option. */
 export const PROMPTPAY_QR = (import.meta.env.VITE_PROMPTPAY_QR as string | undefined) || ''
+/** With none of the three set, there is no Support button or dialog at all. */
+export const supportAvailable = Boolean(DONATE || DONATE_ALT || PROMPTPAY_QR)
+
+/** What <SupportHost /> listens for, so the nav and About can both open it. */
+export const SUPPORT_EVENT = 'lbp:support'
+
+export function openSupport() {
+  window.dispatchEvent(new Event(SUPPORT_EVENT))
+}
 
 /**
  * The privacy policy. Pages serves public/privacy.html at /privacy, the URL in

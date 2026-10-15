@@ -46,11 +46,12 @@ export function Segmented<T extends string | number>({
 
   function onKey(e: KeyboardEvent) {
     const n = options.length
-    const next = e.key in STEP ? (Math.max(at, 0) + STEP[e.key] + n) % n
+    const step = STEP[e.key]
+    const next = step !== undefined ? (Math.max(at, 0) + step + n) % n
       : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : -1
     if (next < 0) return
     e.preventDefault()
-    onChange(options[next].value)
+    onChange(options[next]!.value)
     track.current?.querySelectorAll<HTMLElement>('[role=radio]')[next]?.focus()
   }
 

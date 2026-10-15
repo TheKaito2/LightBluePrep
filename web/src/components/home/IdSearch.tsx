@@ -37,6 +37,7 @@ export function IdSearch({ findIds, onOpenId }: {
 
   // Look across the whole bank once the ID is long enough to mean something.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- a new search drops the old pick before its results land
     setActive(-1)
     if (needle.length < 3) return
     let stale = false
@@ -72,9 +73,11 @@ export function IdSearch({ findIds, onOpenId }: {
 
   function submit() {
     if (!matches?.total) return
-    if (active >= 0 && shownHits[active]) { onOpenId(shownHits[active].id); return }
+    const picked = active >= 0 ? shownHits[active] : undefined
+    if (picked) { onOpenId(picked.id); return }
     // findIds puts an exact match first.
-    if (matches.total === 1 || shownHits[0].cb_id?.toLowerCase() === needle) { onOpenId(shownHits[0].id); return }
+    const top = shownHits[0]
+    if (top && (matches.total === 1 || top.cb_id?.toLowerCase() === needle)) { onOpenId(top.id); return }
     setActive(0)
   }
 

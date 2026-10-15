@@ -1,6 +1,6 @@
 /**
  * Auto-grading against the official accepted-answer list. Port of grading.py;
- * tests/grading.test.ts is the same corpus of cases as the Python suite.
+ * tests/fixtures/grading.json holds the cases both have to agree on.
  *
  * `correct` is an array of accepted strings and it conflates two different
  * things: alternate spellings of one value (["0.25", "1/4"]) and genuinely

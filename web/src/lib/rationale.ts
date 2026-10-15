@@ -80,7 +80,7 @@ function atSentenceStart(text: string, pos: number): boolean {
   const skipped = SKIP_BACK.exec(head)
   if (skipped && BLOCK_BREAK.test(skipped[0])) return true
   head = head.replace(SKIP_BACK, '')
-  return !head || '.!?:;'.includes(head[head.length - 1])
+  return !head || '.!?:;'.includes(head.slice(-1))
 }
 
 interface OpenTags {
@@ -94,12 +94,12 @@ function openTags(fragment: string): OpenTags {
   const orphans = new Set<number>()
   for (const m of fragment.matchAll(TAG)) {
     const closing = m[1]
-    const name = m[2].toLowerCase()
+    const name = m[2]!.toLowerCase()
     const selfClose = m[4]
     if (VOID_TAGS.has(name) || selfClose) continue
     if (closing) {
       if (stack.some(([n]) => n === name)) {
-        while (stack.length && stack[stack.length - 1][0] !== name) stack.pop()
+        while (stack.length && stack.at(-1)![0] !== name) stack.pop()
         stack.pop()
       } else {
         orphans.add(m.index)
@@ -134,7 +134,7 @@ function balance(fragment: string): string {
     out = parts.join('')
     stack = openTags(out).stack
   }
-  for (let i = stack.length - 1; i >= 0; i--) out += `</${stack[i][0]}>`
+  for (let i = stack.length - 1; i >= 0; i--) out += `</${stack[i]![0]}>`
   return out.trim()
 }
 
@@ -164,13 +164,13 @@ export function splitExplanations(
   const singles: Mark[] = []
   const groups: Mark[] = []
   for (const m of rationaleHtml.matchAll(SINGLE)) {
-    if (usable(m.index)) singles.push([m.index, [m[1].toUpperCase()], m.index + m[0].length])
+    if (usable(m.index)) singles.push([m.index, [m[1]!.toUpperCase()], m.index + m[0].length])
   }
   for (const m of rationaleHtml.matchAll(GROUPED)) {
     if (!usable(m.index)) continue
     // Case-sensitive on purpose: [A-D] with the `i` flag also matches the
     // "a" and "d" in the connecting word "and".
-    const letters = m[1].match(/[A-D]/g) ?? []
+    const letters = m[1]!.match(/[A-D]/g) ?? []
     if (letters.length) groups.push([m.index, letters, m.index + m[0].length])
   }
 
@@ -181,7 +181,7 @@ export function splitExplanations(
   const marks: Mark[] = []
   const claimed = new Set<string>()
   for (const [start, letters, end] of singles) {
-    const letter = letters[0]
+    const letter = letters[0]!
     if (claimed.has(letter)) continue
     claimed.add(letter)
     marks.push([start, letters, end])
@@ -204,13 +204,13 @@ export function splitExplanations(
   // Drop a boundary swallowed by an earlier match.
   const pruned: Mark[] = []
   for (const mark of marks) {
-    if (pruned.length && mark[0] < pruned[pruned.length - 1][2]) continue
+    if (pruned.length && mark[0] < pruned.at(-1)![2]) continue
     pruned.push(mark)
   }
 
   const out: Record<string, string> = {}
   pruned.forEach(([start, letters], i) => {
-    const end = i + 1 < pruned.length ? pruned[i + 1][0] : rationaleHtml.length
+    const end = pruned[i + 1]?.[0] ?? rationaleHtml.length
     const segment = balance(rationaleHtml.slice(start, end))
     for (const letter of letters) {
       if (letter in out) flags.push(`duplicate_boundary_${letter}`)
@@ -280,7 +280,7 @@ export function recoverSprAnswers(rationaleHtml: string | null | undefined): Spr
 
   const ways = WAYS.exec(text)
   if (ways) {
-    const answers = ways[1]
+    const answers = ways[1]!
       .split(/,|\band\b/)
       .map(enterable)
       .filter((v): v is string => v !== null)
@@ -290,7 +290,7 @@ export function recoverSprAnswers(rationaleHtml: string | null | undefined): Spr
 
   const fallback = SPR_FALLBACK.exec(text)
   if (fallback) {
-    const value = enterable(fallback[1])
+    const value = enterable(fallback[1]!)
     if (value) return { answers: [value], flags: [] }
     // 'three halves', 'e' -- screen-reader prose, not an enterable value.
     return { answers: [], flags: ['spr_answer_not_numeric'] }
@@ -304,8 +304,8 @@ export interface McqRecovery { letter: string | null; flags: string[] }
 export function recoverMcqAnswer(rationaleHtml: string | null | undefined): McqRecovery {
   const text = flatten(rationaleHtml)
   const letters = new Set<string>()
-  for (const m of text.matchAll(MCQ_FALLBACK)) letters.add(m[1].toUpperCase())
-  if (letters.size === 1) return { letter: [...letters][0], flags: [] }
+  for (const m of text.matchAll(MCQ_FALLBACK)) letters.add(m[1]!.toUpperCase())
+  if (letters.size === 1) return { letter: [...letters][0] ?? null, flags: [] }
   if (!letters.size) return { letter: null, flags: ['mcq_no_correct_pattern'] }
   return { letter: null, flags: ['mcq_ambiguous_' + [...letters].sort().join('')] }
 }

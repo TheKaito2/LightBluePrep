@@ -137,14 +137,14 @@ describe('splitExplanations', () => {
       expect((part.match(/<p>/g) ?? []).length, part)
         .toBe((part.match(/<\/p>/g) ?? []).length)
     }
-    expect(explanations.A.startsWith('Choice A')).toBe(true)
-    expect(explanations.B.startsWith('Choice B')).toBe(true)
+    expect(explanations.A!.startsWith('Choice A')).toBe(true)
+    expect(explanations.B!.startsWith('Choice B')).toBe(true)
   })
 
   it('closes an unclosed tag', () => {
     const html = '<p><em>Choice A is correct. Yes.</em> Text. <p>Choice B is incorrect.'
     const { explanations } = splitExplanations(html, ['A', 'B'])
-    const a = explanations.A
+    const a = explanations.A!
     expect((a.match(/<p>/g) ?? []).length).toBe((a.match(/<\/p>/g) ?? []).length)
     expect((a.match(/<em>/g) ?? []).length).toBe((a.match(/<\/em>/g) ?? []).length)
   })

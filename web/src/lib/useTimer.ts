@@ -16,6 +16,7 @@ export function useQuestionTimer(key: string | null, running: boolean) {
   useEffect(() => {
     accumulated.current = 0
     since.current = null
+    // oxlint-disable-next-line react/set-state-in-effect -- resets with the refs beside it on a new question
     setSeconds(0)
   }, [key])
 
