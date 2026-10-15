@@ -75,6 +75,18 @@ type HighlightMenu =
 
 const COLORS = ['yellow', 'blue', 'pink'] as const
 
+/** The passage divider's range and step, in percent of the split's width. */
+const SPLIT_MIN = 28
+const SPLIT_MAX = 72
+const SPLIT_STEP = 4
+const clampSplit = (pct: number) => Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, pct))
+/**
+ * Where you last left the divider. A module variable because QuestionView
+ * remounts on every question, and a split that snapped back to 50% each time
+ * was a split you had to drag again on every passage. It lasts the session.
+ */
+let savedSplit = 50
+
 function anchorOf(rect: DOMRect | null): Anchor {
   return rect
     ? { x: rect.left + rect.width / 2, top: rect.top, bottom: rect.bottom }
@@ -94,9 +106,9 @@ export function QuestionView(props: Props) {
   const [pickedColor, setPickedColor] = useState('yellow')
   const [menuPlace, setMenuPlace] = useState<CSSProperties>({})
   const menuRef = useRef<HTMLDivElement>(null)
-  const [split, setSplit] = useState(50)
+  const [split, setSplitState] = useState(savedSplit)
+  const setSplit = (pct: number) => { savedSplit = clampSplit(pct); setSplitState(savedSplit) }
   const stacked = useStacked()
-  const dragging = useRef(false)
 
   const answered = result !== null
   // Graded right here, as open practice is. A set holds its answers until the
@@ -177,23 +189,35 @@ export function QuestionView(props: Props) {
     setMenuPlace({ left, top })
   }, [menu, stacked, hasNote])
 
-  useEffect(() => {
-    function move(event: MouseEvent) {
-      if (!dragging.current) return
-      setSplit(Math.min(72, Math.max(28, (event.clientX / window.innerWidth) * 100)))
-    }
-    function up() { dragging.current = false; document.body.classList.remove('dragging') }
-    window.addEventListener('mousemove', move)
-    window.addEventListener('mouseup', up)
-    return () => {
-      window.removeEventListener('mousemove', move)
-      window.removeEventListener('mouseup', up)
-    }
-  }, [])
-
-  function startDrag() {
-    dragging.current = true
+  /**
+   * Drag the divider with any pointer. Capture keeps the moves coming when the
+   * pointer runs over the passage or leaves the window mid-drag.
+   */
+  function onDividerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
     document.body.classList.add('dragging')
+  }
+  function onDividerMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
+    const box = event.currentTarget.parentElement!.getBoundingClientRect()
+    setSplit(((event.clientX - box.left) / box.width) * 100)
+  }
+  function onDividerUp(event: React.PointerEvent<HTMLDivElement>) {
+    event.currentTarget.releasePointerCapture(event.pointerId)
+    document.body.classList.remove('dragging')
+  }
+  function onDividerKey(event: React.KeyboardEvent) {
+    const next = event.key === 'ArrowLeft' ? split - SPLIT_STEP
+      : event.key === 'ArrowRight' ? split + SPLIT_STEP
+        : event.key === 'Home' ? SPLIT_MIN
+          : event.key === 'End' ? SPLIT_MAX : null
+    if (next === null) return
+    // The arrows change the question everywhere else on this screen.
+    event.preventDefault()
+    event.stopPropagation()
+    setSplit(next)
   }
 
   function handleSelect(range: { field: string; start: number; end: number }) {
@@ -259,7 +283,7 @@ export function QuestionView(props: Props) {
       {hasStimulus && !isSplit ? <div className="figure">{stimulus}</div> : null}
 
       <div className={flagged ? 'q-head is-marked' : 'q-head'}>
-        <span className="q-num">{number}</span>
+        <h2 className="q-num"><span className="sr-only">Question </span>{number}</h2>
         <button className={flagged ? 'markbtn on' : 'markbtn'} onClick={onToggleFlag}
                 aria-pressed={flagged}>
           {flagged ? <BookmarkFilled size={17} /> : <Icon name="bookmark" size={17} />}
@@ -394,16 +418,23 @@ export function QuestionView(props: Props) {
         // desktop affordance, and a 4px drag handle is not usable by thumb.
         // Leaving the inline style on would beat any media query anyway.
         <div className="split stacked">
-          <div className="pane pane-stimulus">{stimulus}</div>
+          <section className="pane pane-stimulus" aria-label="Passage">{stimulus}</section>
           <div className="pane">{prompt}</div>
         </div>
       ) : isSplit ? (
         <div className="split" style={{ gridTemplateColumns: `${split}% 4px 1fr` }}>
-          <div className="pane">{stimulus}</div>
-          <div className="divider" onMouseDown={startDrag}>
-            <span className="grab" onMouseDown={startDrag}>
+          {/* Focusable because it scrolls on its own and may hold nothing
+              else that takes focus: without a stop, a keyboard cannot reach
+              the end of a long passage. */}
+          <section className="pane" aria-label="Passage" tabIndex={0}>{stimulus}</section>
+          <div className="divider" onPointerDown={onDividerDown} onPointerMove={onDividerMove}
+               onPointerUp={onDividerUp} onPointerCancel={onDividerUp}
+               onDoubleClick={() => setSplit(50)}>
+            <div className="grab" role="separator" tabIndex={0} aria-orientation="vertical"
+                 aria-valuenow={Math.round(split)} aria-valuemin={SPLIT_MIN} aria-valuemax={SPLIT_MAX}
+                 aria-label="Resize passage and question" onKeyDown={onDividerKey}>
               <SplitHandle />
-            </span>
+            </div>
           </div>
           <div className="pane">{prompt}</div>
         </div>

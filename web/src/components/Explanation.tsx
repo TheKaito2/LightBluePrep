@@ -61,7 +61,7 @@ export function Explanation({
     moveFocus.current = null
     if (target === 'panel') {
       // The first heading, or the Full explanation toggle when there is none.
-      panel.current?.querySelector<HTMLElement>('h4, summary')?.focus()
+      panel.current?.querySelector<HTMLElement>('h3, summary')?.focus()
     } else if (target === 'button' && explainBtn.current) {
       const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       explainBtn.current.parentElement?.scrollIntoView({ block: 'nearest', behavior: still ? 'auto' : 'smooth' })
@@ -122,13 +122,13 @@ export function Explanation({
         <div className="explain-choices">
           {result.why_wrong_html ? (
             <section className="why why-wrong">
-              <h4 tabIndex={-1}>Why {result.response} is wrong</h4>
+              <h3 tabIndex={-1}>Why {result.response} is wrong</h3>
               <RichText html={result.why_wrong_html} field="why_wrong" />
             </section>
           ) : null}
           {result.why_right_html ? (
             <section className="why why-right">
-              <h4 tabIndex={-1}>Why {result.accepted[0]} is right</h4>
+              <h3 tabIndex={-1}>Why {result.accepted[0]} is right</h3>
               <RichText html={result.why_right_html} field="why_right" />
             </section>
           ) : null}

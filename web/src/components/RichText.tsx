@@ -35,6 +35,13 @@ function wrapTables(host: HTMLElement): void {
   for (const table of host.querySelectorAll('table')) {
     const wrap = document.createElement('div')
     wrap.className = 'tablewrap'
+    // Focusable so the arrow keys can scroll it, except inside an answer
+    // choice, which is a button and cannot hold a second focus stop.
+    if (!host.closest('button')) {
+      wrap.tabIndex = 0
+      wrap.setAttribute('role', 'region')
+      wrap.setAttribute('aria-label', 'Table, scroll sideways')
+    }
     table.replaceWith(wrap)
     wrap.appendChild(table)
   }

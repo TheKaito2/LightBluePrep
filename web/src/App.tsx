@@ -20,6 +20,7 @@ import { Footer } from './components/Footer'
 import { SetResults } from './components/SetResults'
 import type { CellState } from './components/Navigator'
 import { SetReview } from './components/SetReview'
+import { Directions, DIRECTIONS_ID } from './components/Directions'
 import { FeedbackHost } from './components/Feedback'
 import { Inbox } from './components/Inbox'
 import { Resources } from './components/Resources'
@@ -60,6 +61,16 @@ const DIRECTIONS = {
     'For multiple-choice questions, solve each problem and choose the correct answer from the choices provided. For student-produced response questions, solve each problem and enter your answer.',
   ],
 } as const
+
+/** Practice shortcuts, as Directions lists them. A set has no Enter: nothing is checked until the end. */
+const KEYS_OPEN = 'Keyboard: ← → move, A–D choose, Enter check, M mark'
+const KEYS_SET = 'Keyboard: ← → move, A–D choose, M mark'
+
+/** What the practice back button names, by the page practice was opened over. */
+const BACK_TO: Partial<Record<View, string>> = {
+  review: 'Review', results: 'Results', stats: 'Stats', resources: 'Resources',
+  about: 'About', settings: 'Settings', inbox: 'Inbox',
+}
 
 const NAV = [
   { key: 'home', label: 'Practice', icon: 'grid' },
@@ -106,6 +117,8 @@ export default function App() {
   const [view, setView] = useState<View>(() => (hasDeepLink() ? 'home' : parseHash(window.location.hash)))
   const viewRef = useRef(view)
   useEffect(() => { viewRef.current = view }, [view])
+  /** The page under practice, which is where its back button goes (leavePractice). */
+  const [practiceFrom, setPracticeFrom] = useState<View>('home')
 
   /**
    * Show `next` and give it a history entry, so Back and reload behave like
@@ -118,6 +131,7 @@ export default function App() {
     if (replace || next !== viewRef.current || url.href !== window.location.href) {
       history[replace ? 'replaceState' : 'pushState']({ view: next }, '', url)
     }
+    if (next === 'practice' && viewRef.current !== 'practice') setPracticeFrom(viewRef.current)
     setView(next)
   }, [])
 
@@ -948,26 +962,73 @@ export default function App() {
     setCrossOut(next)
   }
 
+  /** An answer from a click or a key. A set holds it until the end. */
+  function respond(value: string | null) {
+    setResponse(value)
+    if (activeSet) holdAnswer(value, seconds)
+  }
+
+  /**
+   * Practice shortcuts. Rebuilt every render so it reads this render's answer
+   * and question, and called through a ref so the window listener is added
+   * once rather than on every tick of the clock.
+   */
+  const onPracticeKey = useRef<(event: KeyboardEvent) => void>(() => {})
   useEffect(() => {
-    if (!practising) return
-    function onKey(event: KeyboardEvent) {
-      const tag = (event.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return
-      // A dialog (Feedback, Support) sits over the question; keys belong to it.
+    onPracticeKey.current = (event) => {
+      const target = event.target as HTMLElement | null
+      // Cmd/Ctrl/Alt+Arrow is the browser's back or line start, not Next.
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      const tag = target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return
+      // A Feedback or Support dialog sits over the question; keys belong to it.
       if (document.querySelector('.modal')) return
-      // Shift+Arrow extends a text selection to highlight, and arrows inside
-      // the highlight menu belong to it; neither should change the question.
-      if (event.shiftKey || (event.target as HTMLElement)?.closest?.('.hl-menu')) return
-      if (event.key === 'ArrowRight') go(index + 1)
-      if (event.key === 'ArrowLeft') go(index - 1)
+      // Shift+Arrow extends a text selection to highlight. Arrows inside the
+      // highlight menu, a wide table, the passage divider or the calculator
+      // scroll or move that thing; none of them should change the question.
+      if (event.shiftKey
+          || target?.closest?.('.hl-menu, .tablewrap, [role=separator], .desmos-panel')) return
       if (event.key === 'Escape') {
         setShowNavigator(false); setShowDesmos(false); setShowDirections(false)
-        setShowNotes(false)
+        setShowNotes(false); setShowSetReview(false); setShowReference(false)
+        return
+      }
+      // The navigator, Notes, Directions or the review page is open: the
+      // question behind it stays put.
+      if (document.querySelector('[aria-modal="true"]')) return
+      if (event.key === 'ArrowLeft') { go(index - 1); return }
+      if (event.key === 'ArrowRight') {
+        // The last question of a set has Review where Next was; so does the key.
+        if (activeSet && index >= items.length - 1) setShowSetReview(true)
+        else go(index + 1)
+        return
+      }
+      if (!question || !current) return
+      const key = event.key.toLowerCase()
+      if (key === 'm') { void toggleFlag(); return }
+      const graded = result !== null && !activeSet
+      if (question.type === 'mcq' && !graded && /^[a-d]$/.test(key)) {
+        const label = key.toUpperCase()
+        if (!question.options?.some((o) => o.label === label)) return
+        // As a click does: picking a crossed-out choice un-crosses it.
+        if (crossOut.has(label)) toggleCrossOut(label)
+        respond(label)
+        return
+      }
+      // Enter on a focused control is that control's own click.
+      if (event.key === 'Enter' && !activeSet && !result && response
+          && !target?.closest?.('button, a[href], summary, [role=button]')) {
+        event.preventDefault()
+        void submit()
       }
     }
+  })
+  useEffect(() => {
+    if (!practising) return
+    const onKey = (event: KeyboardEvent) => onPracticeKey.current(event)
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [index, go, practising])
+  }, [practising])
 
   /**
    * How THIS set is going, cell by cell.
@@ -998,6 +1059,7 @@ export default function App() {
   // to the filters made the Math tools blink out and back on every Next in
   // mixed practice, and Directions show the wrong section meanwhile.
   const section = question?.section ?? current?.section ?? filters.section ?? 'RW'
+  const backLabel = activeSet ? 'Save and exit' : `Back to ${BACK_TO[practiceFrom] ?? 'Home'}`
 
   /**
    * One question on its own (Review, an ID search, a ?q= link) has nowhere for
@@ -1181,17 +1243,16 @@ export default function App() {
       <header className="topbar">
         <div className="topbar-left">
           <div className="section-title">
-            <button className="backbtn" title={activeSet ? 'Save and exit' : 'Go back'}
-                    aria-label={activeSet ? 'Save and exit' : 'Go back'}
+            <button className="backbtn" title={backLabel} aria-label={backLabel}
                     onClick={leavePractice}>
               <Icon name="chevron-left" size={18} strokeWidth={2.2} />
             </button>
             {/* Wrapped so it can be truncated on a phone. A bare text node in a
                 flex row cannot take text-overflow. */}
-            <span className="section-name" id="view-title" tabIndex={-1}
-                  role="heading" aria-level={1}>{setTitle}</span>
+            <h1 className="section-name" id="view-title" tabIndex={-1}>{setTitle}</h1>
           </div>
-          <button className="ghostlink" onClick={() => setShowDirections((v) => !v)}>
+          <button className="ghostlink" onClick={() => setShowDirections((v) => !v)}
+                  aria-expanded={showDirections} aria-controls={DIRECTIONS_ID}>
             Directions
             <Icon name={showDirections ? 'chevron-up' : 'chevron-down'} size={15}
                   strokeWidth={2.2} />
@@ -1223,7 +1284,10 @@ export default function App() {
               )}
             </div>
           )}
-          <button className="hide-btn" onClick={toggleTimer}>
+          {/* The words swap, so the name does too; aria-pressed on top would
+              say the opposite of the label half the time. */}
+          <button className="hide-btn" onClick={toggleTimer}
+                  aria-label={showTimer ? 'Hide timer' : 'Show timer'}>
             {showTimer ? 'Hide' : 'Show'}
           </button>
           {warning ? (
@@ -1239,6 +1303,7 @@ export default function App() {
           {question ? <QuestionInfo question={question} /> : null}
           {section === 'MATH' ? (
             <button className={showReference ? 'tool on' : 'tool'} aria-label="Reference"
+                    aria-expanded={showReference}
                     onClick={() => setShowReference((v) => !v)}>
               <span className="tool-glyphs"><Icon name="ruler" size={21} /></span>
               <span className="tool-label"><span className="tool-text">Reference</span></span>
@@ -1246,6 +1311,7 @@ export default function App() {
           ) : null}
           {section === 'MATH' && DESMOS_EMBEDDED ? (
             <button className={showDesmos ? 'tool on' : 'tool'} aria-label="Calculator"
+                    aria-expanded={showDesmos}
                     onClick={() => setShowDesmos((v) => !v)}>
               <span className="tool-glyphs"><Icon name="calculator" size={21} /></span>
               <span className="tool-label"><span className="tool-text">Calculator</span></span>
@@ -1264,7 +1330,11 @@ export default function App() {
               <span className="tool-label"><span className="tool-text">Calculator</span></span>
             </a>
           ) : null}
+          {/* Named here because a phone shows the glyphs alone. */}
           <button className={showNotes ? 'tool on' : 'tool'}
+                  aria-label={annotations.length
+                    ? `Highlights and notes, ${annotations.length}` : 'Highlights and notes'}
+                  aria-expanded={showNotes} aria-haspopup="dialog"
                   onClick={() => setShowNotes((v) => !v)}>
             <span className="tool-glyphs">
               <Icon name="highlighter" size={21} />
@@ -1335,10 +1405,7 @@ export default function App() {
                   </button>
                 </div>
               ) : null}
-              onRespond={(value) => {
-                setResponse(value)
-                if (activeSet) holdAnswer(value, seconds)
-              }}
+              onRespond={respond}
               onSubmit={submit}
               onToggleFlag={toggleFlag}
               onToggleCrossOutMode={() => setCrossOutMode((v) => !v)}
@@ -1373,6 +1440,7 @@ export default function App() {
         </div>
         <div className="bottom-mid">
           <button className="navbtn" onClick={() => setShowNavigator(true)}
+                  aria-haspopup="dialog" aria-expanded={showNavigator}
                   disabled={items.length <= 1}>
             Question {items.length ? index + 1 : 0} of {items.length.toLocaleString()}
             <Icon name="chevron-up" size={15} strokeWidth={2.2} />
@@ -1449,19 +1517,8 @@ export default function App() {
       ) : null}
 
       {showDirections ? (
-        <>
-          <div className="dir-scrim" onClick={() => setShowDirections(false)} />
-          <div className="dir-sheet" role="dialog" aria-label="Directions">
-            <div className="dir-body">
-              {DIRECTIONS[section].map((line) => <p key={line}>{line}</p>)}
-            </div>
-            <div className="dir-foot">
-              <button className="btn primary" onClick={() => setShowDirections(false)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </>
+        <Directions lines={DIRECTIONS[section]} keys={activeSet ? KEYS_SET : KEYS_OPEN}
+                    onClose={() => setShowDirections(false)} />
       ) : null}
       <FeedbackHost />
       <SupportHost />

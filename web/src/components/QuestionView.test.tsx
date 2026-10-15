@@ -109,3 +109,40 @@ it('opens a clicked highlight for editing and only removes it from the trash but
   act(() => host.querySelector<HTMLButtonElement>('[aria-label="Remove highlight"]')!.click())
   expect(onRemove).toHaveBeenCalledWith(3)
 })
+
+it('moves the passage divider by keyboard and keeps it for the next question', () => {
+  const rw: Question = { ...question, id: 'q2', section: 'RW', stimulus_html: '<p>A passage.</p>' }
+  const view = (q: Question) => (
+    <QuestionView question={q} number={2} annotations={[]} result={null} seconds={0}
+                  response={null} flagged={false} crossOutMode={false} crossOut={new Set()}
+                  onRespond={() => {}} onSubmit={() => {}} onToggleFlag={() => {}}
+                  onToggleCrossOutMode={() => {}} onToggleCrossOut={() => {}}
+                  onAddAnnotation={() => {}} onUpdateAnnotation={() => {}} onRemoveAnnotation={() => {}}
+                  mistake={null} onSaveMistake={() => {}} />
+  )
+  act(() => root.render(view(rw)))
+  expect(host.querySelector('h2.q-num')?.textContent).toBe('Question 2')
+  expect(host.querySelector('section[aria-label=Passage]')).not.toBeNull()
+  const grab = () => host.querySelector<HTMLElement>('[role=separator]')!
+  const key = (k: string) => act(() => { grab().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })) })
+  const outside = vi.fn()
+  window.addEventListener('keydown', outside)
+  key('ArrowRight')
+  expect(grab().getAttribute('aria-valuenow')).toBe('54')
+  // The arrows change the question everywhere else, so this one stops here.
+  expect(outside).not.toHaveBeenCalled()
+  window.removeEventListener('keydown', outside)
+  key('End')
+  expect(grab().getAttribute('aria-valuenow')).toBe('72')
+  key('ArrowRight')
+  expect(grab().getAttribute('aria-valuenow')).toBe('72')
+
+  // A new question is a fresh QuestionView; the split carries over.
+  act(() => root.render(<div />))
+  act(() => root.render(view({ ...rw, id: 'q3' })))
+  expect(grab().getAttribute('aria-valuenow')).toBe('72')
+  key('Home')
+  expect(grab().getAttribute('aria-valuenow')).toBe('28')
+  act(() => { grab().parentElement!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })) })
+  expect(grab().getAttribute('aria-valuenow')).toBe('50')
+})

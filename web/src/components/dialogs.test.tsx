@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Modal } from './Modal'
 import { ConfirmDelete } from './ConfirmDelete'
 import { ToastProvider, useToast } from './Toast'
+import { Directions } from './Directions'
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -62,6 +63,30 @@ describe('Modal', () => {
   it('leaves focus on a field that asked for it', () => {
     act(() => root.render(<Modal title="Send feedback" onClose={() => {}}><textarea autoFocus /></Modal>))
     expect(document.activeElement?.tagName).toBe('TEXTAREA')
+  })
+})
+
+describe('practice overlays (useDialogFocus)', () => {
+  function DirectionsLike() {
+    const [open, setOpen] = useState(false)
+    return (
+      <>
+        <button onClick={() => setOpen(true)}>Directions</button>
+        {open ? <Directions lines={['Read it.']} keys="Keyboard" onClose={() => setOpen(false)} /> : null}
+      </>
+    )
+  }
+
+  it('is modal, focuses its close button and hands focus back on close', () => {
+    act(() => root.render(<DirectionsLike />))
+    const opener = button('Directions')
+    opener.focus()
+    act(() => opener.click())
+    expect(host.querySelector('[role=dialog]')?.getAttribute('aria-modal')).toBe('true')
+    expect(document.activeElement).toBe(button('Close'))
+    act(() => button('Close').click())
+    expect(host.querySelector('[role=dialog]')).toBeNull()
+    expect(document.activeElement).toBe(opener)
   })
 })
 

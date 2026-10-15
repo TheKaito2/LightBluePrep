@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Icon } from './Icon'
+import { useDialogFocus } from '../lib/useFocusTrap'
 import { compareAnnotations } from '../lib/ranges'
 import type { Annotation } from '../types'
 
@@ -39,6 +40,9 @@ function fieldLabel(field: string): string {
  */
 export function Notes({ annotations, onRemove, onClose }: Props) {
   const [quotes, setQuotes] = useState<Record<number, string>>({})
+  const box = useRef<HTMLElement>(null)
+  const closeBtn = useRef<HTMLButtonElement>(null)
+  useDialogFocus(box, closeBtn)
 
   useEffect(() => {
     const found: Record<number, string> = {}
@@ -58,10 +62,10 @@ export function Notes({ annotations, onRemove, onClose }: Props) {
   return (
     <>
       <div className="nav-scrim" onClick={onClose} />
-      <aside className="notes-panel" role="dialog" aria-label="Highlights and notes">
+      <aside ref={box} className="notes-panel" role="dialog" aria-modal="true" aria-label="Highlights and notes">
         <div className="notes-head">
           <div className="notes-title">Highlights &amp; Notes</div>
-          <button className="nav-close" onClick={onClose} aria-label="Close">
+          <button ref={closeBtn} className="nav-close" onClick={onClose} aria-label="Close">
             <Icon name="close" size={18} />
           </button>
         </div>

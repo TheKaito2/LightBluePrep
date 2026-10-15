@@ -34,6 +34,8 @@
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 19px; font-weight: 700; letter-spacing: -.005em; color: var(--ink);
 }
+/* The page's h1, styled as the plain title it always was. */
+.section-name { margin: 0; font: inherit; letter-spacing: inherit; }
 .backbtn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 24px; height: 24px; margin-left: -5px; border-radius: 50%;
@@ -109,7 +111,7 @@
 }
 .prompt, .pane > .passage { padding: 0 var(--pane-pad); }
 
-.divider { position: relative; background: #888888; cursor: col-resize; }
+.divider { position: relative; background: var(--divider); cursor: col-resize; touch-action: none; }
 .grab {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   width: 14px; height: 29px; border-radius: 3px;
@@ -138,7 +140,7 @@
 }
 
 .q-num {
-  flex: none; min-width: 42px; height: 28px; padding: 0 7px; border-radius: 2px;
+  flex: none; min-width: 42px; height: 28px; margin: 0; padding: 0 7px; border-radius: 2px;
   background: var(--ink); color: #fff;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 16px; font-weight: 700;
@@ -204,8 +206,16 @@
 .choice.is-wrongpick .choice-main {
   border-color: var(--red); background: var(--red-soft); box-shadow: inset 0 0 0 1px var(--red);
 }
-/* Keyboard only, and offset so it never merges with a state edge. */
-.choice-main:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+/* Keyboard focus on the practice screen: one near-black ring, the colour of
+   the chrome, clear of the control. Choices sit it further out so it never
+   merges with the picked ring or a graded state edge. */
+.app :is(.choice-main, .tool, .markbtn, .strike, .crossbtn, .navbtn, .btn, .backbtn, .hide-btn,
+  .ghostlink, .nav-cell, .nav-close, .grab, .richtext .tablewrap):focus-visible {
+  outline: 2px solid var(--ink); outline-offset: 2px;
+}
+/* The passage pane fills its column edge to edge, so its ring goes inside. */
+.app .split > section.pane:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.app .choice-main:focus-visible { outline-offset: 4px; }
 .choice.crossed .choice-main { opacity: .45; }
 .choice.crossed .choice-text { text-decoration: line-through; }
 
@@ -288,10 +298,10 @@
 
 .explain-choices { display: flex; flex-direction: column; gap: 14px; }
 .why { border-left: 2px solid var(--line-2); padding-left: 16px; }
-.why h4 { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.why h3 { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
 /* Focused by script when the panel opens, as a reading start point, not a
    control: a box around a caption would look like something to press. */
-.why h4:focus { outline: none; }
+.why h3:focus { outline: none; }
 .why-wrong { border-left-color: var(--red); }
 .why-right { border-left-color: var(--green); }
 .why > div { font-family: var(--serif); font-size: 16px; }
@@ -359,6 +369,8 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
 }
 .dir-body { flex: 1; overflow-y: auto; font-family: var(--serif); font-size: 17px; line-height: 1.62; }
 .dir-body p { margin: 0 0 1em; }
+/* The shortcut line is app help, not test text: sans, a step smaller. */
+.dir-body .dir-keys { margin: 0; font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--ink-2); }
 .dir-foot { display: flex; justify-content: flex-end; padding-top: 14px; }
 
 /* ---------- official content ---------- */

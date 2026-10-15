@@ -1,5 +1,6 @@
-import { memo, useState, type FormEvent } from 'react'
+import { memo, useRef, useState, type FormEvent } from 'react'
 import { Icon } from './Icon'
+import { useDialogFocus } from '../lib/useFocusTrap'
 import { DIFFICULTY_NAME, VERDICT, fmt, plural } from '../lib/labels'
 import type { SetItem } from '../types'
 
@@ -97,6 +98,9 @@ export const Navigator = memo(function Navigator({
   const start = paged ? page * PAGE : 0
   const shown = paged ? items.slice(start, start + PAGE) : items
   const pick = (index: number) => { onGo(index); onClose() }
+  const box = useRef<HTMLDivElement>(null)
+  const closeBtn = useRef<HTMLButtonElement>(null)
+  useDialogFocus(box, closeBtn)
 
   const jump = (event: FormEvent) => {
     event.preventDefault()
@@ -108,10 +112,10 @@ export const Navigator = memo(function Navigator({
   return (
     <>
       <div className="nav-scrim" onClick={onClose} />
-      <div className="nav-popup" role="dialog" aria-label="Go to question">
+      <div ref={box} className="nav-popup" role="dialog" aria-modal="true" aria-label="Go to question">
         <div className="nav-head">
           <div className="nav-title">{title}</div>
-          <button className="nav-close" onClick={onClose} aria-label="Close">
+          <button ref={closeBtn} className="nav-close" onClick={onClose} aria-label="Close">
             <Icon name="close" size={18} />
           </button>
         </div>

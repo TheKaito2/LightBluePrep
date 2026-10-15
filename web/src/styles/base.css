@@ -50,6 +50,9 @@
   --pane-pad: 46px;
   --shadow: 0 10px 34px rgba(16, 20, 30, .13);
 
+  /* Bluebook's passage divider grey, measured. Also the calculator's split edge. */
+  --divider: #888888;
+
   /* Measured off the real app: 26px on, 2px off, 2px tall, near-black. */
   --rule: repeating-linear-gradient(to right, var(--ink) 0 26px, transparent 26px 28px);
 }

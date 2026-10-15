@@ -103,6 +103,9 @@ export function SetResults({ set, history, onPractice, onPracticeMany, onRedo, o
                 media={<Mascot mood={mood} size={72} className={mood === 'cheer' ? 'setres-bulb rise' : 'setres-bulb'} />}
                 title={(
                   <span className="setres-score">
+                    {/* The eyebrow says this too, but the h1 is what a heading
+                        list and a landing announcement read out. */}
+                    <span className="sr-only">Set complete: </span>
                     {fmt(set.correct)}<small> / {fmt(total)}</small>
                   </span>
                 )}

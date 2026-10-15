@@ -11,8 +11,9 @@
  * A set is graded when it ends, the same as a module, so the cells here say
  * answered or not and nothing about right or wrong.
  */
-import type { ReactNode } from 'react'
+import { useId, useRef, type ReactNode } from 'react'
 import { Icon } from './Icon'
+import { useDialogFocus } from '../lib/useFocusTrap'
 import { NavCell, cellState, type CellState } from './Navigator'
 import { VERDICT, fmt, plural } from '../lib/labels'
 import type { SetItem } from '../types'
@@ -41,11 +42,17 @@ export function SetReview({
   const stateAt = (i: number) => states?.[i] ?? cellState(items[i])
   const unanswered = items.filter((_, i) => stateAt(i) === 'unanswered').length
   const marked = items.filter((i) => i.flagged).length
+  const titleId = useId()
+  const box = useRef<HTMLDivElement>(null)
+  const backBtn = useRef<HTMLButtonElement>(null)
+  useDialogFocus(box, backBtn)
 
   return (
-    <div className="setreview">
+    // A full-screen page in looks, but it sits over the question screen, so
+    // to a screen reader and the keyboard it is a dialog like the navigator.
+    <div ref={box} className="setreview" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <header className="setreview-top">
-        <button className="ghostlink" onClick={onClose}>
+        <button ref={backBtn} className="ghostlink" onClick={onClose}>
           <Icon name="chevron-left" size={15} strokeWidth={2.2} />
           Back to question {current + 1}
         </button>
@@ -63,7 +70,7 @@ export function SetReview({
       {banner}
 
       <div className="setreview-body">
-        <h1 className="setreview-h">Check Your Work</h1>
+        <h1 id={titleId} className="setreview-h">Check Your Work</h1>
         <p className="setreview-sub">
           {title} · {plural(items.length, 'question')}
           {unanswered ? ` · ${fmt(unanswered)} unanswered` : ''}
