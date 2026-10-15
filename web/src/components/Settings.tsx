@@ -101,9 +101,12 @@ export function Settings() {
 
   async function run(action: Action) {
     setBusy(true); setResult(null)
+    // Server first: once the account is gone nothing can pull it back. And no
+    // sync may run meanwhile, or one in flight can write rows back after it.
+    const remote = action !== 'local'
+    if (remote) await sync.quiesce()
     try {
-      if (action !== 'local') {
-        // Server first: once the account is gone nothing can pull it back.
+      if (remote) {
         await auth.deleteRemoteData()
       } else if (auth.signedIn()) {
         // Signed in, the next pull would put everything back. Signing out
@@ -117,6 +120,8 @@ export function Settings() {
       }
       setResult({ action })
     } catch (e) {
+      // The delete may not have happened: carry on syncing if still signed in.
+      if (remote) sync.resume()
       setResult({ action, error: toUserMessage(e, 'server') })
     } finally {
       setBusy(false); setConfirm(null)

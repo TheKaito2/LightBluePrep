@@ -15,7 +15,7 @@
  */
 import * as auth from './auth'
 import * as store from './store'
-import { toUserMessage } from './errors'
+import { MESSAGES, toUserMessage } from './errors'
 import type { Annotation, MistakeTag } from '../types'
 
 export type SyncStatus = 'off' | 'syncing' | 'synced' | 'pending'
@@ -50,10 +50,22 @@ const RETRY_MIN_MS = 5000
 const RETRY_MAX_MS = 5 * 60 * 1000
 let retryDelay = 0
 
+/** Shown when the server ended the session, so the badge does not just go quiet. */
+export const SESSION_ENDED = 'Your sync session ended. Sign in again to keep syncing.'
+/** Shown while the account is at its ceiling for practice sets (worker CAPS.sets). */
+export const SETS_REFUSED = "You've reached the 20,000 practice set limit for syncing, so new sets stay on this device."
+
+/** The Worker's table names, as the outbox kinds that feed them. */
+const KIND_OF_TABLE: Record<string, store.OutboxKind> = {
+  attempts: 'attempt', marks: 'mark', annotations: 'annotation', mistakes: 'mistake', sets: 'set',
+}
+
 let status: SyncStatus = 'off'
 let lastError: string | null = null
 let inFlight: Promise<void> | null = null
 let timer: ReturnType<typeof setTimeout> | null = null
+/** Set by quiesce(): no sync may start until reset() or resume(). */
+let stopped = false
 const listeners = new Set<() => void>()
 
 export const getStatus = (): SyncStatus => status
@@ -83,12 +95,13 @@ export function track(kind: store.OutboxKind, id: string): void {
  * so the network is never on the answer-submission path.
  */
 export function schedule(delayMs: number = DEBOUNCE_MS): void {
-  if (!auth.configured || !auth.signedIn()) return
+  if (stopped || !auth.configured || !auth.signedIn()) return
   if (timer) clearTimeout(timer)
   timer = setTimeout(() => { timer = null; void syncNow() }, delayMs)
 }
 
 export function syncNow(): Promise<void> {
+  if (stopped) return Promise.resolve()
   if (!auth.configured || !auth.signedIn()) { emit('off'); return Promise.resolve() }
   if (inFlight) return inFlight
   inFlight = run().finally(() => { inFlight = null })
@@ -117,15 +130,42 @@ async function run(): Promise<void> {
 
     await apply(data)
     await store.setMeta(CURSOR_KEY, data.cursor)
-    await store.clearOutbox(sent)
+    // A table the account is at its ceiling for was not stored, so its entries
+    // stay queued rather than being cleared as if they had arrived.
+    const refused = new Set((data.refused ?? []).flatMap((t) => KIND_OF_TABLE[t] ?? []))
+    const held = (e: store.OutboxEntry) => {
+      const kind = store.parseOutboxKey(e.key)?.kind
+      return kind !== undefined && refused.has(kind)
+    }
+    await store.clearOutbox(sent.filter((e) => !held(e)))
 
-    retryDelay = 0
     const remaining = await store.loadOutbox()
-    emit(remaining.length ? 'pending' : 'synced')
     // A backlog (first sign-in) drains in quick rounds rather than one per
-    // debounce; still far under the Worker's per-account rate limit.
-    if (remaining.length) schedule(500)
+    // debounce, and so does a pull the server split into pages; both stay far
+    // under the Worker's per-account rate limit.
+    if (data.more || remaining.some((e) => !held(e))) {
+      retryDelay = 0
+      emit('pending', refusedMessage(refused))
+      schedule(500)
+    } else if (refused.size) {
+      // Only refused changes are left. Retried on the failure backoff, not in
+      // quick rounds: the answer will be the same until the account has room.
+      retryDelay = retryDelay ? Math.min(retryDelay * 2, RETRY_MAX_MS) : RETRY_MIN_MS
+      emit('pending', refusedMessage(refused))
+      schedule(retryDelay)
+    } else {
+      retryDelay = 0
+      emit(remaining.length ? 'pending' : 'synced')
+    }
   } catch (e) {
+    if (!auth.signedIn()) {
+      // A 401: the session expired or was ended elsewhere, and auth.request has
+      // dropped the token. Retrying cannot help, and an amber badge with no
+      // reason looked like a fault, so say what happened and stop.
+      console.error(e)
+      emit('off', SESSION_ENDED)
+      return
+    }
     // Nothing is cleared on failure, so the outbox still holds everything.
     // Surfaced as amber in the UI rather than swallowed: a sync that silently
     // stops looks identical to one that is switched off.
@@ -135,8 +175,17 @@ async function run(): Promise<void> {
   }
 }
 
+function refusedMessage(refused: Set<store.OutboxKind>): string | null {
+  if (!refused.size) return null
+  return refused.size === 1 && refused.has('set') ? SETS_REFUSED : MESSAGES.storage
+}
+
 interface ServerResponse {
   cursor: number
+  /** The pull was cut at a page boundary: ask again for the rest. */
+  more?: boolean
+  /** Tables at their storage ceiling, whose new rows were not stored. */
+  refused?: string[]
   attempts: store.Attempt[]
   marks: { question_id: string; flagged: number; updated_at: number }[]
   annotations: { question_id: string; items: Annotation[]; updated_at: number }[]
@@ -248,7 +297,28 @@ export async function reset(): Promise<void> {
   // Otherwise signing back in inherits a backoff earned by the previous session.
   retryDelay = 0
   if (timer) { clearTimeout(timer); timer = null }
+  stopped = false
   emit('off')
+}
+
+/**
+ * Stop syncing and wait until nothing is in flight. Call before deleting the
+ * server copy, then reset() once it is gone, or resume() if the delete failed.
+ *
+ * A sync that had already authenticated could otherwise write its batch after
+ * the delete and bring rows back. The Worker guards against that too; this
+ * keeps a debounced or visibilitychange sync from even starting meanwhile.
+ */
+export async function quiesce(): Promise<void> {
+  stopped = true
+  if (timer) { clearTimeout(timer); timer = null }
+  if (inFlight) await inFlight
+}
+
+/** Undo quiesce() when the delete it guarded did not happen. */
+export function resume(): void {
+  stopped = false
+  schedule()
 }
 
 let dataVersion = 0

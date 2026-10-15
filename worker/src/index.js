@@ -79,6 +79,8 @@ const ALLOWED_ORIGINS = [
 ]
 
 const SESSION_DAYS = 90
+/** A session used with fewer days than this left is extended (subForRequest). */
+const RENEW_DAYS = 30
 /** Sessions kept per account. Signing in on an eleventh device ends the oldest. */
 const MAX_SESSIONS = 10
 
@@ -103,9 +105,15 @@ const BODY_LIMIT = {
  * These are not tuning knobs, they are abuse stops, and every one of them is
  * far out of reach of a real user. marks, annotations and mistakes are keyed
  * PRIMARY KEY (sub, question_id), so a person cannot exceed one row per
- * question in the bank, which is under 4,000: the 20,000 ceiling is five times
- * a full sweep of every question that exists. Sets are keyed on a uuid and so
- * are unbounded in principle, but 5,000 of them is years of daily practice.
+ * question in the bank, which is under 4,000: the 10,000 ceiling is over two
+ * full sweeps of every question that exists. Sets are keyed on a uuid and so
+ * are unbounded in principle, and a deleted set stays as a tombstone row that
+ * still counts, so their ceiling is higher: 20,000 is a dozen sets a day for
+ * four years.
+ *
+ * At a ceiling only NEW rows for that table are turned away (handleSync), and
+ * the reply names the table in `refused`. Everything else in the request, and
+ * every change to a row already stored, still syncs.
  *
  * `question_id` is never checked against the real bank, which is what makes
  * these necessary: without them one account can invent question ids and write
@@ -116,8 +124,17 @@ const CAPS = {
   marks: 10000,
   annotations: 10000,
   mistakes: 10000,
-  sets: 3000,
+  sets: 20000,
 }
+
+/**
+ * Most rows per table in one sync reply, so one request reads a bounded number
+ * of rows however long the history is. It must stay above MAX_ITEMS_PER_REQUEST:
+ * one request writes at most that many rows per table, all under one seq, so a
+ * full page always spans more than one seq and dropping its last seq group
+ * (handleSync) still leaves rows. That is what guarantees each page advances.
+ */
+const PAGE = 2500
 
 /** The five synced tables, with the column each one is keyed on per account. */
 const TABLES = [
@@ -261,9 +278,18 @@ async function subForRequest(request, env) {
   const row = await env.DB.prepare(
     'SELECT sub, expires_at FROM sessions WHERE token = ?').bind(hashed).first()
   if (!row) return null
-  if (row.expires_at * 1000 < Date.now()) {
+  const now = Math.floor(Date.now() / 1000)
+  if (row.expires_at < now) {
     await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(hashed).run()
     return null
+  }
+  // A session in use slides forward, so someone who practices at least every
+  // couple of months is never signed out mid-stride. It renews only inside the
+  // last RENEW_DAYS and then jumps to a full SESSION_DAYS, so each session costs
+  // one write every 60 days, never one per request.
+  if (row.expires_at - now < RENEW_DAYS * 86400) {
+    await env.DB.prepare('UPDATE sessions SET expires_at = ? WHERE token = ?')
+      .bind(now + SESSION_DAYS * 86400, hashed).run()
   }
   return row.sub
 }
@@ -522,7 +548,7 @@ async function handleSync(request, env, origin) {
   if (tooBig) return fail('sync request too large', 413, origin)
   if (!body) return fail('bad body', 400, origin)
 
-  const since = isInt(body.since) ? Math.trunc(body.since) : 0
+  let since = isInt(body.since) ? Math.trunc(body.since) : 0
   const incoming = {
     attempts: cleanAttempts(body.attempts),
     marks: cleanMarks(body.marks),
@@ -531,15 +557,20 @@ async function handleSync(request, env, origin) {
     sets: cleanSets(body.sets),
   }
 
-  // Bump the cursor first and read it back, with the stored row counts. D1 has
-  // no interactive transactions, so this cannot be folded into the batch below.
-  // A refusal or crash after this burns a seq number, which nothing cares about.
-  const bumped = await env.DB.prepare(
-    'INSERT INTO cursors (sub, seq) VALUES (?, 1)'
-    + ' ON CONFLICT(sub) DO UPDATE SET seq = seq + 1'
-    + ' RETURNING seq, n_attempts, n_marks, n_annotations, n_mistakes, n_sets',
+  // The stored row counts, for the ceilings, and the current seq. Read apart
+  // from the batch below, so it can be a moment stale when two devices sync at
+  // once; the ceilings are abuse stops rather than exact quotas, and nothing
+  // the batch does depends on this read.
+  const current = await env.DB.prepare(
+    'SELECT seq, n_attempts, n_marks, n_annotations, n_mistakes, n_sets'
+    + ' FROM cursors WHERE sub = ?',
   ).bind(sub).first()
-  const seq = (bumped && bumped.seq) || 1
+
+  // A client cursor at or past the seq this request is about to take cannot
+  // have come from this account as it stands: the account was deleted and made
+  // again, or another Google account signed in on that device. Pulling from it
+  // would skip every row at or below it for good, so pull everything instead.
+  if (since > ((current && current.seq) || 0)) since = 0
 
   // The storage ceilings. These used to COUNT(*) every table on every sync,
   // which reads every row the account has: the most expensive query in the
@@ -552,80 +583,106 @@ async function handleSync(request, env, origin) {
   // history) are not new, and counting them could wedge an account near the
   // ceiling forever. One request can overshoot by at most a batch.
   //
-  // The whole request is refused rather than one table dropped, because the
-  // client clears its outbox on any 2xx.
+  // At the ceiling only that table's new rows are dropped, and the table is
+  // named in `refused` so the client keeps those changes queued. Refusing the
+  // whole request (a 413, as this once did) stopped every other change from
+  // syncing too, with nothing the student could do about it.
   const counts = {}
+  /** @type {string[]} */
+  const refused = []
   for (const [table, column] of TABLES) {
     const rows = incoming[table]
-    let stored = bumped ? bumped['n_' + table] : 0
+    let stored = current ? current['n_' + table] : null
     if (stored === null || stored === undefined) {
-      // Never counted (older account, or before this column existed): once.
+      // Never counted (new or older account, or before this column existed): once.
       const row = await env.DB.prepare(
         'SELECT COUNT(*) AS n FROM ' + table + ' WHERE sub = ?').bind(sub).first()
       stored = Number((row && row.n) || 0)
     }
-    if (rows.length && stored >= CAPS[table]) {
-      return fail('storage limit reached for ' + table + ' on this account', 413, origin)
+    const have = rows.length
+      ? await existingKeys(env, sub, table, column, rows.map((r) => r[column]))
+      : new Set()
+    let added = rows.filter((r) => !have.has(r[column])).length
+    if (added && stored >= CAPS[table]) {
+      incoming[table] = rows.filter((r) => have.has(r[column]))
+      refused.push(table)
+      added = 0
     }
-    const keys = rows.map((r) => r[column])
-    const have = rows.length ? await existingKeys(env, sub, table, column, keys) : new Set()
-    counts[table] = stored + keys.filter((k) => !have.has(k)).length
+    counts[table] = stored + added
   }
 
-  const writes = []
+  // ONE batch, which D1 runs as a single transaction, and D1 runs one at a time
+  // per database. So the seq this request takes, the rows written under it and
+  // the rows read back are one atomic step. They used to be three round trips,
+  // and a second device's request could take seq 5, lose the race to write, and
+  // commit its rows after this one had already read up to seq 6: rows this
+  // device then never asked for again.
+  //
+  // Every write is guarded on the user row. A delete-my-data that lands while a
+  // sync is in flight removes the user first, and without the guard the sync's
+  // writes recreated rows that nothing could reach or delete again.
+  const live = ' WHERE EXISTS (SELECT 1 FROM users WHERE sub = ?)'
+  const seqOf = '(SELECT seq FROM cursors WHERE sub = ?)'
+  const batch = [
+    env.DB.prepare(
+      'INSERT INTO cursors (sub, seq) SELECT ?, 1' + live
+      + ' ON CONFLICT(sub) DO UPDATE SET seq = seq + 1',
+    ).bind(sub, sub),
+  ]
 
   for (const a of incoming.attempts) {
     // Union by (sub, id). An attempt is immutable once written, so IGNORE is
     // the whole merge rule: replaying the same attempt is a no-op.
-    writes.push(env.DB.prepare(
+    batch.push(env.DB.prepare(
       'INSERT OR IGNORE INTO attempts'
       + ' (sub, id, question_id, answered_at, response, correct, seconds, seq)'
-      + ' VALUES (?,?,?,?,?,?,?,?)',
-    ).bind(sub, a.id, a.question_id, a.answered_at, a.response, a.correct, a.seconds, seq))
+      + ' SELECT ?,?,?,?,?,?,?,' + seqOf + live,
+    ).bind(sub, a.id, a.question_id, a.answered_at, a.response, a.correct, a.seconds, sub, sub))
   }
 
   // Last-write-wins, guarded SERVER-side so a client with a wrong clock cannot
   // stomp newer data. The WHERE on the DO UPDATE is what enforces it.
   for (const m of incoming.marks) {
-    writes.push(env.DB.prepare(
-      'INSERT INTO marks (sub, question_id, flagged, updated_at, seq) VALUES (?,?,?,?,?)'
+    batch.push(env.DB.prepare(
+      'INSERT INTO marks (sub, question_id, flagged, updated_at, seq)'
+      + ' SELECT ?,?,?,?,' + seqOf + live
       + ' ON CONFLICT(sub, question_id) DO UPDATE SET'
       + '   flagged = excluded.flagged, updated_at = excluded.updated_at, seq = excluded.seq'
       + ' WHERE excluded.updated_at > marks.updated_at',
-    ).bind(sub, m.question_id, m.flagged, m.updated_at, seq))
+    ).bind(sub, m.question_id, m.flagged, m.updated_at, sub, sub))
   }
 
   for (const n of incoming.annotations) {
-    writes.push(env.DB.prepare(
+    batch.push(env.DB.prepare(
       'INSERT INTO annotations (sub, question_id, items_json, updated_at, seq)'
-      + ' VALUES (?,?,?,?,?)'
+      + ' SELECT ?,?,?,?,' + seqOf + live
       + ' ON CONFLICT(sub, question_id) DO UPDATE SET'
       + '   items_json = excluded.items_json, updated_at = excluded.updated_at,'
       + '   seq = excluded.seq'
       + ' WHERE excluded.updated_at > annotations.updated_at',
-    ).bind(sub, n.question_id, JSON.stringify(n.items), n.updated_at, seq))
+    ).bind(sub, n.question_id, JSON.stringify(n.items), n.updated_at, sub, sub))
   }
 
   for (const m of incoming.mistakes) {
-    writes.push(env.DB.prepare(
+    batch.push(env.DB.prepare(
       'INSERT INTO mistakes (sub, question_id, tags_json, note, updated_at, seq)'
-      + ' VALUES (?,?,?,?,?,?)'
+      + ' SELECT ?,?,?,?,?,' + seqOf + live
       + ' ON CONFLICT(sub, question_id) DO UPDATE SET'
       + '   tags_json = excluded.tags_json, note = excluded.note,'
       + '   updated_at = excluded.updated_at, seq = excluded.seq'
       + ' WHERE excluded.updated_at > mistakes.updated_at',
-    ).bind(sub, m.question_id, JSON.stringify(m.tags), m.note, m.updated_at, seq))
+    ).bind(sub, m.question_id, JSON.stringify(m.tags), m.note, m.updated_at, sub, sub))
   }
 
   // Last-write-wins, guarded server-side like marks and annotations. A set is
   // worked through over time, so two devices can both hold a version of it.
   // A deletion is just a newer version with `deleted` set, so it wins the same way.
   for (const st of incoming.sets) {
-    writes.push(env.DB.prepare(
+    batch.push(env.DB.prepare(
       'INSERT INTO sets'
       + ' (sub, id, created_at, finished_at, updated_at, seconds, filters_json,'
       + '  items_json, seq, deleted)'
-      + ' VALUES (?,?,?,?,?,?,?,?,?,?)'
+      + ' SELECT ?,?,?,?,?,?,?,?,' + seqOf + ',?' + live
       + ' ON CONFLICT(sub, id) DO UPDATE SET'
       + '   finished_at = excluded.finished_at, updated_at = excluded.updated_at,'
       + '   seconds = excluded.seconds, filters_json = excluded.filters_json,'
@@ -633,57 +690,85 @@ async function handleSync(request, env, origin) {
       + '   deleted = excluded.deleted'
       + ' WHERE excluded.updated_at > sets.updated_at',
     ).bind(sub, st.id, st.created_at, st.finished_at, st.updated_at, st.seconds,
-           JSON.stringify(st.filters), JSON.stringify(st.items), seq, st.deleted))
+           JSON.stringify(st.filters), JSON.stringify(st.items), sub, st.deleted, sub))
   }
 
-  writes.push(env.DB.prepare(
+  batch.push(env.DB.prepare(
     'UPDATE cursors SET n_attempts = ?, n_marks = ?, n_annotations = ?, n_mistakes = ?,'
     + ' n_sets = ? WHERE sub = ?',
   ).bind(counts.attempts, counts.marks, counts.annotations, counts.mistakes, counts.sets, sub))
 
-  await env.DB.batch(writes)
+  // The pull, in seq order and a page at a time. It returns this request's own
+  // accepted writes too, since they carry the new seq; for the LWW stores that
+  // is how the client learns the stored value. A REJECTED write is not echoed:
+  // its row keeps the seq it had. That is safe because clients stamp an edit
+  // past the version they hold (web/src/lib/store.ts), so an edit loses only to
+  // a later write from another device, and that row has a seq above the
+  // client's cursor and comes back in this pull or the next page.
+  /** @param {string} columns @param {string} table */
+  const page = (columns, table) => env.DB.prepare(
+    `SELECT ${columns}, seq FROM ${table} WHERE sub = ? AND seq > ? ORDER BY seq LIMIT ${PAGE}`,
+  ).bind(sub, since)
+  batch.push(
+    page('id, question_id, answered_at, response, correct, seconds', 'attempts'),
+    page('question_id, flagged, updated_at', 'marks'),
+    page('question_id, items_json, updated_at', 'annotations'),
+    page('question_id, tags_json, note, updated_at', 'mistakes'),
+    page('id, created_at, finished_at, updated_at, seconds, filters_json, items_json, deleted', 'sets'),
+    env.DB.prepare('SELECT seq FROM cursors WHERE sub = ?').bind(sub),
+  )
 
-  // Deliberately returns the caller's own writes back to it. For the LWW
-  // stores that is how the client learns what the server actually decided, so a
-  // rejected update self-corrects on the same round trip.
-  const [outAttempts, outMarks, outAnnotations, outMistakes, outSets] = await env.DB.batch([
-    env.DB.prepare(
-      'SELECT id, question_id, answered_at, response, correct, seconds'
-      + ' FROM attempts WHERE sub = ? AND seq > ?').bind(sub, since),
-    env.DB.prepare(
-      'SELECT question_id, flagged, updated_at FROM marks WHERE sub = ? AND seq > ?',
-    ).bind(sub, since),
-    env.DB.prepare(
-      'SELECT question_id, items_json, updated_at FROM annotations WHERE sub = ? AND seq > ?',
-    ).bind(sub, since),
-    env.DB.prepare(
-      'SELECT question_id, tags_json, note, updated_at FROM mistakes WHERE sub = ? AND seq > ?',
-    ).bind(sub, since),
-    env.DB.prepare(
-      'SELECT id, created_at, finished_at, updated_at, seconds, filters_json,'
-      + ' items_json, deleted FROM sets WHERE sub = ? AND seq > ?',
-    ).bind(sub, since),
-  ])
+  const results = await env.DB.batch(batch)
+  const pages = results.slice(-6, -1)
+  const head = (results[results.length - 1].results || [])[0]
+  // No cursor row means no user row: the account was deleted while this was in
+  // flight, so every write above was a no-op and the session is gone too.
+  if (!head) return fail('not signed in', 401, origin)
+
+  // A full page may end partway through a seq group, so its last group is held
+  // back for the next page and the cursor stops just below it. Tables that were
+  // not full may then repeat a few rows next time, which applying is a no-op for.
+  let cursor = head.seq
+  let more = false
+  const [outAttempts, outMarks, outAnnotations, outMistakes, outSets] = pages.map((r) => {
+    const rows = r.results || []
+    if (rows.length < PAGE) return rows
+    more = true
+    const last = rows[rows.length - 1].seq
+    cursor = Math.min(cursor, last - 1)
+    return rows.filter((row) => row.seq < last)
+  })
 
   return json({
-    cursor: seq,
-    attempts: outAttempts.results || [],
-    marks: outMarks.results || [],
-    annotations: (outAnnotations.results || []).map((row) => {
+    cursor,
+    more,
+    refused,
+    attempts: outAttempts.map((row) => ({
+      id: row.id,
+      question_id: row.question_id,
+      answered_at: row.answered_at,
+      response: row.response,
+      correct: row.correct,
+      seconds: row.seconds,
+    })),
+    marks: outMarks.map((row) => ({
+      question_id: row.question_id, flagged: row.flagged, updated_at: row.updated_at,
+    })),
+    annotations: outAnnotations.map((row) => {
       let items = []
       // A row we wrote ourselves, so this should never throw. If the column is
       // ever corrupted, drop that question's highlights rather than 500 the sync.
       try { items = JSON.parse(row.items_json) } catch { items = [] }
       return { question_id: row.question_id, items, updated_at: row.updated_at }
     }),
-    mistakes: (outMistakes.results || []).map((row) => {
+    mistakes: outMistakes.map((row) => {
       let tags = []
       try { tags = JSON.parse(row.tags_json) } catch { tags = [] }
       return {
         question_id: row.question_id, tags, note: row.note, updated_at: row.updated_at,
       }
     }),
-    sets: (outSets.results || []).map((row) => {
+    sets: outSets.map((row) => {
       let filters = {}
       let items = []
       try { filters = JSON.parse(row.filters_json) } catch { filters = {} }

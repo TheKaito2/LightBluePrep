@@ -77,6 +77,11 @@
   margin: 10px 0 12px; padding: 8px 10px; border-radius: var(--rad-sm);
   background: var(--bad-50); color: var(--bad-700); font: var(--type-small);
 }
+/* Not a failure of what you just did: why sync stopped (the session ended). */
+.acct-note {
+  margin: 0 0 12px; padding: 8px 10px; border-radius: var(--rad-sm);
+  background: var(--warn-50); color: var(--warn-700); font: var(--type-small);
+}
 
 /* Secondary sm buttons (spec 7.4); the destructive one in danger-secondary. */
 .acct-actions { display: flex; gap: 8px; }

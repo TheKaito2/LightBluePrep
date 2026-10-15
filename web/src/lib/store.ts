@@ -181,15 +181,45 @@ export interface AnnotationRecord {
   updated_at: number
 }
 
+/**
+ * Write a local edit, stamped later than the version it replaces.
+ *
+ * The server keeps whichever version has the higher updated_at. Stamped with
+ * Date.now() alone, an edit on a device whose clock runs behind lost to the
+ * very row it was editing, if that row came from a device with a correct
+ * clock: the server kept the old value and every other device with it, while
+ * this one showed the edit. One past the held version always beats it, so an
+ * edit now loses only to a genuinely later write from elsewhere. Read and
+ * write in one transaction so a pull cannot land between them.
+ */
+function putStamped<T extends { updated_at: number }>(
+  store: string, key: IDBValidKey, row: Omit<T, 'updated_at'>,
+): Promise<T> {
+  return open().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite')
+    const objectStore = tx.objectStore(store)
+    const current = objectStore.get(key)
+    let stamped: T
+    current.onsuccess = () => {
+      const held = current.result as T | undefined
+      stamped = { ...row, updated_at: Math.max(Date.now(), (held?.updated_at ?? 0) + 1) } as T
+      objectStore.put(stamped as unknown as never)
+    }
+    tx.oncomplete = () => resolve(stamped)
+    tx.onerror = () => reject(tx.error)
+    tx.onabort = () => reject(tx.error)
+  }))
+}
+
 export const loadMarks = () => getAll<MarkRecord>(STORE_MARKS)
 export const saveMark = (question_id: string, flagged: boolean) =>
-  put(STORE_MARKS, { question_id, flagged: flagged ? 1 : 0, updated_at: Date.now() })
+  putStamped<MarkRecord>(STORE_MARKS, question_id, { question_id, flagged: flagged ? 1 : 0 })
 
 export const loadAllAnnotations = () => getAll<AnnotationRecord>(STORE_ANNOTATIONS)
 export const loadAnnotations = (question_id: string) =>
   get<AnnotationRecord>(STORE_ANNOTATIONS, question_id)
 export const saveAnnotations = (question_id: string, items: Annotation[]) =>
-  put(STORE_ANNOTATIONS, { question_id, items, updated_at: Date.now() })
+  putStamped<AnnotationRecord>(STORE_ANNOTATIONS, question_id, { question_id, items })
 
 /**
  * Write a row pulled from the server, unless this device holds a newer edit.
@@ -260,11 +290,11 @@ export function saveMistake(
   if (!tags.length && !clean) {
     // Tombstone rather than delete: sync is last-write-wins on updated_at, and
     // a deleted row has no timestamp to beat the copy on the server with.
-    return put(STORE_MISTAKES,
-      { question_id, tags: [], note: null, updated_at: Date.now() })
+    return putStamped<MistakeRecord>(STORE_MISTAKES, question_id,
+      { question_id, tags: [], note: null })
   }
-  return put(STORE_MISTAKES,
-    { question_id, tags, note: clean || null, updated_at: Date.now() })
+  return putStamped<MistakeRecord>(STORE_MISTAKES, question_id,
+    { question_id, tags, note: clean || null })
 }
 
 /** A tombstone reads as "no log" everywhere above the store. */
@@ -308,12 +338,9 @@ export const loadSet = (id: string) => get<SetRecord>(STORE_SETS, id)
  */
 export const putSet = (row: SetRecord) => putIfNewer(STORE_SETS, row.id, row)
 
-/** Write a local change and stamp it, which is what the merge compares. */
-export async function saveSet(row: Omit<SetRecord, 'updated_at'>): Promise<SetRecord> {
-  const stamped: SetRecord = { ...row, updated_at: Date.now() }
-  await put(STORE_SETS, stamped)
-  return stamped
-}
+/** Write a local change and stamp it (putStamped), which is what the merge compares. */
+export const saveSet = (row: Omit<SetRecord, 'updated_at'>): Promise<SetRecord> =>
+  putStamped<SetRecord>(STORE_SETS, row.id, row)
 
 export type OutboxKind = 'attempt' | 'mark' | 'annotation' | 'mistake' | 'set'
 

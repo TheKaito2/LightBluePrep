@@ -166,6 +166,7 @@ function Frame({ frame, label, title, children }: {
 }
 
 function SignedOutPanel({ frame, onSignedIn }: { frame: FrameProps; onSignedIn: () => void }) {
+  const status = useSyncStatus()
   const [error, setError] = useState<string | null>(null)
   const slot = useRef<HTMLDivElement>(null)
   const rendered = useRef(false)
@@ -179,6 +180,10 @@ function SignedOutPanel({ frame, onSignedIn }: { frame: FrameProps; onSignedIn: 
       slot.current,
       async () => {
         onSignedIn()
+        // The cursor left by an earlier session may belong to another account,
+        // or to this one before it was deleted; pulling from it would skip rows
+        // for good. Start from zero, with an empty queue.
+        await sync.reset()
         // Everything practiced anonymously goes up on the first sync. Safe
         // because attempts are a grow-only set: re-sending is a no-op.
         await sync.seedOutbox()
@@ -188,8 +193,11 @@ function SignedOutPanel({ frame, onSignedIn }: { frame: FrameProps; onSignedIn: 
     ).catch((e: Error) => { setError(toUserMessage(e, 'signin')); rendered.current = false })
   }, [onSignedIn])
 
+  // Set only when the server ended the session; signing out on purpose clears it.
+  const ended = status === 'off' ? sync.getError() : null
   return (
     <Frame frame={frame} label="Sync across devices" title="Keep your progress on every device">
+      {ended ? <p className="acct-note">{ended}</p> : null}
       <ul className="acct-points">
         <li><Icon name="check" size={16} strokeWidth={2.2} />Your history on every device</li>
         <li><Icon name="check" size={16} strokeWidth={2.2} />We keep a random account number, never your name or email</li>
@@ -229,12 +237,15 @@ function SignedInPanel({ frame, onSignedOut }: { frame: FrameProps; onSignedOut:
 
   const handleDelete = useCallback(async () => {
     setBusy(true)
+    // Nothing may sync between here and the delete, or it can write rows back.
+    await sync.quiesce()
     try {
       await auth.deleteRemoteData()
       await sync.reset()
       onSignedOut()
       onClose()
     } catch (e) {
+      sync.resume()
       setError(toUserMessage(e, 'server'))
     } finally {
       setBusy(false)
