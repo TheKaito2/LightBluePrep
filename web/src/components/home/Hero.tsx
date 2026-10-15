@@ -43,7 +43,7 @@ export function Hero({
           </span>
           <h1 className="hero2-t" tabIndex={-1}>Pick a topic.<br /><span className="hero2-hl">Start drilling.</span></h1>
           <p className="hero2-sub">
-            <span className="desk">Every official College Board practice question, sorted by skill. No account, no ads.</span>
+            <span className="desk">Every question in College Board's official question bank, sorted by skill. No account, no ads.</span>
             <span className="phone">Official College Board questions. Free, no account.</span>
           </p>
           <div className="hero2-go">

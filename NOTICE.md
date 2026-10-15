@@ -94,5 +94,14 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   it (cached questions stay), or deletes the synced copy on the server. The
   nav fits six tabs: Settings is a gear on desktop, and below 1150px every
   tab is its icon.
+- 2026-10-15: Full review and overhaul (46 work packages, branch
+  ui-overhaul): a precision-style design system (tokens, one interactive blue,
+  type scale), stylesheet split by surface, URL routing with Back support,
+  rebuilt Home, Review, Results, Stats and secondary pages, practice-screen
+  fixes (answer feedback, cross-out and set correctness, timer, keyboard,
+  phone layout), accessibility and performance passes (lazy MathJax, offline
+  service worker), App.tsx split with tests, dark mode outside practice, goal,
+  reminders, backup and share card, and sync, quota and privacy hardening in
+  the Worker (migration in worker/migrations/).
 
 The full history of changes is in the git log.
