@@ -89,9 +89,8 @@
 .review-dot.d-E { background: var(--ok-500); }
 .review-dot.d-M { background: var(--warn-500); }
 .review-dot.d-H { background: var(--bad-500); }
-.review-flag, .review-logged { display: inline-flex; margin-left: 6px; vertical-align: -1px; }
-.review-flag { color: var(--warn-700); }
-.review-logged { color: var(--fg-3); }
+.review-flag { display: inline-flex; margin-left: 6px; vertical-align: -1px; color: var(--warn-700); }
+.review-logged { display: inline-flex; margin-left: 6px; vertical-align: -1px; color: var(--fg-3); }
 .review-nums {
   flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
   font-variant-numeric: tabular-nums;
@@ -181,10 +180,12 @@
   margin: 10px 0 0; padding: 10px 12px; border-left: 3px solid var(--hair-2);
   font: 400 14px/1.55 var(--sans); color: var(--fg-2); white-space: pre-wrap;
 }
-.review-anns, .review-regrade {
+.review-anns {
   display: flex; align-items: center; gap: 6px; margin: 12px 0 0; font: var(--type-small); color: var(--fg-3);
 }
-.review-regrade { margin-top: 22px; color: var(--fg-2); font-weight: 500; }
+.review-regrade {
+  display: flex; align-items: center; gap: 6px; margin: 22px 0 0; font: var(--type-small); font-weight: 500; color: var(--fg-2);
+}
 .review-anns svg, .review-regrade svg { flex: none; }
 .review-again { margin-top: 20px; }
 

@@ -54,8 +54,6 @@
 .shell .hero2-main .hero2-main-n { margin-left: -4px; }
 .hero2-main-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hero2-main-n { flex: none; font-variant-numeric: tabular-nums; }
-/* Focus ring on the light-blue band: ink, since brand-700 is too close to it. */
-.shell .hero2 :focus-visible { outline-color: var(--fg-1); }
 
 /* ---- ID search (spec 7.8): a real input, results as a popover ---- */
 .qsearch-f { position: relative; max-width: 440px; margin-top: var(--sp-4); }
@@ -91,8 +89,8 @@
   border-radius: var(--rad-sm); color: var(--fg-1); cursor: pointer;
   transition: background-color var(--dur-fast);
 }
-.idhit:hover, .idhit.on { background: var(--surface-subtle); }
-.idhit.on { box-shadow: inset 2px 0 0 var(--brand-700); }
+.idhit:hover { background: var(--surface-subtle); }
+.idhit.on { background: var(--surface-subtle); box-shadow: inset 2px 0 0 var(--brand-700); }
 .idhit .qid { margin-left: 0; }
 .idhit-s {
   flex: 1; min-width: 0; font: 500 14px/20px var(--sans);
@@ -115,6 +113,9 @@
 .scard {
   display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; padding: var(--sp-6);
   border: 1px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: var(--sh-2);
+  /* Between 820px and about 1140px the card's column is too narrow for three
+     footer cells side by side: see the @container rule further down. */
+  container-type: inline-size;
 }
 .scard-top { display: flex; align-items: center; gap: var(--sp-2); min-height: 22px; }
 .scard-l {
@@ -193,7 +194,6 @@
 /* Between 820px and about 1140px the card's column is too narrow for three
    footer cells side by side: the streak takes its own row. Phones keep one
    row (their cells are tighter and the fold matters more there). */
-.scard { container-type: inline-size; }
 @media (min-width: 820px) {
   @container (max-width: 360px) {
     .scard-stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: var(--sp-4); }

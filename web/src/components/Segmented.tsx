@@ -5,7 +5,7 @@
  * pick, as native radios do. A row of aria-pressed buttons was announced as
  * independent toggles (H-37).
  */
-import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
 
 interface Props<T> {
   legend: string
@@ -31,6 +31,18 @@ export function Segmented<T extends string | number>({
   const id = useId()
   const track = useRef<HTMLDivElement>(null)
   const at = options.findIndex((o) => o.value === value)
+
+  // Where the track scrolls sideways (Review's piles on a phone), keep the
+  // checked item in view: the default there is the last one.
+  useEffect(() => {
+    const line = track.current?.parentElement
+    const b = track.current?.querySelectorAll<HTMLElement>('[role=radio]')[at]
+    if (!line || !b || line.scrollWidth <= line.clientWidth) return
+    const l = line.getBoundingClientRect(), r = b.getBoundingClientRect()
+    const pad = parseFloat(getComputedStyle(line).paddingRight) || 0
+    if (r.right > l.right - pad) line.scrollLeft += r.right - l.right + pad
+    else if (r.left < l.left) line.scrollLeft -= l.left - r.left
+  }, [at])
 
   function onKey(e: KeyboardEvent) {
     const n = options.length

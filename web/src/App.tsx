@@ -350,8 +350,12 @@ export default function App() {
       if (!d.questions.length) return
       // A link names only the skill. Its section is what makes the header read
       // "Math: Linear functions" rather than "All questions: ...".
-      setFilters(next.skills?.length === 1 && !next.section
-        ? { ...next, section: d.questions[0].section } : next)
+      // These become Home's stored picks (and the pool loadList draws), so
+      // keep the session length and timer chosen there: neither changes the pool.
+      setFilters((prev) => ({
+        size: prev.size, speed: prev.speed,
+        ...(next.skills?.length === 1 && !next.section ? { ...next, section: d.questions[0].section } : next),
+      }))
       setItems(arrange(d.questions, order, seed)); setIndex(0); navigate('practice')
     }).catch((e: Error) => fail(e))
   }, [order, seed, fail, navigate])

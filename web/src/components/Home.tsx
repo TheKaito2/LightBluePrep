@@ -60,11 +60,16 @@ interface Props {
   onOpenId: (id: string) => void
 }
 
-/** Which questions inside the chosen topics. One choice, mapped onto `statuses`. */
-const WHICH: { key: Status | 'all'; label: string }[] = [
+/**
+ * Which questions inside the chosen topics. One choice, mapped onto `statuses`
+ * (joined with "+"). "Not answered or incorrect" is what Stats' Practice
+ * buttons pick, so Home can show that choice when you come back.
+ */
+const WHICH: { key: string; label: string }[] = [
   { key: 'all', label: 'All questions' },
   { key: 'unseen', label: 'Not answered yet' },
   { key: 'wrong', label: 'Incorrect' },
+  { key: 'unseen+wrong', label: 'Not answered or incorrect' },
   { key: 'flagged', label: 'Marked for review' },
   { key: 'correct', label: 'Correct' },
 ]
@@ -282,7 +287,7 @@ export function Home({
     commit(next)
   }
 
-  const which: Status | 'all' = value.statuses?.length === 1 ? value.statuses[0] : 'all'
+  const which = value.statuses?.length ? value.statuses.join('+') : 'all'
   // The badge counts only what the bar does not show (H-35). Below 1150px the
   // bar drops its difficulty chips, so there the badge counts difficulty too.
   const hiddenCount = (value.size ? 1 : 0) + (value.size && value.speed ? 1 : 0) + (order === 'topic' ? 1 : 0)
@@ -692,7 +697,7 @@ export function Home({
           <div className="field">
             <label className="side-t" htmlFor="opt-show">Show</label>
             <select id="opt-show" className="sel" value={which}
-                    onChange={(e) => set({ statuses: e.target.value === 'all' ? undefined : [e.target.value as Status] })}>
+                    onChange={(e) => set({ statuses: e.target.value === 'all' ? undefined : e.target.value.split('+') as Status[] })}>
               {WHICH.map((w) => <option key={w.key} value={w.key}>{w.label}</option>)}
             </select>
           </div>
