@@ -18,7 +18,7 @@ import type { Annotation, GradeResult, Mistake, MistakeTag, Question } from '../
  */
 const STACK_BELOW = 820
 
-function useStacked(): boolean {
+export function useStacked(): boolean {
   const query = `(max-width: ${STACK_BELOW - 1}px)`
   const [stacked, setStacked] = useState(() => window.matchMedia(query).matches)
   useEffect(() => {
@@ -133,6 +133,12 @@ export function QuestionView(props: Props) {
   const [split, setSplitState] = useState(savedSplit)
   const setSplit = (pct: number) => { savedSplit = clampSplit(pct); setSplitState(savedSplit) }
   const stacked = useStacked()
+  // Phone passage: capped at 40dvh (bluebook.css) with a toggle to open it in
+  // full. Tall is measured against the cap itself, so the 40dvh lives in CSS.
+  const capRef = useRef<HTMLDivElement>(null)
+  const toggleRef = useRef<HTMLButtonElement>(null)
+  const [passageTall, setPassageTall] = useState(false)
+  const [passageOpen, setPassageOpen] = useState(false)
 
   const answered = result !== null
   // Graded right here, as open practice is. A set holds its answers until the
@@ -146,6 +152,30 @@ export function QuestionView(props: Props) {
   const isSplit = hasStimulus && question.section === 'RW'
 
   useEffect(() => { setMenu(null) }, [question.id])
+
+  /**
+   * Whether the stacked passage overflows its cap. Re-measured when the cap
+   * changes size (rotation, the browser bar) and when the passage does (fonts,
+   * MathJax, images). Not while open: there is no cap to overflow then, and
+   * the toggle has to stay to close it again.
+   */
+  useLayoutEffect(() => {
+    const el = capRef.current
+    if (!el || passageOpen) return
+    const measure = () => setPassageTall(el.scrollHeight > el.clientHeight + 1)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    if (el.firstElementChild) observer.observe(el.firstElementChild)
+    return () => observer.disconnect()
+  }, [passageOpen, stacked, isSplit])
+
+  function togglePassage() {
+    setPassageOpen((open) => !open)
+    // Closing a long passage from its end would leave you far below the
+    // question it just pulled up; bring the toggle back into view instead.
+    if (passageOpen) requestAnimationFrame(() => toggleRef.current?.scrollIntoView({ block: 'nearest' }))
+  }
 
   /**
    * Dismiss the highlight menu as soon as you interact anywhere else.
@@ -457,8 +487,25 @@ export function QuestionView(props: Props) {
         // No inline grid-template-columns and no divider: the columns are a
         // desktop affordance, and a 4px drag handle is not usable by thumb.
         // Leaving the inline style on would beat any media query anyway.
+        // A passage taller than 40dvh pushed the question below the fold, so
+        // answering changed nothing you could see. Bluebook has no phone
+        // layout; its passage pane scrolls on its own, as the capped one does.
         <div className="split stacked">
-          <section className="pane pane-stimulus" aria-label="Passage">{stimulus}</section>
+          <section className={passageTall ? 'pane pane-stimulus has-toggle' : 'pane pane-stimulus'}
+                   aria-label="Passage">
+            {/* Focusable while it scrolls on its own, as the desktop pane is. */}
+            <div ref={capRef} id="passage-cap" className={passageOpen ? 'passage-cap' : 'passage-cap is-capped'}
+                 tabIndex={passageTall && !passageOpen ? 0 : undefined}>
+              {stimulus}
+            </div>
+            {passageTall ? (
+              <button ref={toggleRef} type="button" className="passage-toggle"
+                      aria-expanded={passageOpen} aria-controls="passage-cap" onClick={togglePassage}>
+                {passageOpen ? 'Show less' : 'Show full passage'}
+                <Icon name={passageOpen ? 'chevron-up' : 'chevron-down'} size={16} strokeWidth={2.2} />
+              </button>
+            ) : null}
+          </section>
           <div className="pane">{prompt}</div>
         </div>
       ) : isSplit ? (

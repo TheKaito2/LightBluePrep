@@ -267,6 +267,17 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
 }
 .desmos-resize svg { display: block; }
 
+/* Phones: docked as a bottom sheet over the lower 55dvh of the question area,
+   above the footer, full width (Desmos.tsx drops drag, resize and expand).
+   The question gets the same room at its end so its last lines can scroll up
+   clear of the sheet. */
+.desmos-panel.is-docked {
+  left: 0; right: 0; bottom: 0; height: min(55dvh, 100%);
+  border-width: 1px 0 0; border-radius: 0; box-shadow: 0 -8px 24px rgba(16, 20, 30, .18);
+}
+.desmos-panel.is-docked .desmos-head { cursor: default; }
+.main:has(> .desmos-panel.is-docked) .pane:last-child { padding-bottom: calc(55dvh + 24px); }
+
 @media (max-width: 819px) {
   .nav-grid { grid-template-columns: repeat(6, 1fr); }
   .nav-pager { gap: 6px; padding: 12px 14px 0; }
@@ -412,5 +423,6 @@ body.dragging-panel, body.dragging-panel .desmos-head { cursor: grabbing; user-s
 .ref-facts { margin: 16px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.6; color: var(--n-700); }
 @media (max-width: 470px) {
   /* Anchored to the button it ran off the left edge; pin it under the bar. */
-  .qinfo-pop { position: fixed; top: 62px; left: 12px; right: 12px; min-width: 0; }
+  /* 8px under the phone header, 67px since its controls grew for thumbs. */
+  .qinfo-pop { position: fixed; top: 75px; left: 12px; right: 12px; min-width: 0; }
 }

@@ -1461,7 +1461,8 @@ export default function App() {
                 </button>
                 {similar?.ids.length ? (
                   <button className="btn primary" onClick={() => practiceMany(similar.ids, similar.title)}>
-                    Next: {similar.ids.length} more like this
+                    {/* A 375px phone has no room for the word beside the navigator. */}
+                    <span><span className="next-word">Next: </span>{similar.ids.length} more like this</span>
                     <Icon name="arrow-right" size={17} strokeWidth={2.2} />
                   </button>
                 ) : null}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Icon } from './Icon'
+import { useStacked } from './QuestionView'
 
 // The embedded calculator needs this site's OWN Desmos API key (desmos.com/my-api).
 // Desmos keys belong to one developer, and public production use falls under
@@ -105,6 +106,14 @@ export function Desmos({ onClose, onExpandedChange }: Props) {
   const [expanded, setExpanded] = useState(false)
   // Where the split sits, as a percentage. Draggable like the passage divider.
   const [splitPct, setSplitPct] = useState(50)
+  /**
+   * Below the stacking breakpoint the window is a bottom sheet instead: at
+   * 375px a 360px-minimum window covered the whole question, and Expand split
+   * the screen into two 195px halves. The sheet has no drag, resize or expand,
+   * and the question scrolls above it (bluebook.css).
+   */
+  const docked = useStacked()
+  const split = expanded && !docked
 
   useEffect(() => {
     let cancelled = false
@@ -141,7 +150,9 @@ export function Desmos({ onClose, onExpandedChange }: Props) {
    */
   useLayoutEffect(() => {
     const parent = panel.current?.parentElement
-    if (!parent) return
+    // The sheet has no window to fit, and fitting one to a phone would leave
+    // it 370px wide when the screen widens again.
+    if (!parent || docked) return
     // Returns the same object when nothing moved, so observing the parent
     // cannot feed itself a render loop.
     const fit = () => setRect((r) => {
@@ -160,21 +171,23 @@ export function Desmos({ onClose, onExpandedChange }: Props) {
     const observer = new ResizeObserver(fit)
     observer.observe(parent)
     return () => observer.disconnect()
-  }, [])
+  }, [docked])
 
   // Desmos sizes its canvas to the container, so it has to be told when the
   // container changed. Without this the graph stays letterboxed after a resize.
-  useEffect(() => { calc.current?.resize?.() }, [rect.w, rect.h, expanded])
+  useEffect(() => { calc.current?.resize?.() }, [rect.w, rect.h, expanded, docked])
 
+  // Not while docked: fitting to a phone-width pane would shrink the window
+  // the desktop gets back.
   useEffect(() => {
-    if (!expanded) Object.assign(remembered, rect)
-  }, [rect, expanded])
+    if (!expanded && !docked) Object.assign(remembered, rect)
+  }, [rect, expanded, docked])
 
   // Expanding is a real split, not an overlay: the shell reflows the question
   // into the other half. Reset on unmount or the pane stays indented.
   useEffect(() => {
-    onExpandedChange(expanded ? splitPct : null)
-  }, [expanded, splitPct, onExpandedChange])
+    onExpandedChange(split ? splitPct : null)
+  }, [split, splitPct, onExpandedChange])
   useEffect(() => () => onExpandedChange(null), [onExpandedChange])
 
   const bounds = useCallback(() => {
@@ -189,7 +202,7 @@ export function Desmos({ onClose, onExpandedChange }: Props) {
     event: React.PointerEvent,
     onMove: (dx: number, dy: number, start: Rect, limit: { w: number; h: number }) => Rect,
   ) {
-    if (expanded) return
+    if (expanded || docked) return
     event.preventDefault()
     const startX = event.clientX
     const startY = event.clientY
@@ -240,26 +253,28 @@ export function Desmos({ onClose, onExpandedChange }: Props) {
     window.addEventListener('pointerup', up)
   }
 
-  const style = expanded
-    ? { width: `${splitPct}%` }
-    : { left: rect.x, top: rect.y, width: rect.w, height: rect.h }
+  const style = docked ? undefined
+    : expanded ? { width: `${splitPct}%` }
+      : { left: rect.x, top: rect.y, width: rect.w, height: rect.h }
 
   return (
     <div ref={panel}
-         className={expanded ? 'desmos-panel is-expanded' : 'desmos-panel'}
+         className={docked ? 'desmos-panel is-docked' : expanded ? 'desmos-panel is-expanded' : 'desmos-panel'}
          style={style}
          role="dialog"
          aria-label="Graphing calculator">
       <div className="desmos-head" onPointerDown={onTitleDown}>
         <span className="desmos-title">Calculator</span>
-        <Icon name="dots9" size={23} className="desmos-grab" strokeWidth={3.4} />
-        <button className="desmos-btn"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => setExpanded((v) => !v)}
-                title={expanded ? 'Restore to a floating window' : 'Expand'}
-                aria-pressed={expanded}>
-          <Icon name={expanded ? 'shrink' : 'expand'} size={19} strokeWidth={1.9} />
-        </button>
+        {docked ? null : (<>
+          <Icon name="dots9" size={23} className="desmos-grab" strokeWidth={3.4} />
+          <button className="desmos-btn"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => setExpanded((v) => !v)}
+                  title={expanded ? 'Restore to a floating window' : 'Expand'}
+                  aria-pressed={expanded}>
+            <Icon name={expanded ? 'shrink' : 'expand'} size={19} strokeWidth={1.9} />
+          </button>
+        </>)}
         <button className="desmos-btn"
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={onClose}
@@ -279,7 +294,7 @@ export function Desmos({ onClose, onExpandedChange }: Props) {
         </p>
       ) : <div ref={host} className="desmos-host" />}
 
-      {expanded ? (
+      {docked ? null : expanded ? (
         <span className="desmos-split-grip" onPointerDown={onSplitDown}
               title="Drag to resize" aria-hidden="true" />
       ) : (

@@ -43,8 +43,18 @@
 }
 .backbtn:hover { background: rgba(0, 0, 0, .07); color: var(--ink); }
 
+/* Touch targets without touching the layout: a transparent ::before 10px
+   past each edge takes the tap, so the glyphs and the bar keep Bluebook's
+   geometry. Measured at 390px they were 17 to 25px across. The cross-out
+   circle already draws its strike with ::after. */
+.tool:not(.static), .backbtn, .hide-btn, .crossbtn { position: relative; }
+.tool:not(.static)::before, .backbtn::before, .hide-btn::before, .crossbtn::before {
+  content: ''; position: absolute; inset: -10px;
+}
+
 .ghostlink {
   display: inline-flex; align-items: center; gap: 5px;
+  position: relative; /* paints over the back button's hit area just above it */
   background: none; border: none; padding: 2px 4px; margin-left: -4px; cursor: pointer;
   font-size: 14.5px; font-weight: 600; color: var(--ink); border-radius: 4px;
 }
@@ -109,7 +119,12 @@
   .single .pane { padding-top: 20px; }
   .single .choices { gap: 10px; }
 }
-.prompt, .pane > .passage { padding: 0 var(--pane-pad); }
+/* A portrait tablet splits 820-1149px between two panes; at the desktop 46px
+   each pane's text ran about 320px wide. */
+@media (min-width: 820px) and (max-width: 1149px) {
+  .pane { --pane-pad: 28px; }
+}
+.prompt, .pane > .passage, .passage-cap > .passage { padding: 0 var(--pane-pad); }
 
 .divider { position: relative; background: var(--divider); cursor: col-resize; touch-action: none; }
 .grab {
@@ -484,11 +499,13 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
      ran under the timer: grid tracks default to min-content, so the ellipsis
      never kicked in without the minmax(0, ...) columns. */
   .topbar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); padding: 6px 12px; gap: 8px; min-height: 0; }
-  .topbar-left { gap: 0; min-width: 0; max-width: 100%; }
+  .topbar-left { gap: 2px; min-width: 0; max-width: 100%; }
   .section-title { font-size: 14.5px; gap: 2px; min-width: 0; max-width: 100%; }
   .section-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .backbtn { width: 20px; height: 20px; margin-left: -3px; }
-  .ghostlink { font-size: 12px; padding: 1px 3px; margin-left: -3px; }
+  /* Bigger than the glyphs need, for thumbs; the negative margins keep the
+     chevron and the word where they were. The 2px gap keeps the two apart. */
+  .backbtn { width: 28px; height: 28px; margin-left: -7px; }
+  .ghostlink { font-size: 12px; padding: 4px 6px; min-height: 24px; margin-left: -6px; }
   .topbar-center { gap: 2px; }
   .clock { font-size: 17px; gap: 4px; }
   .clock svg { width: 15px; height: 15px; }
@@ -496,7 +513,7 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
   /* No second line fits in the phone header; the smaller grey figure still
      sets it apart, and its accessible name says what it counts. */
   .clock-cap { display: none; }
-  .hide-btn { padding: 0 10px; font-size: 11px; border-width: 1px; }
+  .hide-btn { padding: 3px 12px; min-height: 24px; font-size: 11px; border-width: 1px; }
   /* The Highlights tool has no label on a phone, so it is glyph-only and must
      sit on the bar's vertical centre.
      An earlier attempt gave every tool a min-height so their glyphs shared a
@@ -508,6 +525,10 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
   .topbar-right { gap: 6px; align-items: center; }
   .tool { font-size: 9.5px; padding: 2px; gap: 1px; line-height: 1.2; max-width: 58px; }
   .tool-glyphs { height: 18px; }
+  /* Tools sit 6 to 9px apart here, so the hit area grows up and down only as
+     far as 10px and sideways only into its half of the gap: a tap near a glyph
+     never lands on its neighbour. */
+  .tool:not(.static)::before { inset: -10px -4px; }
 
   /* Question band and choices. */
   .q-head { gap: 8px; margin-bottom: 12px; padding-right: 6px; }
@@ -527,13 +548,30 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
   .app .btn.bottom-more { display: none; }
   .bottom-right .btn { white-space: nowrap; }
   .bottom-mid { justify-content: flex-start; min-width: 0; }
-  .navbtn { padding: 8px 11px; font-size: 13px; gap: 5px; }
+  /* 44px tall for a thumb, at the 14px the bar can still fit at 360px. */
+  .navbtn { padding: 0 11px; min-height: 44px; font-size: 14px; gap: 5px; }
   .bottom-right { gap: 8px; }
 
   /* The submit button was sitting flush against the bottom bar, so both pane
      layouts end with 40px. This sits after .pane-stimulus on purpose: the
      stacked passage pane takes the 40px too. */
   .split.stacked .pane { overflow: visible; padding: 16px 0 40px; }
+
+  /* Spec 9.8: a long passage is capped at 40dvh so the question starts on the
+     first screen, with a full-width toggle in the chrome's colours under it
+     that opens it inline. The toggle closes the pane, so no padding below. */
+  .passage-cap.is-capped { max-height: 40dvh; overflow-y: auto; }
+  .split.stacked .pane-stimulus.has-toggle { padding-bottom: 0; }
+  .has-toggle .passage-cap { padding-bottom: 16px; }
+  .passage-cap:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+  .passage-toggle {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; height: 40px; padding: 0 16px; cursor: pointer;
+    background: var(--chrome); border: 0; border-top: 1px solid var(--chrome-line);
+    font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--ink);
+  }
+  @media (hover: hover) { .passage-toggle:hover { background: #dbe4f3; } }
+  .app .passage-toggle:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
   .single .pane { padding-top: 16px; padding-bottom: 40px; }
 
   /* The glyphs say what this is; the words were wrapping to two lines and
@@ -542,6 +580,9 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
   /* With the words gone the wrapper is an empty flex item; it still claims the
      gap unless it goes too. Kept when it holds a count, which is real content. */
   .tool-label:not(.has-count) { display: none; }
+  .tool-label.has-count { font-size: 11px; }
+  /* A 20px line of text was its whole target. */
+  .app .q-report { min-height: 24px; margin-top: 24px; }
 
   /* Fitting rather than scrolling, for the tables narrow enough to manage it. */
   .richtext table { font-size: 14px; }
@@ -572,9 +613,15 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
   .clock { font-size: 15.5px; }
   .clock-time { font-size: 14px; }
   .section-title { font-size: 13.5px; }
-  .navbtn { padding: 7px 9px; font-size: 12px; }
+  .navbtn { padding: 0 9px; }
   .passage, .stem, .choice-text, .figure, .dir-body { font-size: 15.5px; }
   .pane { --pane-pad: 13px; }
+}
+
+/* At 360 and 375px "Question 1 of 1" wrapped onto two lines beside "Next: 10
+   more like this". The arrow already says next. */
+@media (max-width: 389px) {
+  .next-word { display: none; }
 }
 
 /* iOS wraps detected dates and numbers in its own anchors inside the question
@@ -656,6 +703,9 @@ a.tool { text-decoration: none; color: inherit; }
 }
 @media (max-width: 819px) {
   .app .btn { padding: 8px 14px; font-size: 13.5px; }
+  /* Back, Next and Done are the most pressed controls on the screen; 44px
+     tall for a thumb, as .navbtn beside them. */
+  .app .bottombar .btn { min-height: 44px; padding-top: 0; padding-bottom: 0; font-size: 14px; }
   /* Full width and one line. It was 173px wide and 72px tall, ie. wrapped over
      two lines. The bar is a space-between row, so the button has to get its own
      row before width:100% means anything. */

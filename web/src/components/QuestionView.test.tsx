@@ -146,3 +146,39 @@ it('moves the passage divider by keyboard and keeps it for the next question', (
   act(() => { grab().parentElement!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })) })
   expect(grab().getAttribute('aria-valuenow')).toBe('50')
 })
+
+it('caps a tall phone passage behind a toggle that opens it inline (P-64)', () => {
+  const media = window.matchMedia
+  const observer = globalThis.ResizeObserver
+  window.matchMedia = (() => ({ matches: true, addEventListener() {}, removeEventListener() {} })) as never
+  globalThis.ResizeObserver = class { observe() {} disconnect() {} } as never
+  // jsdom has no layout: the cap reports a passage taller than itself.
+  const sh = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(900)
+  const ch = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(330)
+  try {
+    const rw: Question = { ...question, section: 'RW', stimulus_html: '<p>A long passage.</p>' }
+    act(() => root.render(
+      <QuestionView question={rw} number={1} annotations={[]} result={null} seconds={0}
+                    response={null} flagged={false} crossOutMode={false} crossOut={new Set()}
+                    onRespond={() => {}} onSubmit={() => {}} onToggleFlag={() => {}}
+                    onToggleCrossOutMode={() => {}} onToggleCrossOut={() => {}}
+                    onAddAnnotation={() => {}} onUpdateAnnotation={() => {}} onRemoveAnnotation={() => {}}
+                    mistake={null} onSaveMistake={() => {}} />,
+    ))
+    const cap = host.querySelector('.passage-cap')!
+    const toggle = host.querySelector<HTMLButtonElement>('.passage-toggle')!
+    expect(cap.className).toBe('passage-cap is-capped')
+    expect(cap.getAttribute('tabindex')).toBe('0')
+    expect(toggle.textContent).toBe('Show full passage')
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+
+    act(() => toggle.click())
+    expect(cap.className).toBe('passage-cap')
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(toggle.textContent).toBe('Show less')
+  } finally {
+    sh.mockRestore(); ch.mockRestore()
+    window.matchMedia = media
+    globalThis.ResizeObserver = observer
+  }
+})
