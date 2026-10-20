@@ -314,6 +314,8 @@
 /* Bluebook keeps its entry rules beside the field; collapsed here, since after
    the first few grid-ins they are only clutter. */
 .spr-help { margin-top: 4px; font-size: 14px; color: var(--ink-2); }
+/* A wrong grid-in that was the right value cut short (lib/grading tooFewDigits). */
+.spr-short { max-width: 46ch; margin: 6px 0 8px; font-size: 14px; line-height: 1.45; color: var(--red); }
 .spr-help summary {
   display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px 4px 0;
   font-weight: 600; cursor: pointer; list-style: none;
@@ -347,6 +349,8 @@
 .app .prompt:has(> .explain) { padding-bottom: 120px; }
 .explain-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
 .explain-bar > .btn, .explain-head > .btn { margin-left: auto; }
+/* Try again carries the push right; Show answer sits beside it. */
+.retry-bar > .btn + .btn { margin-left: 0; }
 /* The status badge (shell.css) at the size this moment deserves. Review keeps
    the shell status colours; practice keeps its own, which match them. */
 .verdict.badge { height: 28px; padding: 0 11px 0 9px; gap: 6px; font-size: 14px; font-weight: 700; }

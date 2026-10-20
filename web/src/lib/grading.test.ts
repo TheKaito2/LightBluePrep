@@ -8,9 +8,9 @@
  * you never notice.
  */
 import { describe, expect, it } from 'vitest'
-import { asFraction, canonical, grade, gradeMcq, gradeSpr } from './grading'
+import { asFraction, canonical, grade, gradeMcq, gradeSpr, regrade, tooFewDigits } from './grading'
 import { equals } from './fraction'
-import type { StoredQuestion } from '../types'
+import type { GradeResult, StoredQuestion } from '../types'
 import cases from '../../../tests/fixtures/grading.json'
 
 /**
@@ -91,5 +91,35 @@ describe('grade', () => {
     const right = grade(question, 'C')
     expect(right.correct).toBe(true)
     expect(right.why_wrong_html).toBeNull()
+  })
+})
+
+describe('tooFewDigits', () => {
+  const key = ['-.3266', '-.3267', '-49/150'] // 429fb7c0
+  it('flags the right value cut short, leading zero or not', () => {
+    expect(tooFewDigits('-0.326', key)).toBe(true)
+    expect(tooFewDigits('-0.327', key)).toBe(true)
+    expect(tooFewDigits('-.33', key)).toBe(true)
+  })
+  it('stays quiet for a wrong value, a whole number or a full answer', () => {
+    expect(tooFewDigits('-0.5', key)).toBe(false)
+    expect(tooFewDigits('-1', key)).toBe(false)
+    expect(tooFewDigits('-.3266', key)).toBe(false)
+    expect(tooFewDigits('.5', ['.5', '1/2'])).toBe(false)
+  })
+})
+
+describe('regrade', () => {
+  const first: GradeResult = {
+    question_id: 'q', response: 'A', correct: false, match: null, accepted: ['B'],
+    why_wrong_html: '<p>why A</p>', why_right_html: '<p>why B</p>', rationale_html: null,
+  }
+  it('grades a new pick against the same key, without the old pick\'s reason', () => {
+    expect(regrade(first, 'mcq', 'b')).toMatchObject({ response: 'b', correct: true, match: 'listed', why_wrong_html: null })
+    expect(regrade(first, 'mcq', 'C')).toMatchObject({ correct: false, why_wrong_html: null })
+    expect(regrade(first, 'mcq', 'A').why_wrong_html).toBe('<p>why A</p>')
+  })
+  it('grades a grid-in by value', () => {
+    expect(regrade({ ...first, accepted: ['6/5', '1.2'] }, 'spr', '1.20').correct).toBe(true)
   })
 })

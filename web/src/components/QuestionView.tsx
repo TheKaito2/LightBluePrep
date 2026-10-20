@@ -6,6 +6,8 @@ import { FeedbackLink } from './Feedback'
 import { MistakeFields } from './MistakeFields'
 import { SprRules } from './Directions'
 import { parseRational } from '../lib/fraction'
+import { tooFewDigits } from '../lib/grading'
+import { VERDICT } from '../lib/labels'
 import { useStacked } from '../lib/useStacked'
 import type { Annotation, GradeResult, Mistake, MistakeTag, Question } from '../types'
 
@@ -14,6 +16,12 @@ interface Props {
   number: number
   annotations: Annotation[]
   result: GradeResult | null
+  /** Wrong, and the key not shown yet: offer Try again or Show answer. */
+  masked?: boolean
+  /** The saved first try was wrong, so the mistake log stays after a retry. */
+  missed?: boolean
+  onTryAgain?: () => void
+  onShowAnswer?: () => void
   seconds: number
   response: string | null
   flagged: boolean
@@ -99,7 +107,7 @@ export function QuestionView(props: Props) {
     question, number, annotations, result, seconds, response, flagged,
     crossOutMode, crossOut, onRespond, onSubmit, onToggleFlag,
     onToggleCrossOutMode, onToggleCrossOut, onAddAnnotation, onUpdateAnnotation, onRemoveAnnotation,
-    deferred, mistake, onSaveMistake, coach,
+    deferred, mistake, onSaveMistake, coach, masked = false, missed, onTryAgain, onShowAnswer,
   } = props
 
   const [menu, setMenu] = useState<HighlightMenu | null>(null)
@@ -312,8 +320,6 @@ export function QuestionView(props: Props) {
 
   const prompt = (
     <div className="prompt">
-      {hasStimulus && !isSplit ? <div className="figure">{stimulus}</div> : null}
-
       <div className={flagged ? 'q-head is-marked' : 'q-head'}>
         <h2 className="q-num"><span className="sr-only">Question </span>{number}</h2>
         <button className={flagged ? 'markbtn on' : 'markbtn'} onClick={onToggleFlag}
@@ -336,6 +342,9 @@ export function QuestionView(props: Props) {
         ) : null}
       </div>
 
+      {/* Under the question bar, as in Bluebook. */}
+      {hasStimulus && !isSplit ? <div className="figure">{stimulus}</div> : null}
+
       <RichText className="stem" html={question.stem_html} field="stem"
                 annotations={annotations} onSelect={handleSelect}
                 onAnnotationClick={handleAnnotationClick} />
@@ -348,7 +357,7 @@ export function QuestionView(props: Props) {
             // A crossed-out key would otherwise grade as faded and struck through.
             const isCrossed = crossOut.has(option.label) && !graded
             const isPicked = response === option.label
-            const isKey = graded && verdict.accepted.includes(option.label)
+            const isKey = graded && !masked && verdict.accepted.includes(option.label)
             const isWrongPick = graded && isPicked && !verdict.correct
             const crossLabel = isCrossed
               ? `Undo cross out of choice ${option.label}` : `Cross out choice ${option.label}`
@@ -416,12 +425,20 @@ export function QuestionView(props: Props) {
                    const value = e.target.value
                    if (SPR_CHARS.test(value) && value.length <= sprLimit(value)) onRespond(value)
                  }}
-                 onKeyDown={(e) => { if (e.key === 'Enter' && response && !deferred) onSubmit() }} />
+                 // preventDefault: a retry grades at once, and the same Enter
+                 // would otherwise press the button that takes focus.
+                 onKeyDown={(e) => { if (e.key === 'Enter' && response && !deferred) { e.preventDefault(); onSubmit() } }} />
           {/* The field already holds the same text for a screen reader. */}
           <p className="spr-preview" aria-hidden="true">
             <span className="spr-preview-label">Answer preview:</span>
             <span className="spr-preview-value">{sprPreview(response ?? '')}</span>
           </p>
+          {graded && !verdict.correct && tooFewDigits(verdict.response, verdict.accepted) ? (
+            <p className="spr-short">
+              Close, but too few digits. Fill every space: 5 characters, or 6 with a minus sign.
+              A leading zero uses one up, so leave it off.
+            </p>
+          ) : null}
           <details className="spr-help">
             <summary><Icon name="chevron-down" size={15} />How to enter answers</summary>
             <SprRules id="spr-rules" />
@@ -433,13 +450,22 @@ export function QuestionView(props: Props) {
         <button className="btn primary submit" disabled={!response} onClick={onSubmit}>
           Submit answer
         </button>
+      ) : masked ? (
+        <div className="explain-bar retry-bar">
+          <span className="badge verdict bad">
+            <Icon name="close" size={12} strokeWidth={2.8} />{VERDICT.incorrect}
+          </span>
+          {/* Focus moves here as Submit unmounts, as it does to Explain. */}
+          <button className="btn primary" autoFocus onClick={onTryAgain}>Try again</button>
+          <button className="btn" onClick={onShowAnswer}>Show answer</button>
+        </div>
       ) : (
         <Explanation result={verdict} question={question} seconds={seconds} autoFocus />
       )}
 
       {/* Only when it went wrong: a log on a right answer is noise. Keyed so a
           new question starts blank rather than inheriting the last one's text. */}
-      {graded && !verdict.correct ? (
+      {graded && (missed ?? !verdict.correct) ? (
         <section className="mlog-practice" aria-label="Mistake log">
           <MistakeFields key={question.id} mistake={mistake} onSave={onSaveMistake}
                          lead="Why did you miss it?" id="mlog-inline" rows={3}
@@ -456,6 +482,7 @@ export function QuestionView(props: Props) {
   // already there: a region that mounts with its text is often not announced.
   const status = !graded ? ''
     : verdict.correct ? 'Correct'
+      : masked ? 'Incorrect. Try again, or show the answer.'
       : `Incorrect. The correct answer is ${verdict.accepted.join(' or ')}.`
 
   return (

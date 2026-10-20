@@ -1,6 +1,5 @@
 import { Icon } from '../Icon'
-import { fmt, plural, SECTION_ICON, SECTION_NAME } from '../../lib/labels'
-import { graded } from '../../lib/score'
+import { fmt, plural, progressPct, SECTION_ICON, SECTION_NAME } from '../../lib/labels'
 import type { DomainTally, Tally } from '../../lib/taxonomy'
 import type { Section } from '../../types'
 import { DomainCard, type TopicPicks } from './DomainCard'
@@ -13,8 +12,7 @@ export function SectionPanel({ sec, tally, domains, picks }: {
   domains: DomainTally[]
   picks: TopicPicks
 }) {
-  const g = graded(tally.seen, tally.correct)
-  const covered = tally.n ? Math.round((tally.seen / tally.n) * 100) : 0
+  const covered = progressPct(tally.seen, tally.n)
   // Two fixed columns rather than CSS columns: a card that opens its question
   // types only pushes the cards under it, never hops to the other column.
   const half = Math.ceil(domains.length / 2)
@@ -26,7 +24,6 @@ export function SectionPanel({ sec, tally, domains, picks }: {
           <h3 className="spanel-t" id={`spanel-${sec}`}>{SECTION_NAME[sec]}</h3>
           <p className="spanel-sub">
             <span>{plural(tally.n, 'question')}</span> · <span>{fmt(tally.seen)} answered</span>
-            {g ? <> · <span>{g.pct}% correct</span></> : null}
           </p>
         </div>
         <span className="spanel-pct" title="Share of this section answered">

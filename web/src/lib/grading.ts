@@ -99,3 +99,33 @@ export function grade(question: StoredQuestion, response: string | null): GradeR
     rationale_html: question.rationale_html ?? null,
   }
 }
+
+/**
+ * Grade another try against the key the first try came back with. Practice
+ * saves only the first try; a retry is checked here and never stored. The
+ * picked choice's explanation is only known for the first pick.
+ */
+export function regrade(first: GradeResult, type: StoredQuestion['type'], response: string): GradeResult {
+  const [correct, match] = type === 'mcq' ? gradeMcq(response, first.accepted) : gradeSpr(response, first.accepted)
+  const whyWrong = !correct && response === first.response ? first.why_wrong_html : null
+  return { ...first, response, correct, match, why_wrong_html: whyWrong }
+}
+
+/**
+ * A wrong grid-in decimal that is the right value cut short, as -0.326 for a
+ * key of -.3266: Bluebook wants every digit that fits, and a leading zero
+ * spends one of them. True when an accepted decimal has more places and lies
+ * within one unit of the response's last place.
+ */
+export function tooFewDigits(response: string | null, accepted: string[]): boolean {
+  const r = canonical(response)
+  const dot = r.indexOf('.')
+  if (dot < 0 || r.includes('/')) return false
+  const places = r.length - dot - 1
+  return accepted.some((a) => {
+    const c = canonical(a)
+    const cDot = c.indexOf('.')
+    if (cDot < 0 || c.includes('/') || c.length - cDot - 1 <= places) return false
+    return Math.abs(Number(r) - Number(c)) < 10 ** -places
+  })
+}

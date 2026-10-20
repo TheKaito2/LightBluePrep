@@ -257,3 +257,14 @@ export function describeSet(set: PracticeSet, withCount = true): string {
   if (f.speed) parts.push(`${f.speed}× time`)
   return parts.join(' · ')
 }
+
+/** Share answered, whole percent, never 0% once started or 100% before the end. */
+export function progressPct(seen: number, n: number): number {
+  if (!seen || !n) return 0
+  return Math.min(seen < n ? 99 : 100, Math.max(1, Math.round((seen / n) * 100)))
+}
+
+/** What the compact count and pill say, for screen readers. */
+export function srTally(seen: number, n: number) {
+  return seen ? `, ${fmt(seen)} of ${fmt(n)} answered` : `, 0 of ${fmt(n)} answered, not started`
+}

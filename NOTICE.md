@@ -107,5 +107,9 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   device and applied before the first paint (static pages too).
 - 2026-10-15: Home topics back to the earlier look (tinted section panels,
   white cards, a pill on every skill); more room in the hero.
+- 2026-10-20: Practice: a Math figure sits under the question bar, as in
+  Bluebook; a wrong answer offers Try again before showing the key (only the
+  first try is saved); a grid-in decimal cut short says so. Home topics show
+  progress (share answered) on domains, skills and question types.
 
 The full history of changes is in the git log.

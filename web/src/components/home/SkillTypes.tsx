@@ -1,7 +1,7 @@
 import { Icon } from '../Icon'
-import { fmt } from '../../lib/labels'
+import { fmt, srTally } from '../../lib/labels'
 import type { SkillTally } from '../../lib/taxonomy'
-import type { TopicPicks } from './DomainCard'
+import { Prog, type TopicPicks } from './DomainCard'
 
 /**
  * The process types under a ticked skill, each a checkbox that narrows the
@@ -9,7 +9,7 @@ import type { TopicPicks } from './DomainCard'
  * process-type file has types for it.
  */
 export function SkillTypes({ skill, picks }: { skill: SkillTally; picks: TopicPicks }) {
-  const { pt, types: pickedTypes, facetCounts, facetWord, ptCounts, onType } = picks
+  const { pt, types: pickedTypes, facetCounts, facetWord, ptCounts, ptSeen, onType } = picks
   const all = pt?.types[skill.code]
   if (!all) return null
   const types = Object.entries(all)
@@ -23,6 +23,8 @@ export function SkillTypes({ skill, picks }: { skill: SkillTally; picks: TopicPi
         {types.map(([key, t]) => {
           const ref = `${skill.code}.${key}`
           const tOn = pickedTypes?.includes(ref) ?? false
+          const n = ptCounts?.get(ref) ?? 0
+          const seen = ptSeen?.get(ref) ?? 0
           return (
             <li key={key}>
               <button className={tOn ? 'sktype on' : 'sktype'} role="checkbox" aria-checked={tOn}
@@ -32,10 +34,14 @@ export function SkillTypes({ skill, picks }: { skill: SkillTally; picks: TopicPi
                   <Icon name="check" size={9} strokeWidth={3.4} />
                 </span>
                 <span className="sktype-name">{t.label}</span>
-                <span className="sktype-n">
-                  {facetCounts
-                    ? `${fmt(facetCounts.get(ref) ?? 0)} ${facetWord}`
-                    : ptCounts?.get(ref) ?? 0}
+                <span className="sktype-end">
+                  <span className="sktype-n" aria-hidden="true">
+                    {facetCounts ? `${fmt(facetCounts.get(ref) ?? 0)} ${facetWord}` : `${fmt(seen)}/${fmt(n)}`}
+                  </span>
+                  {ptSeen ? <Prog seen={seen} n={n} /> : null}
+                </span>
+                <span className="sr-only">
+                  {facetCounts ? `, ${fmt(facetCounts.get(ref) ?? 0)} ${facetWord}` : ''}{ptSeen ? srTally(seen, n) : ''}
                 </span>
                 {/* Shown on the picked or focused type; always the description. */}
                 <span className="sktype-how" id={`how-${ref}`} aria-hidden="true">{t.how}</span>

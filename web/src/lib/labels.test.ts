@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  andMore, byDomain, bySkill, dayLabel, daysAgo, describeSet, plural, setSection, shortDate, skillDisplayName,
+  andMore, byDomain, bySkill, dayLabel, daysAgo, describeSet, plural, progressPct, setSection, shortDate, skillDisplayName,
 } from './labels'
 import type { Filters, PracticeSet } from '../types'
 
@@ -118,5 +118,15 @@ describe('dayLabel', () => {
   it('adds the year only when it is not this one', () => {
     expect(shortDate(at(2026, 0, 2), now)).toBe('Jan 2')
     expect(shortDate(at(2025, 11, 30), now)).toBe('Dec 30, 2025')
+  })
+})
+
+describe('progressPct', () => {
+  it('rounds, but never shows 0% once started or 100% before the end', () => {
+    expect(progressPct(0, 100)).toBe(0)
+    expect(progressPct(1, 261)).toBe(1)
+    expect(progressPct(34, 1845)).toBe(2)
+    expect(progressPct(999, 1000)).toBe(99)
+    expect(progressPct(12, 12)).toBe(100)
   })
 })

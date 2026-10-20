@@ -348,6 +348,9 @@
 .acc.poor { color: var(--bad-700); background: var(--bad-50); }
 .acc.none { color: var(--fg-3); background: var(--surface-subtle); }
 .dcard .acc { text-align: center; }
+/* Progress: the share answered, in the section's colour. */
+.acc.prog { color: var(--sec-700); background: var(--sec-50); }
+.skrow.on .acc.prog, .sktype.on .acc.prog { background: var(--sec-100); }
 
 /* Checkbox look, drawn so a domain can show "some of its skills" (spec 7.8:
    18px, 6px corners, a control-grey border that clears 3:1). */
@@ -618,6 +621,8 @@
 .sktype-name { font: var(--type-small); }
 .sktype.on .sktype-name { font-weight: 600; }
 .sktype-n { font-size: 12px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.sktype-end { display: inline-flex; align-items: center; gap: var(--sp-2); justify-self: end; }
+.sktype .acc { min-width: 40px; text-align: center; }
 /* How to solve this type: a muted second line on the picked or focused type,
    in place of the title tooltip that touch and keyboard never showed. */
 .sktype-how { display: none; grid-column: 2 / -1; margin-top: -4px; font: var(--type-small); color: var(--fg-3); }

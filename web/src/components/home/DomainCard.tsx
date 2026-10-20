@@ -1,6 +1,5 @@
 import { Icon } from '../Icon'
-import { fmt } from '../../lib/labels'
-import { graded } from '../../lib/score'
+import { fmt, progressPct, srTally } from '../../lib/labels'
 import type { ProcessTypes } from '../../lib/similar'
 import type { DomainTally } from '../../lib/taxonomy'
 import { SkillTypes } from './SkillTypes'
@@ -13,6 +12,8 @@ export interface TopicPicks {
   pt: ProcessTypes | null
   /** Questions per process type across the bank. */
   ptCounts: Map<string, number> | null
+  /** Answered questions per process type, once worked out. */
+  ptSeen: Map<string, number> | null
   /** Questions per skill and type under the difficulty and status filters, or null. */
   facetCounts: Map<string, number> | null
   /** The word after a filtered count ("87 hard"). */
@@ -22,26 +23,10 @@ export interface TopicPicks {
   onType: (ref: string) => void
 }
 
-/**
- * Accuracy pill. Graded colour only from enough answers to judge: one lucky
- * question is not "100%", so under that the figure stays grey. A skill with no
- * answers yet says "new".
- */
-function Acc({ seen, correct, fresh = false }: { seen: number; correct: number; fresh?: boolean }) {
-  if (!seen) return fresh ? <span className="acc none" aria-hidden="true">new</span> : null
-  const g = graded(seen, correct)
-  const pct = g ? g.pct : Math.round((correct / seen) * 100)
-  return (
-    <span className={`acc ${g ? g.grade : 'none'}`} aria-hidden="true"
-          title={`${fmt(correct)} of ${fmt(seen)} correct${g ? '' : ', too few to grade yet'}`}>{pct}%</span>
-  )
-}
-
-/** What the compact count and pill say, for screen readers. */
-function srTally(seen: number, n: number, correct: number) {
-  if (!seen) return `, 0 of ${fmt(n)} answered, not started`
-  const g = graded(seen, correct)
-  return `, ${fmt(seen)} of ${fmt(n)} answered${g ? `, ${g.pct}% correct` : ''}`
+/** Progress pill: the share of the questions answered, or "new" before the first. */
+export function Prog({ seen, n }: { seen: number; n: number }) {
+  if (!seen) return <span className="acc none" aria-hidden="true">new</span>
+  return <span className="acc prog" aria-hidden="true">{progressPct(seen, n)}%</span>
 }
 
 /** One domain: a checkbox for the whole of it, then a checkbox per skill. */
@@ -58,8 +43,8 @@ export function DomainCard({ d, picks }: { d: DomainTally; picks: TopicPicks }) 
         <span className="dcard-stat">
           {/* Compact on screen; spelled out for screen readers. */}
           <span aria-hidden="true">{fmt(d.seen)}/{fmt(d.n)}</span>
-          <Acc seen={d.seen} correct={d.correct} />
-          <span className="sr-only">{srTally(d.seen, d.n, d.correct)}</span>
+          <Prog seen={d.seen} n={d.n} />
+          <span className="sr-only">{srTally(d.seen, d.n)}</span>
         </span>
       </button>
       <span className="dmeter" aria-hidden="true">
@@ -81,9 +66,9 @@ export function DomainCard({ d, picks }: { d: DomainTally; picks: TopicPicks }) 
                   {left !== null ? <span className="skrow-f">{fmt(left)} {facetWord}</span> : null}
                   {/* Compact on screen; spelled out for screen readers below. */}
                   <span className="skrow-n" aria-hidden="true">{fmt(s.seen)}/{fmt(s.n)}</span>
-                  <Acc seen={s.seen} correct={s.correct} fresh />
+                  <Prog seen={s.seen} n={s.n} />
                 </span>
-                <span className="sr-only">{srTally(s.seen, s.n, s.correct)}</span>
+                <span className="sr-only">{srTally(s.seen, s.n)}</span>
                 <span className="skbar" aria-hidden="true">
                   <span style={{ transform: `scaleX(${s.n ? s.seen / s.n : 0})` }} />
                 </span>

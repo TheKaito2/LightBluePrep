@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import * as api from '../api'
 import { Footer } from './Footer'
 import { EmptyState } from './EmptyState'
 import { ActiveSets } from './home/ActiveSets'
@@ -100,6 +101,23 @@ export function Home({
     return whenIdle(() => { void ensureMathJax().catch(() => {}) })
   }, [waiting])
   const ptCounts = useMemo(() => (pt ? typeCounts(pt) : null), [pt])
+  /** Answered questions per process type, for the progress pills under a ticked skill. */
+  const [ptSeen, setPtSeen] = useState<Map<string, number> | null>(null)
+  const answeredTotal = taxonomy.reduce((n, row) => n + row.seen, 0)
+  useEffect(() => {
+    if (!pt) return
+    let stale = false
+    api.questionsById().then((byId) => {
+      if (stale) return
+      const out = new Map<string, number>()
+      for (const q of byId.values()) {
+        const ref = q.answered_at && q.cb_id ? pt.q[q.cb_id] : undefined
+        if (ref) out.set(ref, (out.get(ref) ?? 0) + 1)
+      }
+      setPtSeen(out)
+    }).catch(() => { /* no pills on the types; the counts still show */ })
+    return () => { stale = true }
+  }, [pt, answeredTotal])
 
   // The set touched most recently is the one the student means by "carry on".
   const resumable = activeSets.reduce<PracticeSet | null>(
@@ -189,7 +207,7 @@ export function Home({
   }
 
   const picks: TopicPicks = {
-    ticked, types: value.types, pt, ptCounts, facetCounts, facetWord,
+    ticked, types: value.types, pt, ptCounts, ptSeen, facetCounts, facetWord,
     onDomain: tickDomain, onSkill: tickSkill, onType: tickType,
   }
 

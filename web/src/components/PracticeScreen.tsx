@@ -19,6 +19,7 @@ import { SupportHost } from './Support'
 import { useToast } from '../lib/toast'
 import { SkipLink } from './TopNav'
 import { DESMOS_EMBEDDED } from '../lib/desmos'
+import { regrade } from '../lib/grading'
 import { DIRECTIONS, SECTION_NAME } from '../lib/labels'
 import { formatClock } from '../lib/pacing'
 import { Desmos, ReferenceSheet, SetReview } from '../lib/pages'
@@ -161,6 +162,15 @@ export function PracticeScreen({
   const [flagged, setFlagged] = useState(false)
   const [response, setResponse] = useState<string | null>(null)
   const [result, setResult] = useState<GradeResult | null>(null)
+  /**
+   * Another go after a wrong first try: undefined when not retrying, null
+   * while the new answer is being chosen, then its local grade. Only the first
+   * try is saved, so the score, Review and the mistake log keep that one.
+   */
+  const [retry, setRetry] = useState<GradeResult | null | undefined>(undefined)
+  /** Wrong and the key not shown yet: Try again or Show answer. */
+  const [masked, setMasked] = useState(false)
+  const shown = retry === undefined ? result : retry
   const [crossOut, setCrossOut] = useState<Set<string>>(new Set())
   // Off by default, as on the real test: the strike column narrows every choice.
   const [crossOutMode, setCrossOutMode] = useState(false)
@@ -216,7 +226,7 @@ export function PracticeScreen({
     const slow = window.setTimeout(() => setSlowLoad(true), 250)
     // The old question goes at once rather than staying up until this one
     // lands: its response, cross-outs and highlights are already reset below.
-    setQuestion(null); setResult(null)
+    setQuestion(null); setResult(null); setRetry(undefined); setMasked(false)
     // Inside a set the answer is held rather than submitted, so coming back to
     // a question has to put the choice back.
     const held = activeSetRef.current?.items
@@ -284,10 +294,16 @@ export function PracticeScreen({
 
   async function submit() {
     // Inside a set nothing is submitted: answers are held and graded at the end.
-    if (activeSetRef.current || !current || !response || result) return
+    if (activeSetRef.current || !current || !response || !question) return
+    if (result) {
+      if (retry !== null) return
+      const again = regrade(result, question.type, response)
+      setRetry(again); setMasked(!again.correct)
+      return
+    }
     try {
       const graded = await api.answer(current.id, response, seconds)
-      setResult(graded)
+      setResult(graded); setMasked(!graded.correct)
       setItems((prev) => prev.map((item) => (
         item.id === current.id
           ? {
@@ -302,6 +318,13 @@ export function PracticeScreen({
       )))
       api.stats().then(onStats).catch(() => {})
     } catch (e) { fail(e) }
+  }
+
+  /** Clear the wrong answer and take another go, the key still hidden. */
+  function tryAgain() {
+    setRetry(null); setResponse(null); setMasked(false)
+    // Try again unmounts with the bar; land on the answer, not the page.
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('#spr-input, .choice-main')?.focus())
   }
 
   async function toggleFlag() {
@@ -417,7 +440,7 @@ export function PracticeScreen({
       if (!question || !current) return
       const key = event.key.toLowerCase()
       if (key === 'm') { void toggleFlag(); return }
-      const graded = result !== null && !activeSet
+      const graded = shown !== null && !activeSet
       if (question.type === 'mcq' && !graded && /^[a-d]$/.test(key)) {
         const label = key.toUpperCase()
         if (!question.options?.some((o) => o.label === label)) return
@@ -427,7 +450,7 @@ export function PracticeScreen({
         return
       }
       // Enter on a focused control is that control's own click.
-      if (event.key === 'Enter' && !activeSet && !result && response
+      if (event.key === 'Enter' && !activeSet && !shown && response
           && !target?.closest?.('button, a[href], summary, [role=button]')) {
         event.preventDefault()
         void submit()
@@ -612,14 +635,18 @@ export function PracticeScreen({
               question={question}
               number={index + 1}
               annotations={annotations}
-              result={result}
+              result={shown}
+              masked={masked}
+              missed={result !== null && !result.correct}
+              onTryAgain={tryAgain}
+              onShowAnswer={() => setMasked(false)}
               seconds={seconds}
               response={response}
               flagged={flagged}
               crossOutMode={crossOutMode}
               crossOut={crossOut}
               deferred={Boolean(activeSet)}
-              coach={coachOn === question.id && !result ? (
+              coach={coachOn === question.id && !shown ? (
                 <div className="coach" role="note">
                   <Icon name="info" size={18} />
                   <p>
