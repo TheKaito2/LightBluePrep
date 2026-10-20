@@ -17,7 +17,7 @@ function chooseTopics() {
 
 /** Home's hero band: Bulb, the headline, the main action, the ID search and the score card. */
 export function Hero({
-  total, seen, resumable, onResume, onQuickStart, findIds, onOpenId, history, stats, onScoreCheck,
+  total, seen, resumable, onResume, findIds, onOpenId, history, stats, onScoreCheck,
 }: {
   /** Questions in the bank; 0 while the list is still loading. */
   total: number
@@ -26,7 +26,6 @@ export function Hero({
   /** The set "carry on" means, if any. */
   resumable: PracticeSet | null
   onResume: (id: string) => void
-  onQuickStart: () => void
   findIds: (needle: string) => Promise<{ hits: SetItem[]; total: number }>
   onOpenId: (id: string) => void
   history: HistoryRow[]
@@ -54,14 +53,17 @@ export function Hero({
                 <Icon name="arrow-right" size={16} strokeWidth={2.2} />
               </button>
             ) : (
-              <button className="btn primary lg hero2-main" onClick={onQuickStart} disabled={!total}>
-                <span className="desk">Start a 10-question set</span><span className="phone">Start 10 questions</span>
+              // No set to carry on: the topics are the next step, so they lead.
+              <button className="btn primary lg hero2-main" onClick={chooseTopics}>
+                <span className="desk">Choose topics</span><span className="phone">Topics</span>
                 <Icon name="arrow-right" size={16} strokeWidth={2.2} />
               </button>
             )}
-            <button className="btn lg" onClick={chooseTopics}>
-              <span className="desk">Choose topics</span><span className="phone">Topics</span>
-            </button>
+            {resumable ? (
+              <button className="btn lg" onClick={chooseTopics}>
+                <span className="desk">Choose topics</span><span className="phone">Topics</span>
+              </button>
+            ) : null}
           </div>
           <IdSearch findIds={findIds} onOpenId={onOpenId} />
         </div>

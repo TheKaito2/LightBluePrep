@@ -45,8 +45,6 @@ interface Props {
   onOpen: (index: number) => void
   /** Draw and start a fixed-size set from the pool. */
   onStart: () => void
-  /** Start 10 questions from the whole bank, ignoring the topic picker. */
-  onQuickStart: () => void
   /** Start the balanced 20-question set that unlocks the score estimate. */
   onScoreCheck: () => void
   order: Order
@@ -73,7 +71,7 @@ const STATUS_WORD: Record<Status, string> = {
  */
 export function Home({
   taxonomy, taxonomyLoading, onRetryBoot, facet, stats, history, value, items, loading, onChange, onOpen, onStart,
-  order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId, onQuickStart, onScoreCheck,
+  order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId, onScoreCheck,
 }: Props) {
   const [showOptions, setShowOptions] = useState(false)
   const closeOptions = useCallback(() => setShowOptions(false), [])
@@ -275,7 +273,7 @@ export function Home({
   return (
     <div className="home">
       <Hero total={totals.all} seen={totals.seen} resumable={resumable} onResume={onResume}
-            onQuickStart={onQuickStart} findIds={findIds} onOpenId={onOpenId}
+            findIds={findIds} onOpenId={onOpenId}
             history={history} stats={stats} onScoreCheck={onScoreCheck} />
 
       <div className="hwrap">

@@ -107,7 +107,7 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
     } catch (e) { fail(e) }
   }, [enter, setItems, setIndex, fail, navigate])
 
-  /** The hero's one-click start: 10 questions from the whole bank, whatever the topic picker says. */
+  /** Stats' button: 10 questions from the whole bank, whatever the topic picker says. */
   const quick = useCallback(() => {
     api.questionsById()
       .then((byId) => start(sample([...byId.values()], 10), { size: 10 }))

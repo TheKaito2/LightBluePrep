@@ -169,7 +169,6 @@ export default function App() {
             onResume={set.open}
             onAbandon={set.drop}
             onStart={startSet}
-            onQuickStart={set.quick}
             onScoreCheck={set.scoreCheck} />
     ),
     resources: () => <Resources />,

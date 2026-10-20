@@ -111,5 +111,8 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   Bluebook; a wrong answer offers Try again before showing the key (only the
   first try is saved); a grid-in decimal cut short says so. Home topics show
   progress (share answered) on domains, skills and question types.
+- 2026-10-20: Home hero: with no set to resume, the main button is Choose
+  topics (it was Start a 10-question set). Resume stays first when a set is
+  open. Stats keeps its own 10-question start.
 
 The full history of changes is in the git log.
