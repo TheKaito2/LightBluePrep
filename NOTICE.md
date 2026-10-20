@@ -124,4 +124,11 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   `study`, migration worker/migrations/2026-10-20-study.sql). On phones Plan
   takes About's place in the bottom bar; About is linked from the footer.
 
+- 2026-10-20: Plan v2. "Clear every question": every unanswered question,
+  process type by process type, spread over the practice days by weekday
+  weight (Off, half, 1x, 2x; presets include weekends x2 and Tuesday half).
+  Sessions can be planned down to process types on the Practice page in a
+  planning mode, and show their types on the Plan page. A plan button in the
+  Home hero; a started session continues rather than restarting.
+
 The full history of changes is in the git log.

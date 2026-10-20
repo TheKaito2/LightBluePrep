@@ -27,7 +27,7 @@ function chooseTopics() {
 
 /** Home's hero band: Bulb, the headline, the main action, the ID search and the score card. */
 export function Hero({
-  total, seen, resumable, onResume, findIds, onOpenId, history, stats, onScoreCheck, planNext, hasPlan, onStartPlan,
+  total, seen, resumable, onResume, findIds, onOpenId, history, stats, onScoreCheck, planNext, hasPlan, onStartPlan, planStarted,
 }: {
   /** Questions in the bank; 0 while the list is still loading. */
   total: number
@@ -46,6 +46,8 @@ export function Hero({
   /** Whether a plan exists at all, for the "Make a study plan" link. */
   hasPlan: boolean
   onStartPlan: (s: PlanSession) => void
+  /** Today's session has a set under way: the button carries on with it. */
+  planStarted: boolean
 }) {
   return (
     <section className="hero2" aria-label="Overview">
@@ -65,17 +67,17 @@ export function Hero({
               <Icon name="calendar" size={16} strokeWidth={2} />
               Next session {dayName(planNext.session.date)}: {planNext.session.title}
             </a>
-          ) : !hasPlan ? (
-            <a className="hero2-plan" href="#plan">
-              <Icon name="calendar" size={16} strokeWidth={2} />Make a study plan for your test date
-            </a>
           ) : null}
           <div className="hero2-go">
             {planNext?.today ? (
               // A session planned for today leads: it is the thing to do now.
               <button className="btn primary lg hero2-main" onClick={() => onStartPlan(planNext.session)}>
-                <span className="hero2-main-t">Today's plan · {planNext.session.title}</span>
-                <span className="hero2-main-n">({fmt(planNext.session.filters.size ?? 0)})</span>
+                {/* A phone has room for what to press, not what it covers. */}
+                <span className="hero2-main-t">
+                  <span className="desk">{planStarted ? 'Continue' : "Today's plan"} · {planNext.session.title}</span>
+                  <span className="phone">{planStarted ? 'Continue plan' : "Today's plan"}</span>
+                </span>
+                <span className="hero2-main-n desk">({fmt(planNext.session.filters.size ?? 0)})</span>
                 <Icon name="arrow-right" size={16} strokeWidth={2.2} />
               </button>
             ) : resumable ? (
@@ -91,13 +93,18 @@ export function Hero({
                 <Icon name="arrow-right" size={16} strokeWidth={2.2} />
               </button>
             )}
-            {planNext?.today && resumable ? (
+            {planNext?.today && resumable && !planStarted ? (
               <button className="btn lg" onClick={() => onResume(resumable.id)}>Resume</button>
             ) : planNext?.today || resumable ? (
               <button className="btn lg" onClick={chooseTopics}>
                 <span className="desk">Choose topics</span><span className="phone">Topics</span>
               </button>
             ) : null}
+            <a className="btn lg hero2-planbtn" href="#plan" aria-label={hasPlan ? 'My plan' : 'Make a plan'}>
+              <Icon name="calendar" size={16} strokeWidth={2} />
+              {/* Icon only on a phone, where Plan is also in the tab bar. */}
+              <span className="desk" aria-hidden="true">{hasPlan ? 'My plan' : 'Make a plan'}</span>
+            </a>
           </div>
           <IdSearch findIds={findIds} onOpenId={onOpenId} />
         </div>

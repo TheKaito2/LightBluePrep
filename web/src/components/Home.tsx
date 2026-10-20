@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as api from '../api'
 import { Footer } from './Footer'
+import { Icon } from './Icon'
 import { EmptyState } from './EmptyState'
 import { ActiveSets } from './home/ActiveSets'
 import { DifficultyChips } from './home/DifficultyChips'
@@ -52,6 +53,14 @@ interface Props {
   onScoreCheck: () => void
   /** Start a plan session (App wires it to a practice set). */
   onStartPlan: (s: PlanSession) => void
+  /**
+   * Planning mode: the picker chooses a plan session's topics and types for
+   * `date` instead of starting practice. Null in normal use.
+   */
+  planning: { date: string; editing: boolean } | null
+  onPlanDate: (date: string) => void
+  onPlanAdd: (s: Omit<PlanSession, 'id' | 'date'>, date: string) => void
+  onPlanCancel: () => void
   order: Order
   onOrder: (next: Order) => void
   activeSets: PracticeSet[]
@@ -77,6 +86,7 @@ const STATUS_WORD: Record<Status, string> = {
 export function Home({
   taxonomy, taxonomyLoading, onRetryBoot, facet, stats, history, value, items, loading, onChange, onOpen, onStart,
   order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId, onScoreCheck, onStartPlan,
+  planning, onPlanDate, onPlanAdd, onPlanCancel,
 }: Props) {
   const [showOptions, setShowOptions] = useState(false)
   const study = useStudy()
@@ -235,7 +245,9 @@ export function Home({
       pickedSections.length === 1 ? pickedSections[0]! : i % 2 ? 'MATH' : 'RW'), value.speed)
     : 0
   /** One wording for the bar and the dialog footer. */
-  const startLabel = !count && !loading ? 'Start' : !value.size ? 'Start · no limit'
+  const startLabel = planning
+    ? (count ? `Add to plan · ${plural(value.size ? Math.min(value.size, count) : count, 'question')}` : 'Add to plan')
+    : !count && !loading ? 'Start' : !value.size ? 'Start · no limit'
     : value.speed ? `Start ${fmt(n)} · ${formatClock(plannedSeconds)}`
       : `Start ${plural(n, 'question')}`
   // A skill narrowed to types reads as those types.
@@ -272,7 +284,26 @@ export function Home({
     })
   }
 
+  /** The picks as a plan session: its filters, a title, and its types with their counts. */
+  function asPlanSession(): Omit<PlanSession, 'id' | 'date'> {
+    const names = new Map(domains.flatMap((d) => d.skills.map((k) => [k.code, k.name] as const)))
+    const parts = pt && value.types?.length ? value.types.map((ref) => {
+      const skill = ref.slice(0, ref.lastIndexOf('.'))
+      return {
+        ref, skill, skillName: names.get(skill) ?? skill,
+        label: pt.types[skill]?.[ref.slice(skill.length + 1)]?.label ?? ref,
+        n: items.filter((q) => q.cb_id && pt.q[q.cb_id] === ref).length,
+      }
+    }) : undefined
+    const { title: _t, skill_names: _n, ...picks } = value
+    return {
+      phase: 'build', title: summary, ...(parts ? { parts } : {}),
+      filters: { ...picks, size: value.size ? Math.min(value.size, count) : count },
+    }
+  }
+
   function start() {
+    if (planning) { if (count) onPlanAdd(asPlanSession(), planning.date); return }
     if (value.size) { onStart(); return }
     onOpen(pool.firstNew < 0 ? 0 : pool.firstNew)
   }
@@ -281,13 +312,30 @@ export function Home({
 
   return (
     <div className="home">
-      <Hero total={totals.all} seen={totals.seen} resumable={resumable} onResume={onResume}
-            findIds={findIds} onOpenId={onOpenId}
-            history={history} stats={stats} onScoreCheck={onScoreCheck}
-            planNext={planNext} hasPlan={!study.loaded || Boolean(study.plan)} onStartPlan={onStartPlan} />
+      {planning ? null : (
+        <Hero total={totals.all} seen={totals.seen} resumable={resumable} onResume={onResume}
+              findIds={findIds} onOpenId={onOpenId}
+              history={history} stats={stats} onScoreCheck={onScoreCheck}
+              planNext={planNext} hasPlan={!study.loaded || Boolean(study.plan)} onStartPlan={onStartPlan}
+              planStarted={Boolean(planNext?.session.set_id && activeSets.some((a) => a.id === planNext.session.set_id))} />
+      )}
 
       <div className="hwrap">
-        <ActiveSets sets={activeSets} onResume={onResume} onAbandon={onAbandon} />
+        {planning ? (
+          <section className="plan-draft" aria-labelledby="plan-draft-t">
+            <Icon name="calendar" size={20} strokeWidth={2} />
+            <div className="plan-draft-txt">
+              <h2 className="plan-draft-t" id="plan-draft-t">{planning.editing ? 'Changing a plan session' : 'Adding a plan session'}</h2>
+              <p className="plan-draft-sub">Tick topics, and under a ticked skill its question types. Options sets the count and difficulty. Then Add to plan.</p>
+            </div>
+            <label className="plan-draft-day">
+              <span>Day</span>
+              <input type="date" className="goal-input" value={planning.date} min={dayKey(new Date())}
+                     onChange={(e) => { if (e.target.value) onPlanDate(e.target.value) }} />
+            </label>
+            <button type="button" className="btn quiet" onClick={onPlanCancel}>Cancel</button>
+          </section>
+        ) : <ActiveSets sets={activeSets} onResume={onResume} onAbandon={onAbandon} />}
 
         <TopicsHead section={value.section} onPick={pickSection} />
 

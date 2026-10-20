@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildPlan, markFinished, missed, nextSession, phaseCounts, planProgress, questionsFor, reflow,
+  WEIGHT_PRESETS, buildPlan, coverPlan, dayQuotas, markFinished, missed, nextSession, phaseCounts, planProgress, questionsFor, reflow,
   sectionShares, sessionDates, type PlanAnswers,
 } from './plan'
 import type { SkillTally } from './taxonomy'
@@ -152,5 +152,65 @@ describe('reflow on a hand-built plan', () => {
     expect(r.sessions.find((s) => s.id === 'a')!.date).toBe('2026-10-21')
     expect(r.sessions.find((s) => s.id === 'b')!.date).toBe('2026-11-07')
     expect(r.sessions.find((s) => s.id === 'c')!.date).toBe('2026-10-20')
+  })
+})
+
+const TUE_HALF = WEIGHT_PRESETS.find((p) => p.key === 'weekends-tue')!.weights
+
+describe('dayQuotas', () => {
+  it('sums exactly, weekends twice a weekday, Tuesday half', () => {
+    // Mon 26 Oct .. Sun 1 Nov 2026: weights 1, .5, 1, 1, 1, 2, 2 = 8.5
+    const dates = sessionDates('2026-10-26', '2026-11-03', [0, 1, 2, 3, 4, 5, 6])
+    const q = dayQuotas(dates, TUE_HALF, 850)
+    expect(q.reduce((a, b) => a + b, 0)).toBe(850)
+    expect(q).toEqual([100, 50, 100, 100, 100, 200, 200])
+    expect(dayQuotas(dates, TUE_HALF, 851).reduce((a, b) => a + b, 0)).toBe(851)
+    expect(dayQuotas(dates, [0, 0, 0, 0, 0, 0, 0], 10)).toEqual([0, 0, 0, 0, 0, 0, 0])
+  })
+})
+
+describe('coverPlan', () => {
+  const types = [
+    { ref: 'A.1', label: 'a1', skill: 'A', skillName: 'Alpha', section: 'RW' as const },
+    { ref: 'A.2', label: 'a2', skill: 'A', skillName: 'Alpha', section: 'RW' as const },
+    { ref: 'B.1', label: 'b1', skill: 'B', skillName: 'Beta', section: 'MATH' as const },
+  ]
+  const unseen = new Map([['A.1', 120], ['A.2', 0], ['B.1', 80]])
+  const plan = () => coverPlan(
+    { ...answers({ test_date: '2026-11-03' }), mode: 'cover', weights: TUE_HALF },
+    { today: '2026-10-26', types, unseen, now: 1, newId: () => `c${n++}` })
+
+  it('covers every unseen question once, in type order, within each day\'s quota', () => {
+    const p = plan()
+    const quotas = dayQuotas(p.sessions.map((s) => s.date), TUE_HALF, 200)
+    expect(p.sessions.map((s) => s.filters.size)).toEqual(quotas.filter(Boolean))
+    const flat = p.sessions.flatMap((s) => s.parts!)
+    expect(flat.reduce((a, x) => a + x.n, 0)).toBe(200)
+    expect(flat.filter((x) => x.ref === 'A.1').reduce((a, x) => a + x.n, 0)).toBe(120)
+    expect(flat.some((x) => x.ref === 'A.2')).toBe(false)
+    // A.1 runs out partway through a day and B.1 carries on in the same session.
+    const split = p.sessions.find((s) => s.parts!.length > 1)!
+    expect(split.parts!.map((x) => x.ref)).toEqual(['A.1', 'B.1'])
+    expect(split.filters).toMatchObject({ statuses: ['unseen'], types: ['A.1', 'B.1'], skills: ['A', 'B'] })
+    expect(split.title).toBe('Alpha + 1 more skill · 2 types')
+  })
+
+  it('spreads missed questions over the days left, losing none', () => {
+    const p = plan()
+    const r = reflow(p, '2026-10-28')
+    const left = r.sessions.filter((s) => s.date >= '2026-10-28')
+    expect(left.reduce((a, s) => a + (s.filters.size ?? 0), 0)).toBe(200)
+    expect(r.sessions.every((s) => s.date >= '2026-10-28')).toBe(true)
+  })
+})
+
+describe('weights in the skill planner', () => {
+  it('practises only weighted days and sizes sessions by weight', () => {
+    const p = buildPlan(answers({ weights: TUE_HALF, minutes: 30 }), ctx({ estimate: { rw: 600, math: 600 } }))
+    const byDay = (dow: number) => p.sessions.filter((s) => new Date(`${s.date}T00:00:00`).getDay() === dow && s.phase === 'build')
+    expect(byDay(6)[0]!.filters.size).toBe(30)
+    expect(byDay(1)[0]!.filters.size).toBe(15)
+    expect(byDay(2)[0]!.filters.size).toBe(10)
+    expect(p.days).toEqual([0, 1, 2, 3, 4, 5, 6])
   })
 })

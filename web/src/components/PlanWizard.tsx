@@ -7,14 +7,16 @@
  * Saving also writes the test date and target into the goal, so the score
  * card and the plan always count down to the same day.
  */
-import { useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
+import * as api from '../api'
 import { Modal } from './Modal'
 import { Segmented } from './Segmented'
 import { TARGETS, daysUntil, shortDate, type Goal } from '../lib/goal'
 import {
-  MINUTES, PHASE_NAME, SAT_DATES, blankPlan, buildPlan, phaseCounts, questionsFor, sessionDates,
-  type Focus, type Plan, type PlanAnswers,
+  MINUTES, PHASE_NAME, SAT_DATES, WEIGHT_PRESETS, blankPlan, buildPlan, coverPlan, dayQuotas, daysFrom,
+  phaseCounts, questionsFor, sessionDates, typeSlots, type Focus, type Plan, type PlanAnswers, type TypeSlot,
 } from '../lib/plan'
+import { loadProcessTypes } from '../lib/similar'
 import { dayKey } from '../lib/progress'
 import { saveStudy } from '../lib/study'
 import { toUserMessage } from '../lib/errors'
@@ -28,9 +30,11 @@ const WEEKDAYS = [
 /** A test more than this far out is not planned day by day (and keeps the plan a sane size). */
 const MAX_DAYS = 400
 
-type Step = 'date' | 'target' | 'days' | 'start' | 'focus' | 'preview'
-const AUTO: Step[] = ['date', 'target', 'days', 'start', 'focus', 'preview']
+type Step = 'what' | 'date' | 'target' | 'days' | 'start' | 'focus' | 'preview'
+const COVER: Step[] = ['what', 'date', 'target', 'days', 'preview']
+const SKILLS: Step[] = ['what', 'date', 'target', 'days', 'start', 'focus', 'preview']
 const MANUAL: Step[] = ['date', 'target', 'days']
+const WEIGHTS = [{ value: 0, label: 'Off' }, { value: 0.5, label: '½' }, { value: 1, label: '1×' }, { value: 2, label: '2×' }]
 
 export function PlanWizard({ mode, goal, skills, domains, estimate, onClose, onSaved }: {
   mode: 'auto' | 'manual'
@@ -45,14 +49,32 @@ export function PlanWizard({ mode, goal, skills, domains, estimate, onClose, onS
   const ids = useId()
   const today = dayKey(new Date())
   const maxDate = dayKey(new Date(Date.now() + MAX_DAYS * 86_400_000))
-  const steps = mode === 'auto' ? AUTO : MANUAL
+  const [goalMode, setGoalMode] = useState<'cover' | 'skills'>('cover')
+  const steps = mode === 'manual' ? MANUAL : goalMode === 'cover' ? COVER : SKILLS
   const [at, setAt] = useState(0)
   const step = steps[at]!
 
   const upcoming = SAT_DATES.filter((d) => daysUntil(d.date) >= 2)
   const [date, setDate] = useState(goal?.date && daysUntil(goal.date) >= 2 ? goal.date : upcoming[0]?.date ?? '')
   const [target, setTarget] = useState(goal?.target ? String(goal.target) : '')
-  const [days, setDays] = useState<number[]>([1, 3, 5])
+  const [weights, setWeights] = useState<number[]>(WEIGHT_PRESETS[0]!.weights)
+  const days = daysFrom(weights)
+  // What clearing the bank has to cover: every type, and its unanswered count.
+  const [bank, setBank] = useState<{ slots: TypeSlot[]; unseen: Map<string, number>; total: number } | null>(null)
+  useEffect(() => {
+    if (mode !== 'auto') return
+    let stale = false
+    Promise.all([loadProcessTypes(), api.questionsById()]).then(([pt, byId]) => {
+      if (stale || !pt) return
+      const unseen = new Map<string, number>()
+      for (const q of byId.values()) {
+        const ref = !q.answered_at && q.cb_id ? pt.q[q.cb_id] : undefined
+        if (ref) unseen.set(ref, (unseen.get(ref) ?? 0) + 1)
+      }
+      setBank({ slots: typeSlots(skills, pt.types), unseen, total: [...unseen.values()].reduce((a, b) => a + b, 0) })
+    }).catch(() => {})
+    return () => { stale = true }
+  }, [mode, skills])
   const [minutes, setMinutes] = useState<number>(30)
   const [startFrom, setStartFrom] = useState<PlanAnswers['start_from']>(estimate ? 'estimate' : 'score_check')
   const [known, setKnown] = useState({ rw: '', math: '' })
@@ -62,6 +84,8 @@ export function PlanWizard({ mode, goal, skills, domains, estimate, onClose, onS
   const [busy, setBusy] = useState(false)
 
   const answers = (): PlanAnswers => ({
+    mode: mode === 'manual' ? 'skills' : goalMode,
+    weights,
     test_date: date,
     target: target ? Number(target) : null,
     days,
@@ -72,7 +96,9 @@ export function PlanWizard({ mode, goal, skills, domains, estimate, onClose, onS
   })
 
   const preview = useMemo(
-    () => (step === 'preview' ? buildPlan(answers(), { today, skills, estimate }) : null),
+    () => (step !== 'preview' ? null : goalMode === 'cover' && bank
+      ? coverPlan(answers(), { today, types: bank.slots, unseen: bank.unseen })
+      : buildPlan(answers(), { today, skills, estimate })),
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- rebuilt when the preview step opens
     [step])
 
@@ -83,6 +109,7 @@ export function PlanWizard({ mode, goal, skills, domains, estimate, onClose, onS
       if (daysUntil(date) < 2) return 'Pick a date at least two days away.'
       if (daysUntil(date) > MAX_DAYS) return 'Pick a date within the next year.'
     }
+    if (step === 'what' && goalMode === 'cover' && !bank) return 'Still counting the questions. Try again in a moment.'
     if (step === 'days' && !days.length) return 'Pick at least one day.'
     if (step === 'days' && daysUntil(date) > MAX_DAYS) return 'Pick a test date within the next year.'
     if (step === 'days' && !sessionDates(today, date, days).length) return 'None of those days fall before your test.'
@@ -118,7 +145,14 @@ export function PlanWizard({ mode, goal, skills, domains, estimate, onClose, onS
   }
 
   const last = at === steps.length - 1
-  const counts = preview ? phaseCounts(preview.sessions.length,
+  // A week of quotas from today, to show what a normal, heavy and light day hold.
+  const dates = date && days.length ? sessionDates(today, date, days) : []
+  const quotas = goalMode === 'cover' && bank ? dayQuotas(dates, weights, bank.total) : []
+  const perDay = (dow: number) => {
+    const i = dates.findIndex((d) => new Date(`${d}T00:00:00`).getDay() === dow)
+    return i < 0 ? null : quotas[i]
+  }
+  const counts = preview && goalMode === 'skills' ? phaseCounts(preview.sessions.length,
     preview.sessions.some((s) => s.phase === 'baseline')) : null
 
   return (
@@ -132,6 +166,17 @@ export function PlanWizard({ mode, goal, skills, domains, estimate, onClose, onS
              </>
            )}>
       <p className="wiz-step" aria-live="polite">Step {at + 1} of {steps.length}</p>
+
+      {step === 'what' ? (
+        <Segmented legend="What should the plan do?" value={goalMode} onChange={setGoalMode}
+                   options={[
+                     { value: 'cover', label: 'Clear every question' },
+                     { value: 'skills', label: 'Practise my weak skills' },
+                   ]}
+                   hint={goalMode === 'cover'
+                     ? `Every question you have not answered${bank ? ` (${bank.total.toLocaleString()})` : ''}, type by type, spread over your days.`
+                     : 'Sessions weighted to your weak skills, then timed mixes and a final review.'} />
+      ) : null}
 
       {step === 'date' ? (
         <fieldset className="wiz-field">
@@ -165,24 +210,41 @@ export function PlanWizard({ mode, goal, skills, domains, estimate, onClose, onS
       {step === 'days' ? (
         <>
           <fieldset className="wiz-field">
-            <legend className="fb-label">Which days can you practise?</legend>
-            <div className="wiz-chips wiz-days">
-              {WEEKDAYS.map((d) => {
-                const on = days.includes(d.n)
+            <legend className="fb-label">How much on each day?</legend>
+            <div className="wiz-chips">
+              {WEIGHT_PRESETS.map((p) => {
+                const on = p.weights.join() === weights.join()
                 return (
-                  <button key={d.n} type="button" aria-pressed={on} className={on ? 'chip on' : 'chip'}
-                          onClick={() => { setDays(on ? days.filter((x) => x !== d.n) : [...days, d.n]); setError(null) }}>
-                    {d.short}
-                  </button>
+                  <button key={p.key} type="button" aria-pressed={on} className={on ? 'chip on' : 'chip'}
+                          onClick={() => { setWeights(p.weights); setError(null) }}>{p.label}</button>
                 )
               })}
             </div>
+            <div className="wiz-week">
+              {WEEKDAYS.map((d) => (
+                <label key={d.n} className={weights[d.n] ? 'wiz-day' : 'wiz-day is-off'}>
+                  <span className="wiz-day-n">{d.short}</span>
+                  <select className="sel" value={weights[d.n]}
+                          onChange={(e) => { setWeights(weights.map((w, i) => (i === d.n ? Number(e.target.value) : w))); setError(null) }}>
+                    {WEIGHTS.map((w) => <option key={w.value} value={w.value}>{w.label}</option>)}
+                  </select>
+                  {goalMode === 'cover' && mode === 'auto' ? (
+                    <span className="wiz-day-q">{perDay(d.n) ?? 0}</span>
+                  ) : null}
+                </label>
+              ))}
+            </div>
           </fieldset>
-          <Segmented legend="How long each time?" value={minutes} onChange={setMinutes}
-                     options={MINUTES.map((m) => ({ value: m, label: `${m} min` }))}
-                     hint={`About ${questionsFor(minutes)} questions a session, with time to read the explanations.`} />
+          {goalMode === 'skills' && mode === 'auto' ? (
+            <Segmented legend="How long on a normal day?" value={minutes} onChange={setMinutes}
+                       options={MINUTES.map((m) => ({ value: m, label: `${m} min` }))}
+                       hint={`About ${questionsFor(minutes)} questions on a 1× day; a 2× day doubles it.`} />
+          ) : null}
           {date ? (
-            <p className="fb-note">{sessionDates(today, date, days).length} sessions before {shortDate(date)}.</p>
+            <p className="fb-note">
+              {dates.length} practice days before {shortDate(date)}
+              {goalMode === 'cover' && mode === 'auto' && bank ? ` for ${bank.total.toLocaleString()} questions. The numbers are the first week's.` : '.'}
+            </p>
           ) : null}
         </>
       ) : null}
@@ -241,23 +303,30 @@ export function PlanWizard({ mode, goal, skills, domains, estimate, onClose, onS
         </>
       ) : null}
 
-      {step === 'preview' && preview && counts ? (
+      {step === 'preview' && preview ? (
         <div className="wiz-preview">
-          <p className="fb-p">
-            {preview.sessions.length} sessions of about {questionsFor(minutes)} questions, to {shortDate(date)}.
-          </p>
-          <ul className="wiz-phases">
-            {(Object.keys(counts) as (keyof typeof counts)[]).filter((k) => counts[k]).map((k) => (
-              <li key={k}><strong>{counts[k]}</strong> {PHASE_NAME[k]}</li>
-            ))}
-          </ul>
-          <p className="fb-label">First sessions</p>
+          {counts ? (
+            <>
+              <p className="fb-p">{preview.sessions.length} sessions to {shortDate(date)}.</p>
+              <ul className="wiz-phases">
+                {(Object.keys(counts) as (keyof typeof counts)[]).filter((k) => counts[k]).map((k) => (
+                  <li key={k}><strong>{counts[k]}</strong> {PHASE_NAME[k]}</li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="fb-p">
+              {preview.sessions.reduce((a, x) => a + (x.filters.size ?? 0), 0).toLocaleString()} questions
+              in {preview.sessions.length} days to {shortDate(date)}, every process type in turn.
+            </p>
+          )}
+          <p className="fb-label">First days</p>
           <ol className="wiz-first">
-            {preview.sessions.slice(0, 5).map((s) => (
-              <li key={s.id}><span>{shortDate(s.date)}</span> {s.title}</li>
+            {preview.sessions.slice(0, 5).map((x) => (
+              <li key={x.id}><span>{shortDate(x.date)}</span> {x.title} ({x.filters.size})</li>
             ))}
           </ol>
-          <p className="fb-note">You can edit, move or skip any session afterwards.</p>
+          <p className="fb-note">You can edit, move or skip any day afterwards, and pick types for a day on the Practice page.</p>
         </div>
       ) : null}
 

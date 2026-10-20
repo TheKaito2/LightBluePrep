@@ -18,7 +18,7 @@ import { PLAN_FILE, planBlob } from '../lib/ics'
 import { fmt, plural } from '../lib/labels'
 import {
   PHASE_NAME, missed, nextSession, patchSession, planProgress, putSession, questionsFor, reflow,
-  removeSession, weekOf, type PlanSession,
+  removeSession, weekOf, type PlanPart, type PlanSession,
 } from '../lib/plan'
 import { dayKey, score, type HistoryRow } from '../lib/progress'
 import { saveBlob } from '../lib/share'
@@ -31,10 +31,12 @@ import type { TaxonomyRow } from '../types'
 const dayLabel = (date: string) =>
   new Date(`${date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 
-export function Plan({ taxonomy, history, onStartSession }: {
+export function Plan({ taxonomy, history, onStartSession, onPickTopics }: {
   taxonomy: TaxonomyRow[]
   history: HistoryRow[]
   onStartSession: (s: PlanSession) => void
+  /** Pick a session's topics and types on the Home picker (null: a new session). */
+  onPickTopics: (s: PlanSession | null, date: string) => void
 }) {
   const { goal, plan, loaded } = useStudy()
   const toast = useToast()
@@ -65,7 +67,8 @@ export function Plan({ taxonomy, history, onStartSession }: {
         <PlanSessionEditor session={editing === 'new' ? null : editing}
                            defaultDate={nextSession(plan, today)?.session.date ?? today}
                            lastDate={lastDay(plan.test_date)} domains={roll.domains}
-                           onSave={(s) => save(putSession(plan, s))} onClose={() => setEditing(null)} />
+                           onSave={(s) => save(putSession(plan, s))} onClose={() => setEditing(null)}
+                           onPickTopics={(date) => onPickTopics(editing === 'new' ? null : editing, date)} />
       ) : null}
       {calendar && plan ? <CalendarDialog sessions={plan.sessions} minutes={plan.minutes} onClose={() => setCalendar(false)} /> : null}
       {confirmReplace ? (
@@ -179,6 +182,7 @@ export function Plan({ taxonomy, history, onStartSession }: {
                         {PHASE_NAME[s.phase]} · {fmt(s.filters.size ?? 0)} questions{s.filters.speed ? ' · timed' : ''}
                         {state === 'done' ? ' · done' : state === 'skipped' ? ' · skipped' : state === 'missed' ? ' · missed' : ''}
                       </span>
+                      {s.parts?.length ? <Parts parts={s.parts} /> : null}
                     </span>
                     <span className="plan-row-go">
                       {state === 'done' ? <Icon name="check-circle" size={20} strokeWidth={2} /> : (
@@ -212,7 +216,10 @@ export function Plan({ taxonomy, history, onStartSession }: {
         ))}
 
         <div className="plan-foot">
-          <button type="button" className="btn" onClick={() => setEditing('new')}>Add a session</button>
+          <button type="button" className="btn"
+                  onClick={() => onPickTopics(null, nextSession(plan, today)?.session.date ?? today)}>
+            Add a session
+          </button>
           <button type="button" className="btn quiet" disabled={!roll.skills.length}
                   onClick={() => setConfirmReplace(true)}>Make a new plan</button>
           <button type="button" className="btn quiet" onClick={() => setConfirmDelete(true)}>Delete plan</button>
@@ -220,6 +227,22 @@ export function Plan({ taxonomy, history, onStartSession }: {
       </div>
       {dialogs}
     </>
+  )
+}
+
+/** A session's question types: the first three, the rest one tap away. */
+function Parts({ parts }: { parts: readonly PlanPart[] }) {
+  const head = parts.slice(0, 3)
+  const line = (p: PlanPart) => <li key={p.ref}><span>{p.label}</span> <span className="plan-parts-n">{fmt(p.n)}</span></li>
+  if (parts.length <= 3) return <ul className="plan-parts">{head.map(line)}</ul>
+  return (
+    <details className="plan-parts-more">
+      <summary>
+        <ul className="plan-parts">{head.map(line)}</ul>
+        <span className="plan-parts-toggle">and {parts.length - 3} more {parts.length - 3 === 1 ? 'type' : 'types'}</span>
+      </summary>
+      <ul className="plan-parts">{parts.slice(3).map(line)}</ul>
+    </details>
   )
 }
 

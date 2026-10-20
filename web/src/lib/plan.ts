@@ -17,7 +17,17 @@ import { graded } from './score'
 import type { SkillTally } from './taxonomy'
 import type { Filters, Section } from '../types'
 
-export type Phase = 'baseline' | 'build' | 'mixed' | 'review'
+export type Phase = 'baseline' | 'build' | 'mixed' | 'review' | 'cover'
+
+/** One process type inside a session: which, and how many of its questions. */
+export interface PlanPart {
+  /** "skill.key", as in process-types.json. */
+  ref: string
+  label: string
+  skill: string
+  skillName: string
+  n: number
+}
 
 export interface PlanSession {
   id: string
@@ -27,6 +37,8 @@ export interface PlanSession {
   title: string
   /** What the session practises; `size` is its question count. */
   filters: Filters
+  /** The process types it covers, in order, when it was planned that finely. */
+  parts?: PlanPart[]
   /** The practice set started from this session, once there is one. */
   set_id?: string
   /** When it was finished (its set finished, or marked done by hand). */
@@ -38,10 +50,17 @@ export type Focus = 'auto' | Section | string[]
 
 /** What the planner asks. A hand-built plan fills the same fields. */
 export interface PlanAnswers {
+  /** Practise weak skills (the default), or clear every question in the bank. */
+  mode?: 'skills' | 'cover'
   test_date: string
   target: number | null
-  /** Weekdays to practise on, 0 = Sunday. */
+  /** Weekdays to practise on, 0 = Sunday. Derived from `weights` when those are set. */
   days: number[]
+  /**
+   * How much each weekday carries, index 0 = Sunday: 0 off, 0.5 light, 1 normal,
+   * 2 heavy. Plans from before this existed have none: 1 on each of `days`.
+   */
+  weights?: number[]
   /** Minutes per session. */
   minutes: number
   start_from: 'estimate' | 'score_check' | 'known'
@@ -79,6 +98,42 @@ export const DOMAIN_WEIGHT: Record<string, number> = {
 
 export const MINUTES = [15, 30, 45, 60] as const
 
+/** Ready-made weekday weights, index 0 = Sunday. */
+export const WEIGHT_PRESETS: readonly { key: string; label: string; weights: number[] }[] = [
+  { key: 'even', label: 'Every day the same', weights: [1, 1, 1, 1, 1, 1, 1] },
+  { key: 'weekends', label: 'Weekends ×2', weights: [2, 1, 1, 1, 1, 1, 2] },
+  { key: 'weekends-tue', label: 'Weekends ×2, Tuesday ½', weights: [2, 1, 0.5, 1, 1, 1, 2] },
+]
+
+/** Each weekday's weight, from `weights` or, for an older plan, 1 on each of `days`. */
+export function weightsOf(a: Pick<PlanAnswers, 'days' | 'weights'>): number[] {
+  if (a.weights?.length === 7) return a.weights
+  return [0, 1, 2, 3, 4, 5, 6].map((d) => (a.days.includes(d) ? 1 : 0))
+}
+
+/** The weekdays with any weight. */
+export const daysFrom = (weights: readonly number[]) =>
+  weights.flatMap((w, d) => (w > 0 ? [d] : []))
+
+/**
+ * Split `total` questions over `dates` in proportion to each date's weekday
+ * weight. Largest remainder, so the quotas add up to exactly `total`.
+ */
+export function dayQuotas(dates: readonly string[], weights: readonly number[], total: number): number[] {
+  const w = dates.map((d) => weights[parseDay(d).getDay()] ?? 0)
+  const sum = w.reduce((a, b) => a + b, 0)
+  if (!sum || total <= 0) return dates.map(() => 0)
+  const exact = w.map((x) => (x / sum) * total)
+  const out = exact.map(Math.floor)
+  let left = total - out.reduce((a, b) => a + b, 0)
+  const order = exact.map((x, i) => [x - out[i]!, i] as const).sort((a, b) => b[0] - a[0])
+  for (const [, i] of order) {
+    if (left <= 0) break
+    out[i]!++; left--
+  }
+  return out
+}
+
 /** A date-only string with a time is read as LOCAL midnight; without one, as UTC. */
 const parseDay = (s: string) => new Date(`${s}T00:00:00`)
 const addDays = (s: string, n: number) => {
@@ -110,7 +165,7 @@ export function questionsFor(minutes: number): number {
 }
 
 /** How many sessions each phase gets out of `n`. */
-export function phaseCounts(n: number, baseline: boolean): Record<Phase, number> {
+export function phaseCounts(n: number, baseline: boolean): Record<Exclude<Phase, 'cover'>, number> {
   if (n <= 0) return { baseline: 0, build: 0, mixed: 0, review: 0 }
   if (n < 5) {
     // Too close to build skills: timed mixed sets, then one review if there is room.
@@ -208,7 +263,8 @@ export interface PlanContext {
 /** The auto planner: answers and results in, a dated plan out. */
 export function buildPlan(answers: PlanAnswers, ctx: PlanContext): Plan {
   const newId = ctx.newId ?? (() => crypto.randomUUID())
-  const dates = sessionDates(ctx.today, answers.test_date, answers.days)
+  const weights = weightsOf(answers)
+  const dates = sessionDates(ctx.today, answers.test_date, daysFrom(weights))
   const size = questionsFor(answers.minutes)
   const counts = phaseCounts(dates.length, answers.start_from === 'score_check' && !ctx.estimate)
   const score = answers.start_from === 'known' ? answers.known ?? null : ctx.estimate
@@ -258,12 +314,115 @@ export function buildPlan(answers: PlanAnswers, ctx: PlanContext): Plan {
     })),
   ]
 
+  // A heavy day gets a longer session and a light one a shorter one; the score
+  // check stays 20 so it measures the same thing whatever the day.
+  const scaled = (s: Omit<PlanSession, 'id' | 'date'>, date: string): Omit<PlanSession, 'id' | 'date'> => {
+    const w = weights[parseDay(date).getDay()] ?? 1
+    if (s.phase === 'baseline' || w === 1) return s
+    return { ...s, filters: { ...s.filters, size: Math.min(80, Math.max(5, Math.round((size * w) / 5) * 5)) } }
+  }
   return {
     ...answers,
-    sessions: plan.map((s, i) => ({ ...s, id: newId(), date: dates[i]! })),
+    mode: 'skills',
+    weights,
+    days: daysFrom(weights),
+    sessions: plan.map((s, i) => ({ ...scaled(s, dates[i]!), id: newId(), date: dates[i]! })),
     created_at: ctx.now ?? Date.now(),
     source: 'auto',
   }
+}
+
+/** One process type in the bank, in the order the cover plan works through them. */
+export interface TypeSlot { ref: string; label: string; skill: string; skillName: string; section: Section }
+
+export interface CoverContext {
+  today: string
+  /** Every process type, in test order: section, domain, skill, then type. */
+  types: readonly TypeSlot[]
+  /** Questions not answered yet, per type ref. */
+  unseen: ReadonlyMap<string, number>
+  now?: number
+  newId?: () => string
+}
+
+/** "Algebra · 3 types", or "Central Ideas and Details + 2 more skills · 9 types". */
+function coverTitle(parts: readonly PlanPart[]): string {
+  const skills = [...new Set(parts.map((p) => p.skill))]
+  const first = parts[0]!.skillName
+  const more = skills.length > 1 ? ` + ${skills.length - 1} more ${skills.length === 2 ? 'skill' : 'skills'}` : ''
+  return `${first}${more} · ${parts.length} ${parts.length === 1 ? 'type' : 'types'}`
+}
+
+/**
+ * Clear every question: all the unanswered questions, type by type in test
+ * order, spread over the practice days by weekday weight (dayQuotas). A type
+ * that does not fit in what is left of a day carries on into the next one.
+ * Each session asks for unseen questions of its types, so doing a day early,
+ * late or twice still works through the bank rather than repeating it.
+ */
+export function coverPlan(answers: PlanAnswers, ctx: CoverContext): Plan {
+  const newId = ctx.newId ?? (() => crypto.randomUUID())
+  const weights = weightsOf(answers)
+  const dates = sessionDates(ctx.today, answers.test_date, daysFrom(weights))
+  const queue = ctx.types
+    .map((t) => ({ ...t, left: ctx.unseen.get(t.ref) ?? 0 }))
+    .filter((t) => t.left > 0)
+  const total = queue.reduce((a, t) => a + t.left, 0)
+  const quotas = dayQuotas(dates, weights, total)
+
+  const sessions: PlanSession[] = []
+  let q = 0
+  dates.forEach((date, i) => {
+    let room = quotas[i]!
+    const parts: PlanPart[] = []
+    while (room > 0 && q < queue.length) {
+      const t = queue[q]!
+      const take = Math.min(room, t.left)
+      parts.push({ ref: t.ref, label: t.label, skill: t.skill, skillName: t.skillName, n: take })
+      t.left -= take
+      room -= take
+      if (!t.left) q++
+    }
+    if (!parts.length) return
+    const sections = new Set(parts.map((p) => queue.find((t) => t.ref === p.ref)?.section))
+    sessions.push({
+      id: newId(),
+      date,
+      phase: 'cover',
+      title: coverTitle(parts),
+      parts,
+      filters: {
+        ...(sections.size === 1 ? { section: [...sections][0] } : {}),
+        skills: [...new Set(parts.map((p) => p.skill))],
+        types: parts.map((p) => p.ref),
+        statuses: ['unseen'],
+        size: parts.reduce((a, p) => a + p.n, 0),
+      },
+    })
+  })
+
+  return {
+    ...answers,
+    mode: 'cover',
+    weights,
+    days: daysFrom(weights),
+    sessions,
+    created_at: ctx.now ?? Date.now(),
+    source: 'auto',
+  }
+}
+
+/**
+ * Every process type in test order, for coverPlan: skills as `skills` lists
+ * them (rollup order), each skill's types in the order the file gives.
+ */
+export function typeSlots(
+  skills: readonly { code: string; name: string; section: Section }[],
+  types: Record<string, Record<string, { label: string }>>,
+): TypeSlot[] {
+  return skills.flatMap((k) => Object.entries(types[k.code] ?? {}).map(([key, t]) => ({
+    ref: `${k.code}.${key}`, label: t.label, skill: k.code, skillName: k.name, section: k.section,
+  })))
 }
 
 const pending = (s: PlanSession) => !s.done_at && !s.skipped
@@ -281,10 +440,12 @@ export const missed = (plan: Plan, today: string) =>
  */
 export function reflow(plan: Plan, today: string): Plan {
   if (plan.source === 'manual') return reflowMissed(plan, today)
+  if (plan.mode === 'cover') return reflowCover(plan, today)
   const kept = plan.sessions.filter((s) => !pending(s))
   const queue = plan.sessions.filter(pending).sort((a, b) => a.date.localeCompare(b.date))
   const taken = new Set(kept.filter((s) => s.date >= today).map((s) => s.date))
-  const slots = sessionDates(today, plan.test_date, plan.days.length ? plan.days : [0, 1, 2, 3, 4, 5, 6])
+  const days = daysFrom(weightsOf(plan))
+  const slots = sessionDates(today, plan.test_date, days.length ? days : [0, 1, 2, 3, 4, 5, 6])
     .filter((d) => !taken.has(d))
   for (const phase of ['build', 'mixed', 'baseline', 'review'] as Phase[]) {
     while (queue.length > slots.length) {
@@ -304,7 +465,8 @@ export function reflow(plan: Plan, today: string): Plan {
  */
 function reflowMissed(plan: Plan, today: string): Plan {
   const taken = new Set(plan.sessions.filter((s) => s.date >= today).map((s) => s.date))
-  const free = sessionDates(today, plan.test_date, plan.days.length ? plan.days : [0, 1, 2, 3, 4, 5, 6])
+  const days = daysFrom(weightsOf(plan))
+  const free = sessionDates(today, plan.test_date, days.length ? days : [0, 1, 2, 3, 4, 5, 6])
     .filter((d) => !taken.has(d))
   const late = missed(plan, today).sort((a, b) => a.date.localeCompare(b.date))
   const moved = new Map(late.slice(0, free.length).map((s, i) => [s.id, free[i]!]))
@@ -313,6 +475,58 @@ function reflowMissed(plan: Plan, today: string): Plan {
     sessions: plan.sessions.map((s) => (moved.has(s.id) ? { ...s, date: moved.get(s.id)! } : s))
       .sort((a, b) => a.date.localeCompare(b.date)),
   }
+}
+
+/**
+ * A cover plan already fills every practice day, so missed questions cannot
+ * move to a free day: everything not yet done is spread again over the days
+ * left, by the same weights and in the same type order.
+ */
+function reflowCover(plan: Plan, today: string): Plan {
+  const kept = plan.sessions.filter((s) => !pending(s) || s.phase !== 'cover')
+  const open = plan.sessions.filter((s) => pending(s) && s.phase === 'cover')
+    .sort((a, b) => a.date.localeCompare(b.date))
+  // Whole parts in order; a type split over two days joins back up.
+  const parts: PlanPart[] = []
+  for (const p of open.flatMap((s) => s.parts ?? [])) {
+    const last = parts[parts.length - 1]
+    if (last && last.ref === p.ref) last.n += p.n
+    else parts.push({ ...p })
+  }
+  const weights = weightsOf(plan)
+  const dates = sessionDates(today, plan.test_date, daysFrom(weights))
+  const total = parts.reduce((a, p) => a + p.n, 0)
+  const quotas = dayQuotas(dates, weights, total)
+  const sessions: PlanSession[] = []
+  let at = 0
+  dates.forEach((date, i) => {
+    let room = quotas[i]!
+    const day: PlanPart[] = []
+    while (room > 0 && at < parts.length) {
+      const p = parts[at]!
+      const take = Math.min(room, p.n)
+      day.push({ ...p, n: take })
+      p.n -= take
+      room -= take
+      if (!p.n) at++
+    }
+    if (!day.length) return
+    const reuse = open[sessions.length]
+    sessions.push({
+      id: reuse?.id ?? crypto.randomUUID(),
+      date,
+      phase: 'cover',
+      title: coverTitle(day),
+      parts: day,
+      filters: {
+        skills: [...new Set(day.map((p) => p.skill))],
+        types: day.map((p) => p.ref),
+        statuses: ['unseen'],
+        size: day.reduce((a, p) => a + p.n, 0),
+      },
+    })
+  })
+  return { ...plan, sessions: [...kept, ...sessions].sort((a, b) => a.date.localeCompare(b.date)) }
 }
 
 /** Today's session, else the next one ahead, with which it is. */
@@ -352,6 +566,7 @@ export function blankPlan(answers: PlanAnswers, now = Date.now()): Plan {
 
 export const PHASE_NAME: Record<Phase, string> = {
   baseline: 'Starting point', build: 'Build skills', mixed: 'Timed practice', review: 'Final review',
+  cover: 'Clear the bank',
 }
 
 /** Add a session, or replace the one with its id; kept in date order. */

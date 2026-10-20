@@ -119,3 +119,42 @@
   /* Plan takes About's place in the bottom bar; About is in the footer. */
   .tab.tab-about { display: none; }
 }
+
+/* ---- v2: weighted days, planning on Home, types on a session ---- */
+.wiz-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-top: var(--sp-3); }
+.wiz-day { display: flex; flex-direction: column; align-items: stretch; gap: 4px; text-align: center; }
+.wiz-day-n { font: 600 13px/18px var(--sans); color: var(--fg-2); }
+.wiz-day .sel { width: 100%; min-width: 0; padding: 0 4px; text-align: center; }
+.wiz-day-q { font: 600 12px/16px var(--sans); color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.wiz-day.is-off :is(.wiz-day-n, .wiz-day-q) { color: var(--fg-4); }
+
+/* Home in planning mode: one band over the picker saying what Start now does. */
+.plan-draft {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-8);
+  padding: var(--sp-4) var(--sp-5); border-radius: var(--rad-lg); background: var(--brand-100); color: var(--fg-1);
+}
+.plan-draft > svg { flex: none; color: var(--brand-800); }
+.plan-draft-txt { flex: 1 1 280px; min-width: 0; }
+.plan-draft-t { margin: 0; font: var(--type-h3); letter-spacing: var(--tr-h3); }
+.plan-draft-sub { margin: 2px 0 0; font: var(--type-small); color: var(--fg-2); }
+.plan-draft-day { display: flex; align-items: center; gap: var(--sp-2); font: 600 13px/18px var(--sans); color: var(--fg-2); }
+:root[data-theme=dark] .plan-draft { background: var(--surface-subtle); }
+:root[data-theme=dark] .plan-draft > svg { color: var(--brand-300); }
+
+/* A session's types under its title. */
+.plan-parts { display: flex; flex-wrap: wrap; gap: 2px var(--sp-3); margin: 4px 0 0; padding: 0; list-style: none; font: var(--type-small); color: var(--fg-2); }
+.plan-parts-n { color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.plan-parts-more > summary { list-style: none; cursor: pointer; }
+.plan-parts-more > summary::-webkit-details-marker { display: none; }
+.plan-parts-toggle { font: 600 12px/16px var(--sans); color: var(--fg-link); }
+.plan-parts-more[open] .plan-parts-toggle { display: none; }
+.plan-editor .plan-parts { flex-direction: column; }
+
+@media (max-width: 819px) {
+  .wiz-week { gap: 4px; }
+  .plan-draft { padding: var(--sp-4); }
+  .plan-draft-day { flex: 1 1 100%; }
+}
+@media (max-width: 819px) {
+  .shell .hero2-go .hero2-planbtn { width: 48px; padding: 0; }
+}

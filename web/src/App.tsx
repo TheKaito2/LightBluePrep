@@ -14,7 +14,8 @@ import { toUserMessage } from './lib/errors'
 import { SECTION_NAME, skillDisplayName } from './lib/labels'
 import { arrange } from './lib/order'
 import { About, Inbox, PlanPage, Resources, Review, SetResults, Settings, StatsPage, warmPages } from './lib/pages'
-import { patchSession, type PlanSession } from './lib/plan'
+import { patchSession, putSession, type PlanSession } from './lib/plan'
+import { loadProcessTypes } from './lib/similar'
 import type { View } from './lib/route'
 import { loadStudy, savePlan } from './lib/study'
 import * as sync from './lib/sync'
@@ -147,6 +148,8 @@ export default function App() {
    */
   const startPlanSession = useCallback(async (s: PlanSession) => {
     try {
+      // Already started and not finished: carry on with that set, not a second one.
+      if (s.set_id && set.activeSets.some((a) => a.id === s.set_id)) { set.open(s.set_id); return }
       let id: string | null
       if (s.phase === 'baseline') id = await set.scoreCheck()
       else {
@@ -155,10 +158,20 @@ export default function App() {
         if (!d.questions.length && s.phase === 'review') d = await api.questionSet({ statuses: ['unseen'] })
         if (!d.questions.length) { setError({ message: 'No questions match this session. Edit it on the Plan page.' }); return }
         const skill_names = pool.skills?.map((code) => taxonomy.find((r) => r.skill === code)?.skill_name ?? code)
-        id = await start(sample(d.questions, size), {
+        let chosen = sample(d.questions, size)
+        if (s.phase === 'cover') {
+          // Clearing the bank goes type by type in the planned order, so the
+          // days fit together; within a type, bank order.
+          const pt = await loadProcessTypes()
+          const rank = new Map((pool.types ?? []).map((ref, i) => [ref, i]))
+          const at = (q: SetItem) => rank.get((q.cb_id && pt?.q[q.cb_id]) || '') ?? rank.size
+          chosen = d.questions.map((q, i) => ({ q, i }))
+            .sort((a, b) => at(a.q) - at(b.q) || a.i - b.i).slice(0, size).map((x) => x.q)
+        }
+        id = await start(chosen, {
           ...pool, size,
           ...(speed ? { speed } : {}),
-          ...(s.phase === 'build' ? {} : { title: s.title }),
+          ...(s.phase === 'build' && !s.parts ? {} : { title: s.title }),
           ...(skill_names ? { skill_names } : {}),
         })
       }
@@ -167,6 +180,38 @@ export default function App() {
       if (study.plan) await savePlan(patchSession(study.plan, s.id, { set_id: id }))
     } catch (e) { fail(e) }
   }, [set, start, taxonomy, fail])
+
+  /**
+   * Planning mode: Home's topic picker chooses a plan session's topics and
+   * types instead of starting practice. Home's own picks are kept aside in
+   * `saved` and put back when the session is added or the planning is dropped.
+   */
+  const [planDraft, setPlanDraft] = useState<{ session: PlanSession | null; date: string; saved: Filters } | null>(null)
+  const planOnHome = useCallback((session: PlanSession | null, date: string) => {
+    setPlanDraft((d) => ({ session, date, saved: d?.saved ?? filters }))
+    // A session's own picks; a new one starts from every question.
+    const { title: _t, skill_names: _n, ...picks } = session?.filters ?? {}
+    setFilters(session ? { ...picks, size: 0 } : { size: 0 })
+    navigate('home')
+  }, [filters, setFilters, navigate])
+  const endPlanning = useCallback(() => {
+    if (planDraft) setFilters(planDraft.saved)
+    setPlanDraft(null)
+    navigate('plan')
+  }, [planDraft, setFilters, navigate])
+  const addPlanSession = useCallback(async (s: Omit<PlanSession, 'id' | 'date'>, date: string) => {
+    try {
+      const study = await loadStudy()
+      if (!study.plan) { endPlanning(); return }
+      const prev = planDraft?.session
+      await savePlan(putSession(study.plan, {
+        ...(prev ?? {}), ...s, id: prev?.id ?? crypto.randomUUID(), date,
+        // New topics start the session over: an old set is not this session.
+        set_id: undefined, done_at: undefined,
+      }))
+      endPlanning()
+    } catch (e) { fail(e) }
+  }, [planDraft, endPlanning, fail])
 
   // Home's own failure state already says this, with its own Try again.
   const bootFailed = view === 'home' && !taxonomy.length && !taxonomyLoading
@@ -200,9 +245,16 @@ export default function App() {
             onAbandon={set.drop}
             onStart={startSet}
             onStartPlan={(s) => { void startPlanSession(s) }}
+            planning={planDraft ? { date: planDraft.date, editing: Boolean(planDraft.session) } : null}
+            onPlanDate={(date) => setPlanDraft((d) => (d ? { ...d, date } : d))}
+            onPlanAdd={(s, date) => { void addPlanSession(s, date) }}
+            onPlanCancel={endPlanning}
             onScoreCheck={set.scoreCheck} />
     ),
-    plan: () => <PlanPage taxonomy={taxonomy} history={attemptLog} onStartSession={(s) => { void startPlanSession(s) }} />,
+    plan: () => (
+      <PlanPage taxonomy={taxonomy} history={attemptLog} onStartSession={(s) => { void startPlanSession(s) }}
+                onPickTopics={planOnHome} />
+    ),
     resources: () => <Resources />,
     inbox: () => <Inbox />,
     about: () => <About taxonomy={taxonomy} />,
