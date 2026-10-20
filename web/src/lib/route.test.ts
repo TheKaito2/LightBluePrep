@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { formatHash, idNeedle, parseHash, titleFor, urlFor, type View } from './route'
 
-const ROUTED: View[] = ['review', 'stats', 'resources', 'about', 'settings', 'inbox']
+const ROUTED: View[] = ['plan', 'review', 'stats', 'resources', 'about', 'settings', 'inbox']
 
 describe('parseHash', () => {
   it('reads every routed view, with or without the #', () => {

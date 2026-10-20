@@ -13,6 +13,9 @@ import { TopicsHead } from './home/TopicsHead'
 import { TopicsLoading } from './home/TopicsLoading'
 import { loadProcessTypes, typeCounts, type ProcessTypes } from '../lib/similar'
 import { whenIdle } from '../lib/idle'
+import { nextSession, type PlanSession } from '../lib/plan'
+import { dayKey } from '../lib/progress'
+import { closeFinishedSessions, useStudy } from '../lib/study'
 import { ensureMathJax } from '../lib/mathjax'
 import { setSeconds, formatClock } from '../lib/pacing'
 import { DIFFICULTY_NAME, SECTIONS, SECTION_NAME, andMore, fmt, plural } from '../lib/labels'
@@ -47,6 +50,8 @@ interface Props {
   onStart: () => void
   /** Start the balanced 20-question set that unlocks the score estimate. */
   onScoreCheck: () => void
+  /** Start a plan session (App wires it to a practice set). */
+  onStartPlan: (s: PlanSession) => void
   order: Order
   onOrder: (next: Order) => void
   activeSets: PracticeSet[]
@@ -71,9 +76,13 @@ const STATUS_WORD: Record<Status, string> = {
  */
 export function Home({
   taxonomy, taxonomyLoading, onRetryBoot, facet, stats, history, value, items, loading, onChange, onOpen, onStart,
-  order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId, onScoreCheck,
+  order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId, onScoreCheck, onStartPlan,
 }: Props) {
   const [showOptions, setShowOptions] = useState(false)
+  const study = useStudy()
+  const planNext = nextSession(study.plan, dayKey(new Date()))
+  // A set finished since the last visit ticks its plan session off.
+  useEffect(() => { void closeFinishedSessions().catch(() => {}) }, [])
   const closeOptions = useCallback(() => setShowOptions(false), [])
   const waiting = taxonomyLoading && !taxonomy.length
   const count = items.length
@@ -274,7 +283,8 @@ export function Home({
     <div className="home">
       <Hero total={totals.all} seen={totals.seen} resumable={resumable} onResume={onResume}
             findIds={findIds} onOpenId={onOpenId}
-            history={history} stats={stats} onScoreCheck={onScoreCheck} />
+            history={history} stats={stats} onScoreCheck={onScoreCheck}
+            planNext={planNext} hasPlan={!study.loaded || Boolean(study.plan)} onStartPlan={onStartPlan} />
 
       <div className="hwrap">
         <ActiveSets sets={activeSets} onResume={onResume} onAbandon={onAbandon} />

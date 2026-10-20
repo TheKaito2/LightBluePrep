@@ -322,6 +322,10 @@ export function Settings() {
             The reminder is a calendar file (.ics) with a daily alert. It's made in
             your browser, and nothing is sent anywhere.
           </p>
+          <p className="settings-fine">
+            For sessions planned up to your test, see the <a className="about-link" href="#plan">Plan page</a>.
+            The site's details are on the <a className="about-link" href="#about">About page</a>.
+          </p>
         </section>
 
         {auth.configured ? (

@@ -97,3 +97,54 @@ export function buildReminder({ time, daily, until, now = new Date(), uid }: Rem
 
 export const reminderBlob = (r: Reminder) =>
   new Blob([buildReminder(r)], { type: 'text/calendar;charset=utf-8' })
+
+export const PLAN_FILE = 'lightblueprep-plan.ics'
+
+/** One planned session as a calendar event: its date, what it covers, how long. */
+export interface PlanEvent { id: string; date: string; title: string; questions: number }
+
+/**
+ * The plan as a calendar: one event per session at `time` on its day, each with
+ * an alarm. The uid is the session's own id, so importing a newer copy of the
+ * plan updates the events a calendar already holds rather than doubling them
+ * (on calendars that honour UID; others add a second copy).
+ */
+export function buildPlanCalendar({ events, time, minutes, now = new Date() }: {
+  events: readonly PlanEvent[]; time: string; minutes: number; now?: Date
+}): string {
+  const [hh, mm] = time.split(':').map(Number)
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//LightBluePrep//Study plan//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+  ]
+  for (const e of events) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(e.date)) continue
+    const day = new Date(`${e.date}T00:00:00`)
+    const title = `SAT plan: ${e.questions} questions, ${e.title}`
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:${e.id}@lightblueprep.pages.dev`,
+      `DTSTAMP:${utc(now)}`,
+      `DTSTART:${local(day, hh, mm)}`,
+      `DURATION:PT${Math.max(5, Math.round(minutes))}M`,
+      `SUMMARY:${escapeText(title)}`,
+      `DESCRIPTION:${escapeText(`Today's session on LightBluePrep: ${SITE_URL}#plan`)}`,
+      `URL:${SITE_URL}#plan`,
+      'TRANSP:OPAQUE',
+      'BEGIN:VALARM',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:${escapeText(title)}`,
+      'TRIGGER:PT0M',
+      'END:VALARM',
+      'END:VEVENT',
+    )
+  }
+  lines.push('END:VCALENDAR')
+  return lines.map(fold).join('\r\n') + '\r\n'
+}
+
+export const planBlob = (p: Parameters<typeof buildPlanCalendar>[0]) =>
+  new Blob([buildPlanCalendar(p)], { type: 'text/calendar;charset=utf-8' })

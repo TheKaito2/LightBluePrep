@@ -12,6 +12,7 @@ import type { View } from '../lib/route'
 
 const NAV = [
   { key: 'home', label: 'Practice', icon: 'grid' },
+  { key: 'plan', label: 'Plan', icon: 'calendar' },
   { key: 'review', label: 'Review', icon: 'history' },
   { key: 'stats', label: 'Stats', icon: 'chart' },
   { key: 'resources', label: 'Resources', icon: 'compass' },
@@ -67,7 +68,7 @@ export function TopNav({ view, navigate }: { view: View; navigate: (next: View) 
         <div className="tablinks">
           {NAV.map((t) => (
             <button key={t.key}
-                    className={current === t.key ? 'tab on' : 'tab'}
+                    className={`tab tab-${t.key}${current === t.key ? ' on' : ''}`}
                     title={t.label} aria-label={t.label}
                     aria-current={current === t.key ? 'page' : undefined}
                     onPointerEnter={() => prefetchPage(t.key)}

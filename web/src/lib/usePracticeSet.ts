@@ -98,13 +98,16 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
    * the whole pool over anyway, and doing it once on the client is what keeps
    * the two identical.
    */
-  const start = useCallback(async (chosen: SetItem[], built: Filters) => {
+  const start = useCallback(async (chosen: SetItem[], built: Filters): Promise<string | null> => {
     try {
-      enter(await api.saveSet(newSet(built, chosen.map((q) => q.id))))
+      const saved = await api.saveSet(newSet(built, chosen.map((q) => q.id)))
+      enter(saved)
       setItems(chosen)
       setIndex(0)
       navigate('practice')
-    } catch (e) { fail(e) }
+      // The plan links a session to the set it started.
+      return saved.id
+    } catch (e) { fail(e); return null }
   }, [enter, setItems, setIndex, fail, navigate])
 
   /** Stats' button: 10 questions from the whole bank, whatever the topic picker says. */
@@ -119,13 +122,11 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
    * finishing it unlocks both sections. Drawn from questions not tried yet,
    * because only a first try counts toward the estimate.
    */
-  const scoreCheck = useCallback(() => {
-    api.questionsById()
-      .then((byId) => start(
-        sampleBalanced([...byId.values()].filter((q) => !q.answered_at), (q) => q.section, { RW: 10, MATH: 10 }),
-        { size: 20, title: 'Score check' }))
-      .catch((e: Error) => fail(e))
-  }, [start, fail])
+  const scoreCheck = useCallback(() => api.questionsById()
+    .then((byId) => start(
+      sampleBalanced([...byId.values()].filter((q) => !q.answered_at), (q) => q.section, { RW: 10, MATH: 10 }),
+      { size: 20, title: 'Score check' }))
+    .catch((e: Error) => { fail(e); return null }), [start, fail])
 
   /** Put a set's frozen questions back on screen, at the first unanswered one. */
   const open = useCallback(async (id: string) => {

@@ -149,7 +149,10 @@ const CAPS = {
  */
 const PAGE = 2500
 
-/** The five synced tables, with the column each one is keyed on per account. */
+/**
+ * The five synced tables with a row per item, and the column each is keyed on
+ * per account. The sixth, `study`, is one row per account and handled apart.
+ */
 const TABLES = [
   ['attempts', 'id'],
   ['marks', 'question_id'],
@@ -476,6 +479,37 @@ function cleanSets(raw) {
   return out
 }
 
+/** Largest study row (goal + plan) accepted, as JSON. A year of daily sessions is about 60 KB. */
+const MAX_STUDY_BYTES = 128 * 1024
+const DATE = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * The study row: the goal and the plan, one per account, last write wins. The
+ * client owns its shape; this keeps it an object of bounded size whose plan,
+ * if any, is a list of dated sessions, so a row is always something the app
+ * can read back.
+ * @param {unknown} raw
+ */
+function cleanStudy(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const r = /** @type {Record<string, unknown>} */ (raw)
+  if (!isInt(r.updated_at) || !notFutureMs(r.updated_at)) return null
+  const goal = r.goal && typeof r.goal === 'object' ? r.goal : null
+  let plan = null
+  if (r.plan && typeof r.plan === 'object') {
+    const p = /** @type {Record<string, unknown>} */ (r.plan)
+    if (typeof p.test_date !== 'string' || !DATE.test(p.test_date)) return null
+    if (!Array.isArray(p.sessions) || p.sessions.length > 1000) return null
+    for (const x of p.sessions) {
+      if (!x || typeof x !== 'object' || typeof x.date !== 'string' || !DATE.test(x.date)) return null
+    }
+    plan = p
+  }
+  const json = JSON.stringify({ goal, plan })
+  if (json.length > MAX_STUDY_BYTES) return null
+  return { json, updated_at: Math.trunc(r.updated_at) }
+}
+
 /** @param {unknown} raw */
 function cleanAnnotations(raw) {
   if (!Array.isArray(raw)) return []
@@ -626,6 +660,9 @@ async function handleSync(request, env, origin) {
     mistakes: cleanMistakes(body.mistakes),
     sets: cleanSets(body.sets),
   }
+  const study = cleanStudy(body.study)
+  // Sent but not storable (too big or malformed): say so, so the client keeps
+  // it queued and shows why, rather than clearing it as if it had synced.
 
   // The stored row counts, for the ceilings, and the current seq. Read apart
   // from the batch below, so it can be a moment stale when two devices sync at
@@ -763,6 +800,17 @@ async function handleSync(request, env, origin) {
            JSON.stringify(st.filters), JSON.stringify(st.items), sub, st.deleted, sub))
   }
 
+  // The goal and plan: one row per account, last write wins like a set.
+  if (study) {
+    batch.push(env.DB.prepare(
+      'INSERT INTO study (sub, json, updated_at, seq)'
+      + ' SELECT ?,?,?,' + seqOf + live
+      + ' ON CONFLICT(sub) DO UPDATE SET'
+      + '   json = excluded.json, updated_at = excluded.updated_at, seq = excluded.seq'
+      + ' WHERE excluded.updated_at > study.updated_at',
+    ).bind(sub, study.json, study.updated_at, sub, sub))
+  }
+
   batch.push(env.DB.prepare(
     'UPDATE cursors SET n_attempts = ?, n_marks = ?, n_annotations = ?, n_mistakes = ?,'
     + ' n_sets = ? WHERE sub = ?',
@@ -785,11 +833,15 @@ async function handleSync(request, env, origin) {
     page('question_id, items_json, updated_at', 'annotations'),
     page('question_id, tags_json, note, updated_at', 'mistakes'),
     page('id, created_at, finished_at, updated_at, seconds, filters_json, items_json, deleted', 'sets'),
+    env.DB.prepare('SELECT json, updated_at FROM study WHERE sub = ? AND seq > ?').bind(sub, since),
     env.DB.prepare('SELECT seq FROM cursors WHERE sub = ?').bind(sub),
   )
 
+  if (body.study && !study) refused.push('study')
+
   const results = await env.DB.batch(batch)
-  const pages = results.slice(-6, -1)
+  const pages = results.slice(-7, -2)
+  const studyRow = (results[results.length - 2].results || [])[0]
   const head = (results[results.length - 1].results || [])[0]
   // No cursor row means no user row: the account was deleted while this was in
   // flight, so every write above was a no-op and the session is gone too.
@@ -809,10 +861,18 @@ async function handleSync(request, env, origin) {
     return rows.filter((row) => row.seq < last)
   })
 
+  /** @type {{ goal: unknown, plan: unknown, updated_at: number } | null} */
+  let studyOut = null
+  if (studyRow) {
+    // A row we wrote ourselves; if it is ever unreadable, send nothing rather than 500.
+    try { studyOut = { ...JSON.parse(studyRow.json), updated_at: studyRow.updated_at } } catch { studyOut = null }
+  }
+
   return json({
     cursor,
     more,
     refused,
+    study: studyOut,
     attempts: outAttempts.map((row) => ({
       id: row.id,
       question_id: row.question_id,
@@ -1123,6 +1183,7 @@ async function handleDelete(request, env, origin) {
     env.DB.prepare('DELETE FROM annotations WHERE sub = ?').bind(sub),
     env.DB.prepare('DELETE FROM mistakes    WHERE sub = ?').bind(sub),
     env.DB.prepare('DELETE FROM sets        WHERE sub = ?').bind(sub),
+    env.DB.prepare('DELETE FROM study       WHERE sub = ?').bind(sub),
     env.DB.prepare('DELETE FROM cursors     WHERE sub = ?').bind(sub),
     env.DB.prepare('DELETE FROM sessions    WHERE sub = ?').bind(sub),
     env.DB.prepare('DELETE FROM users       WHERE sub = ?').bind(sub),

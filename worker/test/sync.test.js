@@ -9,7 +9,7 @@ import test from 'node:test'
 import worker from '../src/index.js'
 import { makeD1 } from './d1.js'
 
-const TABLES = ['attempts', 'marks', 'annotations', 'mistakes', 'sets', 'cursors', 'sessions', 'users']
+const TABLES = ['attempts', 'marks', 'annotations', 'mistakes', 'sets', 'study', 'cursors', 'sessions', 'users']
 const nowSec = () => Math.floor(Date.now() / 1000)
 
 function freshEnv() {
@@ -117,6 +117,38 @@ test('last write wins, and an older write is neither stored nor echoed', async (
   assert.deepEqual({ ...row }, { flagged: 1, updated_at: newer })
 })
 
+test('the study row: stored, sent to another device, older loses, bad shapes dropped', async () => {
+  const env = freshEnv()
+  const token = signIn(env, 'alice')
+  const now = Date.now()
+  const plan = { test_date: '2026-12-05', sessions: [{ id: 'p1', date: '2026-10-21', phase: 'build' }] }
+  const first = await sync(env, token, { study: { goal: { target: 1400 }, plan, updated_at: now } })
+  assert.equal(first.status, 200)
+  assert.deepEqual(first.body.study, { goal: { target: 1400 }, plan, updated_at: now })
+
+  // A second device pulling from scratch gets it.
+  const other = await sync(env, token, { since: 0 })
+  assert.equal(other.body.study.plan.sessions[0].id, 'p1')
+
+  // An older write neither replaces it nor comes back.
+  const stale = await sync(env, token, { since: other.body.cursor, study: { goal: null, plan: null, updated_at: now - 1 } })
+  assert.equal(stale.body.study, null)
+  const stored = env.DB.sqlite.prepare('SELECT json FROM study WHERE sub = ?').get('alice')
+  assert.equal(JSON.parse(stored.json).goal.target, 1400)
+
+  // Malformed: a bad date, too many sessions, or too big: nothing stored.
+  for (const bad of [
+    { goal: null, plan: { test_date: 'soon', sessions: [] }, updated_at: now + 5 },
+    { goal: null, plan: { test_date: '2026-12-05', sessions: [{ date: 'x' }] }, updated_at: now + 5 },
+    { goal: { note: 'x'.repeat(200 * 1024) }, plan: null, updated_at: now + 5 },
+    { goal: null, plan: null, updated_at: now + 10 * 86400 * 1000 },
+  ]) {
+    const res = await sync(env, token, { study: bad })
+    assert.deepEqual(res.body.refused, ['study'], 'the client is told, so it keeps the change queued')
+    assert.equal(JSON.parse(env.DB.sqlite.prepare('SELECT json FROM study WHERE sub = ?').get('alice').json).goal.target, 1400)
+  }
+})
+
 test('deleting an account leaves no row for it, even with a sync in flight', async () => {
   const env = freshEnv()
   const token = signIn(env, 'alice')
@@ -128,6 +160,7 @@ test('deleting an account leaves no row for it, even with a sync in flight', asy
     annotations: [{ question_id: 'q1', updated_at: now, items: [] }],
     mistakes: [{ question_id: 'q1', tags: ['silly'], note: 'n', updated_at: now }],
     sets: [{ id: 's1', created_at: now, updated_at: now, items: [] }],
+    study: { goal: null, plan: null, updated_at: now },
   }
   await sync(env, token, everything)
   await sync(env, bob, everything)

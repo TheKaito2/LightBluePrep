@@ -166,7 +166,8 @@ Bulb appears only where it means something, at most once per screen: the Home he
 
 ## Patterns
 - **States:** loading shows skeletons shaped like the content, not spinners. Empty states say how to fill the space ("Unlocks after 10 questions in each section").
-- **Phone:** tabs move to a bottom bar. The progress strip shrinks to one row of numbers so the topics stay on the first screen.
+- **Phone:** tabs move to a bottom bar (Practice, Plan, Review, Stats, Resources; About lives in the footer). The progress strip shrinks to one row of numbers so the topics stay on the first screen.
+- **Plan:** one big "what next" card per page (section tint, one Start), then a plain list by week. Session rows carry their section as a 3px edge, never a fill. Secondary actions sit behind one disclosure.
 
 ## Voice and words
 

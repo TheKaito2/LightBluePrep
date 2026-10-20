@@ -53,11 +53,14 @@ let retryDelay = 0
 /** Shown when the server ended the session, so the badge does not just go quiet. */
 export const SESSION_ENDED = 'Your sync session ended. Sign in again to keep syncing.'
 /** Shown while the account is at its ceiling for practice sets (worker CAPS.sets). */
+/** Shown when the server would not store the goal and plan (too large or malformed). */
+export const STUDY_REFUSED = 'Your study plan is too large to sync, so it stays on this device.'
 export const SETS_REFUSED = "You've reached the 20,000 practice set limit for syncing, so new sets stay on this device."
 
 /** The Worker's table names, as the outbox kinds that feed them. */
 const KIND_OF_TABLE: Record<string, store.OutboxKind> = {
   attempts: 'attempt', marks: 'mark', annotations: 'annotation', mistakes: 'mistake', sets: 'set',
+  study: 'study',
 }
 
 let status: SyncStatus = 'off'
@@ -177,7 +180,9 @@ async function run(): Promise<void> {
 
 function refusedMessage(refused: Set<store.OutboxKind>): string | null {
   if (!refused.size) return null
-  return refused.size === 1 && refused.has('set') ? SETS_REFUSED : MESSAGES.storage
+  if (refused.size === 1 && refused.has('set')) return SETS_REFUSED
+  if (refused.size === 1 && refused.has('study')) return STUDY_REFUSED
+  return MESSAGES.storage
 }
 
 interface ServerResponse {
@@ -191,6 +196,8 @@ interface ServerResponse {
   annotations: { question_id: string; items: Annotation[]; updated_at: number }[]
   mistakes: { question_id: string; tags: MistakeTag[]; note: string | null; updated_at: number }[]
   sets?: store.SetRecord[]
+  /** The goal and plan row, when it changed since `since`. */
+  study?: store.StudyRecord | null
 }
 
 async function collect(keys: string[]) {
@@ -199,6 +206,7 @@ async function collect(keys: string[]) {
   const annotationIds = new Set<string>()
   const mistakeIds = new Set<string>()
   const setIds = new Set<string>()
+  let study = false
   for (const key of keys) {
     const parsed = store.parseOutboxKey(key)
     if (!parsed) continue
@@ -206,16 +214,18 @@ async function collect(keys: string[]) {
     else if (parsed.kind === 'mark') markIds.add(parsed.id)
     else if (parsed.kind === 'annotation') annotationIds.add(parsed.id)
     else if (parsed.kind === 'set') setIds.add(parsed.id)
+    else if (parsed.kind === 'study') study = true
     else mistakeIds.add(parsed.id)
   }
 
-  const [allAttempts, allMarks, allAnnotations, allMistakes, allSets] =
+  const [allAttempts, allMarks, allAnnotations, allMistakes, allSets, studyRow] =
     await Promise.all([
       attemptIds.size ? store.loadAttempts() : Promise.resolve([]),
       markIds.size ? store.loadMarks() : Promise.resolve([]),
       annotationIds.size ? store.loadAllAnnotations() : Promise.resolve([]),
       mistakeIds.size ? store.loadAllMistakes() : Promise.resolve([]),
       setIds.size ? store.loadSets() : Promise.resolve([]),
+      study ? store.loadStudy() : Promise.resolve(undefined),
     ])
 
   return {
@@ -224,12 +234,13 @@ async function collect(keys: string[]) {
     annotations: allAnnotations.filter((a) => annotationIds.has(a.question_id)),
     mistakes: allMistakes.filter((m) => mistakeIds.has(m.question_id)),
     sets: allSets.filter((s) => setIds.has(s.id)),
+    ...(studyRow ? { study: studyRow } : {}),
   }
 }
 
 async function apply(data: ServerResponse): Promise<void> {
   const wrote = Boolean(data.attempts?.length || data.marks?.length
-    || data.annotations?.length || data.mistakes?.length || data.sets?.length)
+    || data.annotations?.length || data.mistakes?.length || data.sets?.length || data.study)
   // Attempts: union. Re-putting one we already have is a no-op by construction,
   // which is why the server can safely echo our own writes back.
   if (data.attempts?.length) {
@@ -250,6 +261,8 @@ async function apply(data: ServerResponse): Promise<void> {
   // Sets are last-write-wins like marks, guarded locally so a pull that lands
   // mid-set cannot undo this tab's newer write. A tombstone arrives the same way.
   for (const s of data.sets ?? []) await store.putSet(s)
+  // The goal and plan: one row, last write wins, the same guard as a set.
+  if (data.study) await store.putStudy(data.study)
 
   if (wrote) {
     dataVersion++
@@ -267,11 +280,12 @@ async function apply(data: ServerResponse): Promise<void> {
  * is a no-op.
  */
 export async function seedOutbox(): Promise<void> {
-  const [attempts, marks, annotations, mistakes, sets] = await Promise.all([
+  const [attempts, marks, annotations, mistakes, sets, study] = await Promise.all([
     store.loadAttempts(), store.loadMarks(), store.loadAllAnnotations(),
-    store.loadAllMistakes(), store.loadSets(),
+    store.loadAllMistakes(), store.loadSets(), store.loadStudy(),
   ])
   await Promise.all([
+    ...(study ? [store.enqueue('study', 'me')] : []),
     ...attempts.map((a) => store.enqueue('attempt', a.id)),
     ...marks.map((m) => store.enqueue('mark', m.question_id)),
     ...annotations.map((a) => store.enqueue('annotation', a.question_id)),

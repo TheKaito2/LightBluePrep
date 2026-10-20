@@ -1,11 +1,11 @@
 /**
  * The student's goal (G-02): a test date, a target score and a daily number of
- * questions, all optional. Kept in store meta on this device only; deleting
- * your data in Settings clears it with the rest, and the backup file carries it.
+ * questions, all optional. Stored in the study row with the plan (lib/study.ts),
+ * which syncs when signed in; deleting your data in Settings clears it with the
+ * rest, and the backup file carries it.
  */
-import { useEffect, useState, useSyncExternalStore } from 'react'
-import * as api from '../api'
 import * as store from './store'
+import { saveStudy, useStudy } from './study'
 
 export const GOAL_KEY = store.GOAL_KEY
 export const DAILY_DEFAULT = 10
@@ -52,31 +52,12 @@ export function targetLine(goal: Goal | null, total: number | null): string | nu
     : `Target ${goal.target} · ${goal.target - total} to go`
 }
 
-const listeners = new Set<() => void>()
-let version = 0
-const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l) } }
-const getVersion = () => version
-
+/** Save or clear the goal. It lives in the study row (lib/study.ts) beside the plan. */
 export async function saveGoal(goal: Omit<Goal, 'updated_at'> | null): Promise<void> {
-  await store.setMeta(GOAL_KEY, goal ? { ...goal, updated_at: Date.now() } : null)
-  version++
-  for (const l of listeners) l()
+  await saveStudy({ goal: goal ? { ...goal, updated_at: Date.now() } : null })
 }
 
-/**
- * The saved goal, or null. Re-read after a save and after any progress change,
- * which is how a delete or a restore in Settings reaches the score card.
- */
+/** The saved goal, or null. */
 export function useGoal(): Goal | null {
-  const saved = useSyncExternalStore(subscribe, getVersion)
-  const progress = useSyncExternalStore(api.onProgress, api.progressVersion)
-  const [goal, setGoal] = useState<Goal | null>(null)
-  useEffect(() => {
-    let stale = false
-    store.getMeta<Goal | null>(GOAL_KEY)
-      .then((g) => { if (!stale) setGoal(g ?? null) })
-      .catch(() => {})
-    return () => { stale = true }
-  }, [saved, progress])
-  return goal
+  return useStudy().goal
 }

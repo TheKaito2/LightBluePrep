@@ -203,7 +203,9 @@ function putStamped<T extends { updated_at: number }>(
     current.onsuccess = () => {
       const held = current.result as T | undefined
       stamped = { ...row, updated_at: Math.max(Date.now(), (held?.updated_at ?? 0) + 1) } as T
-      objectStore.put(stamped as unknown as never)
+      // Meta is the one store keyed outside the value, so it needs the key spelled out.
+      if (objectStore.keyPath === null) objectStore.put(stamped as unknown as never, key)
+      else objectStore.put(stamped as unknown as never)
     }
     tx.oncomplete = () => resolve(stamped)
     tx.onerror = () => reject(tx.error)
@@ -238,7 +240,9 @@ function putIfNewer<T extends { updated_at: number }>(
     const current = objectStore.get(key)
     current.onsuccess = () => {
       const mine = current.result as T | undefined
-      if (!mine || mine.updated_at <= row.updated_at) objectStore.put(row as unknown as never)
+      if (mine && mine.updated_at > row.updated_at) return
+      if (objectStore.keyPath === null) objectStore.put(row as unknown as never, key)
+      else objectStore.put(row as unknown as never)
     }
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
@@ -342,7 +346,7 @@ export const putSet = (row: SetRecord) => putIfNewer(STORE_SETS, row.id, row)
 export const saveSet = (row: Omit<SetRecord, 'updated_at'>): Promise<SetRecord> =>
   putStamped<SetRecord>(STORE_SETS, row.id, row)
 
-export type OutboxKind = 'attempt' | 'mark' | 'annotation' | 'mistake' | 'set'
+export type OutboxKind = 'attempt' | 'mark' | 'annotation' | 'mistake' | 'set' | 'study'
 
 export const outboxKey = (kind: OutboxKind, id: string) => `${kind}:${id}`
 
@@ -357,7 +361,7 @@ export function parseOutboxKey(key: string): { kind: OutboxKind; id: string } | 
   if (cut < 1 || cut === key.length - 1) return null
   const kind = key.slice(0, cut)
   if (kind !== 'attempt' && kind !== 'mark' && kind !== 'annotation'
-      && kind !== 'mistake' && kind !== 'set') return null
+      && kind !== 'mistake' && kind !== 'set' && kind !== 'study') return null
   return { kind, id: key.slice(cut + 1) }
 }
 
@@ -451,6 +455,22 @@ export const INSTALL_KEY = 'install-bar-dismissed'
  * React side of goal.ts.
  */
 export const GOAL_KEY = 'goal'
+
+/**
+ * Meta key: the study row (lib/study.ts), the goal and the plan together. One
+ * last-write-wins row per account in sync, keyed 'me' in the outbox.
+ */
+export const STUDY_KEY = 'study'
+
+/** The study row as stored and synced. `goal` and `plan` are opaque here. */
+export interface StudyRecord { goal: unknown; plan: unknown; updated_at: number }
+
+export const loadStudy = () => getMeta<StudyRecord>(STUDY_KEY)
+/** A local change, stamped past the held version (putStamped). */
+export const saveStudy = (row: Omit<StudyRecord, 'updated_at'>) =>
+  putStamped<StudyRecord>(STORE_META, STUDY_KEY, row)
+/** A row from the server or a backup, unless this device holds a newer edit. */
+export const putStudy = (row: StudyRecord) => putIfNewer(STORE_META, STUDY_KEY, row)
 
 /**
  * Ask the browser not to evict this site's data under storage pressure.

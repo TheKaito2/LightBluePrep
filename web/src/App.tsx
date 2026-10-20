@@ -13,8 +13,10 @@ import { sample } from './lib/draw'
 import { toUserMessage } from './lib/errors'
 import { SECTION_NAME, skillDisplayName } from './lib/labels'
 import { arrange } from './lib/order'
-import { About, Inbox, Resources, Review, SetResults, Settings, StatsPage, warmPages } from './lib/pages'
+import { About, Inbox, PlanPage, Resources, Review, SetResults, Settings, StatsPage, warmPages } from './lib/pages'
+import { patchSession, type PlanSession } from './lib/plan'
 import type { View } from './lib/route'
+import { loadStudy, savePlan } from './lib/study'
 import * as sync from './lib/sync'
 import { usePracticeSet } from './lib/usePracticeSet'
 import { useProgress } from './lib/useProgress'
@@ -138,6 +140,34 @@ export default function App() {
     await start(sample(items, filters.size), skill_names ? { ...filters, skill_names } : filters)
   }, [filters, items, taxonomy, start, setIndex, navigate])
 
+  /**
+   * Start a plan session as a practice set, and link the set to the session so
+   * finishing it ticks the session off. The baseline is the balanced Score
+   * check; a review with nothing missed yet falls back to new questions.
+   */
+  const startPlanSession = useCallback(async (s: PlanSession) => {
+    try {
+      let id: string | null
+      if (s.phase === 'baseline') id = await set.scoreCheck()
+      else {
+        const { size = 10, speed, title: _title, skill_names: _names, ...pool } = s.filters
+        let d = await api.questionSet(pool)
+        if (!d.questions.length && s.phase === 'review') d = await api.questionSet({ statuses: ['unseen'] })
+        if (!d.questions.length) { setError({ message: 'No questions match this session. Edit it on the Plan page.' }); return }
+        const skill_names = pool.skills?.map((code) => taxonomy.find((r) => r.skill === code)?.skill_name ?? code)
+        id = await start(sample(d.questions, size), {
+          ...pool, size,
+          ...(speed ? { speed } : {}),
+          ...(s.phase === 'build' ? {} : { title: s.title }),
+          ...(skill_names ? { skill_names } : {}),
+        })
+      }
+      if (!id) return
+      const study = await loadStudy()
+      if (study.plan) await savePlan(patchSession(study.plan, s.id, { set_id: id }))
+    } catch (e) { fail(e) }
+  }, [set, start, taxonomy, fail])
+
   // Home's own failure state already says this, with its own Try again.
   const bootFailed = view === 'home' && !taxonomy.length && !taxonomyLoading
   const banner = error && !bootFailed ? (
@@ -169,8 +199,10 @@ export default function App() {
             onResume={set.open}
             onAbandon={set.drop}
             onStart={startSet}
+            onStartPlan={(s) => { void startPlanSession(s) }}
             onScoreCheck={set.scoreCheck} />
     ),
+    plan: () => <PlanPage taxonomy={taxonomy} history={attemptLog} onStartSession={(s) => { void startPlanSession(s) }} />,
     resources: () => <Resources />,
     inbox: () => <Inbox />,
     about: () => <About taxonomy={taxonomy} />,

@@ -23,7 +23,7 @@ export const BACKUP_VERSION = 1
  * usage note, which would make a restored browser skip counting a new visitor
  * or count an old one twice.
  */
-export const BACKUP_META = [store.GOAL_KEY, store.COACH_KEY, store.INSTALL_KEY]
+export const BACKUP_META = [store.GOAL_KEY, store.STUDY_KEY, store.COACH_KEY, store.INSTALL_KEY]
 
 export interface Backup {
   format: typeof BACKUP_FORMAT
@@ -197,7 +197,8 @@ export async function restoreBackup(b: Backup): Promise<Restored> {
   for (const r of a) await store.putAnnotations(r)
   for (const r of x) await store.putMistake(r)
   for (const r of s) await store.putSet(r)
-  for (const [key, value] of Object.entries(metaToWrite(meta, b.meta))) await store.setMeta(key, value)
+  const metaIn = metaToWrite(meta, b.meta)
+  for (const [key, value] of Object.entries(metaIn)) await store.setMeta(key, value)
 
   // Signed in, the restored rows go up like any local change; a no-op otherwise.
   for (const r of add) sync.track('attempt', r.id)
@@ -205,6 +206,7 @@ export async function restoreBackup(b: Backup): Promise<Restored> {
   for (const r of a) sync.track('annotation', r.question_id)
   for (const r of x) sync.track('mistake', r.question_id)
   for (const r of s) sync.track('set', r.id)
+  if (store.STUDY_KEY in metaIn) sync.track('study', 'me')
 
   return { answers: add.length, other: m.length + a.length + x.length + s.length }
 }

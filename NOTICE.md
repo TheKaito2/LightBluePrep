@@ -115,4 +115,13 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   topics (it was Start a 10-question set). Resume stays first when a set is
   open. Stats keeps its own 10-question start.
 
+- 2026-10-20: Study plan. A Plan tab (#plan) and a Today button on Home:
+  an auto planner (test date, target, days, minutes, starting point, focus)
+  builds dated sessions in phases to the test, weighted to weak skills and
+  College Board's domain weights; sessions can also be built and edited by
+  hand, skipped, marked done, moved forward when missed, and exported to a
+  calendar (.ics). The goal and plan sync together as one row (new D1 table
+  `study`, migration worker/migrations/2026-10-20-study.sql). On phones Plan
+  takes About's place in the bottom bar; About is linked from the footer.
+
 The full history of changes is in the git log.

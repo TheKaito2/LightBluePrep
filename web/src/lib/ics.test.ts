@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildReminder, escapeText, fold } from './ics'
+import { buildPlanCalendar, buildReminder, escapeText, fold } from './ics'
 
 const now = new Date(2026, 9, 15, 10, 30) // Oct 15 2026, local
 const lines = (s: string) => s.split('\r\n')
@@ -55,5 +55,24 @@ describe('daily reminder .ics', () => {
 
   it('escapes TEXT specials', () => {
     expect(escapeText('a,b;c\\d\ne')).toBe('a\\,b\\;c\\\\d\\ne')
+  })
+})
+
+describe('buildPlanCalendar', () => {
+  it('writes one event per session at the chosen time, with an alarm and a stable uid', () => {
+    const ics = buildPlanCalendar({
+      events: [
+        { id: 'a', date: '2026-10-21', title: 'Algebra', questions: 15 },
+        { id: 'b', date: '2026-10-23', title: 'Boundaries', questions: 15 },
+        { id: 'c', date: 'not a date', title: 'x', questions: 1 },
+      ],
+      time: '19:30', minutes: 30, now: new Date('2026-10-20T00:00:00Z'),
+    })
+    expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(2)
+    expect(ics).toContain('DTSTART:20261021T193000')
+    expect(ics).toContain('UID:a@lightblueprep.pages.dev')
+    expect(ics).toContain('SUMMARY:SAT plan: 15 questions\\, Algebra')
+    expect(ics.match(/BEGIN:VALARM/g)).toHaveLength(2)
+    expect(ics.split('\r\n').every((l) => new TextEncoder().encode(l).length <= 75)).toBe(true)
   })
 })

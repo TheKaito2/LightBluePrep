@@ -17,3 +17,4 @@ CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at);
 CREATE TABLE IF NOT EXISTS milestones (day TEXT NOT NULL, step INTEGER NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (day, step));
 CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback(status, created_at);
 CREATE TABLE IF NOT EXISTS feedback_daily (day TEXT PRIMARY KEY, n INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS study (sub TEXT PRIMARY KEY, json TEXT NOT NULL, updated_at INTEGER NOT NULL, seq INTEGER NOT NULL);

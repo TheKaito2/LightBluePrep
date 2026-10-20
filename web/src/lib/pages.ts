@@ -12,6 +12,7 @@ import type { View } from './route'
  * a nav tab warms its page on hover or focus, before the click lands.
  */
 const PAGE_CHUNKS = {
+  plan: () => import('../components/Plan'),
   review: () => import('../components/Review'),
   stats: () => import('../components/Stats'),
   resources: () => import('../components/Resources'),
@@ -44,6 +45,7 @@ function chunk<T>(load: () => Promise<T>): Promise<T> {
   })
 }
 
+export const PlanPage = lazy(() => chunk(PAGE_CHUNKS.plan).then((m) => ({ default: m.Plan })))
 export const Review = lazy(() => chunk(PAGE_CHUNKS.review).then((m) => ({ default: m.Review })))
 export const StatsPage = lazy(() => chunk(PAGE_CHUNKS.stats).then((m) => ({ default: m.Stats })))
 export const Resources = lazy(() => chunk(PAGE_CHUNKS.resources).then((m) => ({ default: m.Resources })))

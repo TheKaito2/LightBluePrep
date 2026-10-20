@@ -21,6 +21,8 @@ export function Footer({ context }: { context: string }) {
           trademarks of College Board.
         </p>
         <ul className="foot-links">
+          {/* On a phone About has no tab (Plan has its slot), so it lives here. */}
+          <li><a href="#about">About</a></li>
           <li><a href="/skills/">All SAT skills</a></li>
           <li><a href={PRIVACY_URL}>Privacy</a></li>
           <li><a href={REPO} target="_blank" rel="noreferrer">Source<span className="sr-only"> (opens in a new tab)</span></a></li>
