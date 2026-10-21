@@ -131,4 +131,8 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   planning mode, and show their types on the Plan page. A plan button in the
   Home hero; a started session continues rather than restarting.
 
+- 2026-10-21: Plan: a day of process types is a checklist. Each type has its
+  own Start (a set of just that type's unanswered questions) and a tick box; the
+  day is done when every type is ticked. Today's button starts the next type.
+
 The full history of changes is in the git log.

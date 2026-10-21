@@ -158,3 +158,19 @@
 @media (max-width: 819px) {
   .shell .hero2-go .hero2-planbtn { width: 48px; padding: 0; }
 }
+
+/* A day of process types as a checklist: one row per type, its own Start. */
+.plan-checks { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.plan-check { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; align-items: center; gap: 8px; min-height: 32px; }
+.plan-check-box {
+  width: 22px; height: 22px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid var(--hair-ctl); border-radius: var(--rad-xs); background: var(--surface); color: var(--fg-inv-1); cursor: pointer;
+}
+.plan-check-box svg { opacity: 0; }
+.plan-check-box[aria-checked=true] { background: var(--sec-600, var(--brand-700)); border-color: var(--sec-600, var(--brand-700)); }
+.plan-check-box[aria-checked=true] svg { opacity: 1; }
+.plan-check-box:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.plan-check-t { font: 500 14px/20px var(--sans); color: var(--fg-1); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plan-check-n { font: var(--type-small); color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.plan-check.is-done .plan-check-t { color: var(--fg-3); text-decoration: line-through; }
+.plan-check .btn { min-height: 28px; }

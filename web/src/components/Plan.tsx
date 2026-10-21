@@ -18,7 +18,7 @@ import { PLAN_FILE, planBlob } from '../lib/ics'
 import { fmt, plural } from '../lib/labels'
 import {
   PHASE_NAME, missed, nextSession, patchSession, planProgress, putSession, questionsFor, reflow,
-  removeSession, weekOf, type PlanPart, type PlanSession,
+  removeSession, togglePart, weekOf, type PlanSession,
 } from '../lib/plan'
 import { dayKey, score, type HistoryRow } from '../lib/progress'
 import { saveBlob } from '../lib/share'
@@ -34,7 +34,8 @@ const dayLabel = (date: string) =>
 export function Plan({ taxonomy, history, onStartSession, onPickTopics }: {
   taxonomy: TaxonomyRow[]
   history: HistoryRow[]
-  onStartSession: (s: PlanSession) => void
+  /** Start a day, or one of its types when `ref` names it. */
+  onStartSession: (s: PlanSession, ref?: string) => void
   /** Pick a session's topics and types on the Home picker (null: a new session). */
   onPickTopics: (s: PlanSession | null, date: string) => void
 }) {
@@ -56,6 +57,8 @@ export function Plan({ taxonomy, history, onStartSession, onPickTopics }: {
   }, [history])
 
   const save = (next: typeof plan) => { void savePlan(next).catch(() => toast('Could not save the plan. Try again.')) }
+  /** Tick one process type off a day (or back on). */
+  const tickType = (sessionId: string, ref: string) => { if (plan) save(togglePart(plan, sessionId, ref)) }
 
   const dialogs = (
     <>
@@ -160,7 +163,7 @@ export function Plan({ taxonomy, history, onStartSession, onPickTopics }: {
               {next.session.filters.speed ? ' · timed' : ''}
             </p>
             <button type="button" className="btn primary lg" onClick={() => onStartSession(next.session)}>
-              Start<Icon name="arrow-right" size={16} strokeWidth={2.2} />
+              {next.session.parts?.length ? 'Start next type' : 'Start'}<Icon name="arrow-right" size={16} strokeWidth={2.2} />
             </button>
           </section>
         ) : (
@@ -182,10 +185,12 @@ export function Plan({ taxonomy, history, onStartSession, onPickTopics }: {
                         {PHASE_NAME[s.phase]} · {fmt(s.filters.size ?? 0)} questions{s.filters.speed ? ' · timed' : ''}
                         {state === 'done' ? ' · done' : state === 'skipped' ? ' · skipped' : state === 'missed' ? ' · missed' : ''}
                       </span>
-                      {s.parts?.length ? <Parts parts={s.parts} /> : null}
+                      {s.parts?.length ? (
+                        <PartList session={s} onStart={(ref) => onStartSession(s, ref)} onTick={(ref) => tickType(s.id, ref)} />
+                      ) : null}
                     </span>
                     <span className="plan-row-go">
-                      {state === 'done' ? <Icon name="check-circle" size={20} strokeWidth={2} /> : (
+                      {state === 'done' ? <Icon name="check-circle" size={20} strokeWidth={2} /> : s.parts?.length ? null : (
                         <button type="button" className="btn sm" onClick={() => onStartSession(s)}>Start</button>
                       )}
                       <details className="plan-more">
@@ -194,7 +199,7 @@ export function Plan({ taxonomy, history, onStartSession, onPickTopics }: {
                         <div className="plan-menu"
                              onClick={(e) => { (e.currentTarget.parentElement as HTMLDetailsElement).open = false }}>
                           <button type="button" onClick={() => setEditing(s)}>Edit</button>
-                          {s.done_at ? (
+                          {s.parts?.length ? null : s.done_at ? (
                             <button type="button" onClick={() => save(patchSession(plan, s.id, { done_at: undefined, set_id: undefined }))}>Mark not done</button>
                           ) : (
                             <button type="button" onClick={() => save(patchSession(plan, s.id, { done_at: Date.now() }))}>Mark done</button>
@@ -230,19 +235,33 @@ export function Plan({ taxonomy, history, onStartSession, onPickTopics }: {
   )
 }
 
-/** A session's question types: the first three, the rest one tap away. */
-function Parts({ parts }: { parts: readonly PlanPart[] }) {
-  const head = parts.slice(0, 3)
-  const line = (p: PlanPart) => <li key={p.ref}><span>{p.label}</span> <span className="plan-parts-n">{fmt(p.n)}</span></li>
-  if (parts.length <= 3) return <ul className="plan-parts">{head.map(line)}</ul>
+/**
+ * A day of process types as a checklist: each type has its own Start, and a
+ * box to tick it off. The day is done when every type is ticked.
+ */
+function PartList({ session, onStart, onTick }: {
+  session: PlanSession
+  onStart: (ref: string) => void
+  onTick: (ref: string) => void
+}) {
   return (
-    <details className="plan-parts-more">
-      <summary>
-        <ul className="plan-parts">{head.map(line)}</ul>
-        <span className="plan-parts-toggle">and {parts.length - 3} more {parts.length - 3 === 1 ? 'type' : 'types'}</span>
-      </summary>
-      <ul className="plan-parts">{parts.slice(3).map(line)}</ul>
-    </details>
+    <ul className="plan-checks">
+      {(session.parts ?? []).map((p) => {
+        const done = Boolean(p.done_at)
+        return (
+          <li key={p.ref} className={done ? 'plan-check is-done' : 'plan-check'}>
+            <button type="button" role="checkbox" aria-checked={done} className="plan-check-box"
+                    aria-label={`${p.label}, ${fmt(p.n)} questions, ${done ? 'done' : 'not done'}`}
+                    onClick={() => onTick(p.ref)}>
+              <Icon name="check" size={12} strokeWidth={3} />
+            </button>
+            <span className="plan-check-t">{p.label}</span>
+            <span className="plan-check-n">{fmt(p.n)}</span>
+            {done ? null : <button type="button" className="btn sm" onClick={() => onStart(p.ref)}>Start</button>}
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 

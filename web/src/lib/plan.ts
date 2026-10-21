@@ -27,6 +27,9 @@ export interface PlanPart {
   skill: string
   skillName: string
   n: number
+  /** The practice set started for this type alone, once there is one. */
+  set_id?: string
+  done_at?: number
 }
 
 export interface PlanSession {
@@ -545,12 +548,59 @@ export function nextSession(plan: Plan | null, today: string): { session: PlanSe
 export function markFinished(plan: Plan, finishedAt: ReadonlyMap<string, number>): Plan {
   let changed = false
   const sessions = plan.sessions.map((s) => {
+    // A day of process types ticks its types off one by one; the day is done
+    // when every type is.
+    if (s.parts?.length) {
+      let partChanged = false
+      const parts = s.parts.map((p) => {
+        const at = p.set_id && !p.done_at ? finishedAt.get(p.set_id) : undefined
+        if (!at) return p
+        partChanged = true
+        return { ...p, done_at: at }
+      })
+      if (!partChanged) return s
+      changed = true
+      const allDone = parts.every((p) => p.done_at)
+      const last = Math.max(...parts.map((p) => p.done_at ?? 0))
+      return { ...s, parts, ...(allDone && !s.done_at ? { done_at: last } : {}) }
+    }
     const at = s.set_id && !s.done_at ? finishedAt.get(s.set_id) : undefined
     if (!at) return s
     changed = true
     return { ...s, done_at: at }
   })
   return changed ? { ...plan, sessions } : plan
+}
+
+/** The first type of a day not yet done, or null when the day is complete. */
+export function nextPart(s: PlanSession): PlanPart | null {
+  return s.parts?.find((p) => !p.done_at) ?? null
+}
+
+/** Set one type's fields (its set, or its done mark), keeping the rest. */
+export function patchPart(plan: Plan, sessionId: string, ref: string, patch: Partial<PlanPart>): Plan {
+  return {
+    ...plan,
+    sessions: plan.sessions.map((s) => (s.id !== sessionId || !s.parts ? s : {
+      ...s,
+      parts: s.parts.map((p) => (p.ref === ref ? { ...p, ...patch } : p)),
+    })),
+  }
+}
+
+/**
+ * Mark one type done or not. A day is done when all its types are; un-marking
+ * a type reopens the day.
+ */
+export function togglePart(plan: Plan, sessionId: string, ref: string, now = Date.now()): Plan {
+  const s = plan.sessions.find((x) => x.id === sessionId)
+  const p = s?.parts?.find((x) => x.ref === ref)
+  if (!s?.parts || !p) return plan
+  const done = p.done_at ? undefined : now
+  const next = patchPart(plan, sessionId, ref, { done_at: done, ...(done ? {} : { set_id: undefined }) })
+  const parts = next.sessions.find((x) => x.id === sessionId)!.parts!
+  const allDone = parts.every((x) => x.done_at)
+  return patchSession(next, sessionId, { done_at: allDone ? now : undefined })
 }
 
 /** Done, and the total, for the header. Skipped sessions count as neither. */

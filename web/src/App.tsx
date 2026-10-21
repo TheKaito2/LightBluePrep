@@ -14,7 +14,7 @@ import { toUserMessage } from './lib/errors'
 import { SECTION_NAME, skillDisplayName } from './lib/labels'
 import { arrange } from './lib/order'
 import { About, Inbox, PlanPage, Resources, Review, SetResults, Settings, StatsPage, warmPages } from './lib/pages'
-import { patchSession, putSession, type PlanSession } from './lib/plan'
+import { nextPart, patchPart, patchSession, putSession, type PlanSession } from './lib/plan'
 import { loadProcessTypes } from './lib/similar'
 import type { View } from './lib/route'
 import { loadStudy, savePlan } from './lib/study'
@@ -146,8 +146,25 @@ export default function App() {
    * finishing it ticks the session off. The baseline is the balanced Score
    * check; a review with nothing missed yet falls back to new questions.
    */
-  const startPlanSession = useCallback(async (s: PlanSession) => {
+  const startPlanSession = useCallback(async (s: PlanSession, ref?: string) => {
     try {
+      // A day of process types: one type at a time, each its own set. With no
+      // type named, the next one not yet done.
+      if (s.parts?.length) {
+        const part = ref ? s.parts.find((p) => p.ref === ref) : nextPart(s)
+        if (!part) return
+        if (part.set_id && set.activeSets.some((a) => a.id === part.set_id)) { set.open(part.set_id); return }
+        const d = await api.questionSet({ section: undefined, skills: [part.skill], types: [part.ref], statuses: ['unseen'] })
+        if (!d.questions.length) { setError({ message: `No unanswered ${part.label} questions are left.` }); return }
+        const id = await start(d.questions.slice(0, part.n), {
+          skills: [part.skill], types: [part.ref], statuses: ['unseen'], size: part.n,
+          title: part.label, skill_names: [part.skillName],
+        })
+        if (!id) return
+        const study = await loadStudy()
+        if (study.plan) await savePlan(patchPart(study.plan, s.id, part.ref, { set_id: id }))
+        return
+      }
       // Already started and not finished: carry on with that set, not a second one.
       if (s.set_id && set.activeSets.some((a) => a.id === s.set_id)) { set.open(s.set_id); return }
       let id: string | null
@@ -252,7 +269,7 @@ export default function App() {
             onScoreCheck={set.scoreCheck} />
     ),
     plan: () => (
-      <PlanPage taxonomy={taxonomy} history={attemptLog} onStartSession={(s) => { void startPlanSession(s) }}
+      <PlanPage taxonomy={taxonomy} history={attemptLog} onStartSession={(s, ref) => { void startPlanSession(s, ref) }}
                 onPickTopics={planOnHome} />
     ),
     resources: () => <Resources />,

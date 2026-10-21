@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-  WEIGHT_PRESETS, buildPlan, coverPlan, dayQuotas, markFinished, missed, nextSession, phaseCounts, planProgress, questionsFor, reflow,
+  WEIGHT_PRESETS, buildPlan, coverPlan, dayQuotas, markFinished, nextPart, patchPart, togglePart, missed, nextSession, phaseCounts, planProgress, questionsFor, reflow,
   sectionShares, sessionDates, type PlanAnswers,
 } from './plan'
 import type { SkillTally } from './taxonomy'
+import type { Plan } from './plan'
 
 const skill = (code: string, domain: string, section: 'RW' | 'MATH', seen = 0, correct = 0, n = 100): SkillTally =>
   ({ code, name: code, domain, domainName: domain, section, n, seen, correct })
@@ -212,5 +213,42 @@ describe('weights in the skill planner', () => {
     expect(byDay(1)[0]!.filters.size).toBe(15)
     expect(byDay(2)[0]!.filters.size).toBe(10)
     expect(p.days).toEqual([0, 1, 2, 3, 4, 5, 6])
+  })
+})
+
+describe('a day of process types', () => {
+  const day = (): Plan => ({
+    test_date: '2026-11-07', target: null, days: [], minutes: 30, start_from: 'estimate', focus: 'auto',
+    mode: 'cover', created_at: 1, source: 'auto',
+    sessions: [{
+      id: 'd', date: '2026-10-21', phase: 'cover', title: 'A + 1 more skill · 2 types',
+      filters: { size: 7 },
+      parts: [
+        { ref: 'A.1', label: 'a1', skill: 'A', skillName: 'Alpha', n: 5 },
+        { ref: 'B.1', label: 'b1', skill: 'B', skillName: 'Beta', n: 2 },
+      ],
+    }],
+  })
+
+  it('ticks a type off when its own set finishes, and the day when all are done', () => {
+    let p = patchPart(day(), 'd', 'A.1', { set_id: 'sa' })
+    p = markFinished(p, new Map([['sa', 10]]))
+    const s = p.sessions[0]!
+    expect(s.parts![0]!.done_at).toBe(10)
+    expect(s.done_at).toBeUndefined()
+    expect(nextPart(s)!.ref).toBe('B.1')
+    p = patchPart(p, 'd', 'B.1', { set_id: 'sb' })
+    p = markFinished(p, new Map([['sb', 20]]))
+    expect(p.sessions[0]!.done_at).toBe(20)
+    expect(nextPart(p.sessions[0]!)).toBeNull()
+  })
+
+  it('un-marking a type reopens the day', () => {
+    let p = togglePart(day(), 'd', 'A.1', 5)
+    p = togglePart(p, 'd', 'B.1', 6)
+    expect(p.sessions[0]!.done_at).toBe(6)
+    p = togglePart(p, 'd', 'B.1', 7)
+    expect(p.sessions[0]!.done_at).toBeUndefined()
+    expect(p.sessions[0]!.parts![1]!.done_at).toBeUndefined()
   })
 })
