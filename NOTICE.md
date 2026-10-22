@@ -138,4 +138,8 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
 - 2026-10-22: Desmos calculator: every function on (restrictedFunctions off),
   so distance(), midpoint() and the others the SAT calculator allows work.
 
+- 2026-10-22: Plan sets check each answer as it is given (Submit shows right
+  or wrong, with the same Try again / Show answer as open practice). Attempts
+  are still recorded when the set ends.
+
 The full history of changes is in the git log.

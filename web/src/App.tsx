@@ -158,7 +158,7 @@ export default function App() {
         if (!d.questions.length) { setError({ message: `No unanswered ${part.label} questions are left.` }); return }
         const id = await start(d.questions.slice(0, part.n), {
           skills: [part.skill], types: [part.ref], statuses: ['unseen'], size: part.n,
-          title: part.label, skill_names: [part.skillName],
+          title: part.label, skill_names: [part.skillName], instant: true,
         })
         if (!id) return
         const study = await loadStudy()
@@ -190,6 +190,7 @@ export default function App() {
           ...(speed ? { speed } : {}),
           ...(s.phase === 'build' && !s.parts ? {} : { title: s.title }),
           ...(skill_names ? { skill_names } : {}),
+          instant: true,
         })
       }
       if (!id) return

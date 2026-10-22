@@ -176,6 +176,12 @@ export interface Filters {
    */
   speed?: number
   /**
+   * A plan's set: each answer is marked as it is given, like open practice,
+   * and Submit is there. Nothing is recorded until the set ends (the attempts
+   * are written then), so checking a question is never a second attempt.
+   */
+  instant?: boolean
+  /**
    * Display names of `skills`, in the same order, written once when a set is
    * created so its name survives a skill this build has no label for. Not a
    * filter either; it rides in `filters` because every store (IndexedDB, the

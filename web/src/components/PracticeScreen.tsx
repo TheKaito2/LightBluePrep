@@ -153,6 +153,8 @@ export function PracticeScreen({
   practiceMany: (ids: string[], title: string) => void
 }) {
   const { activeSet, activeSetRef, remaining, commit, hold, setBank } = set
+  /** A set holds answers to the end, except one that marks each answer as given. */
+  const deferred = Boolean(activeSet) && !activeSet?.filters.instant
   const toast = useToast()
   const current = items[index] ?? null
   const crossKey = (id: string) => `${activeSetRef.current?.id ?? ''}:${id}`
@@ -293,8 +295,10 @@ export function PracticeScreen({
   }, [seconds, activeSet, commit])
 
   async function submit() {
-    // Inside a set nothing is submitted: answers are held and graded at the end.
-    if (activeSetRef.current || !current || !response || !question) return
+    // Inside a set nothing is submitted, unless the set marks each answer as
+    // given (a plan's sets): then it is checked here and recorded at the end.
+    const instant = Boolean(activeSetRef.current?.filters.instant)
+    if ((activeSetRef.current && !instant) || !current || !response || !question) return
     if (result) {
       if (retry !== null) return
       const again = regrade(result, question.type, response)
@@ -302,6 +306,11 @@ export function PracticeScreen({
       return
     }
     try {
+      if (instant) {
+        const checked = await api.explain(current.id, response)
+        setResult(checked); setMasked(!checked.correct)
+        return
+      }
       const graded = await api.answer(current.id, response, seconds)
       setResult(graded); setMasked(!graded.correct)
       setItems((prev) => prev.map((item) => (
@@ -440,7 +449,7 @@ export function PracticeScreen({
       if (!question || !current) return
       const key = event.key.toLowerCase()
       if (key === 'm') { void toggleFlag(); return }
-      const graded = shown !== null && !activeSet
+      const graded = shown !== null && !deferred
       if (question.type === 'mcq' && !graded && /^[a-d]$/.test(key)) {
         const label = key.toUpperCase()
         if (!question.options?.some((o) => o.label === label)) return
@@ -450,7 +459,7 @@ export function PracticeScreen({
         return
       }
       // Enter on a focused control is that control's own click.
-      if (event.key === 'Enter' && !activeSet && !shown && response
+      if (event.key === 'Enter' && !deferred && !shown && response
           && !target?.closest?.('button, a[href], summary, [role=button]')) {
         event.preventDefault()
         void submit()
@@ -645,14 +654,14 @@ export function PracticeScreen({
               flagged={flagged}
               crossOutMode={crossOutMode}
               crossOut={crossOut}
-              deferred={Boolean(activeSet)}
+              deferred={deferred}
               coach={coachOn === question.id && !shown ? (
                 <div className="coach" role="note">
                   <Icon name="info" size={18} />
                   <p>
                     {question.type === 'mcq' ? 'Pick an answer' : 'Enter your answer'}
                     {/* A set has no Submit: answers are held and graded at the end. */}
-                    {activeSet ? ', then Next. The set is graded at the end, with every explanation.'
+                    {deferred ? ', then Next. The set is graded at the end, with every explanation.'
                       : ", then Submit. You'll see the explanation right away."}
                   </p>
                   <button type="button" className="coach-x" aria-label="Dismiss tip" onClick={() => setCoachOn(null)}>
