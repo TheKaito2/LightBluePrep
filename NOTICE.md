@@ -135,4 +135,7 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   own Start (a set of just that type's unanswered questions) and a tick box; the
   day is done when every type is ticked. Today's button starts the next type.
 
+- 2026-10-22: Desmos calculator: every function on (restrictedFunctions off),
+  so distance(), midpoint() and the others the SAT calculator allows work.
+
 The full history of changes is in the git log.

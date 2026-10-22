@@ -47,18 +47,21 @@ function loadDesmos(): Promise<void> {
 }
 
 /**
- * Configured as a testing calculator rather than the full authoring tool.
+ * The graphing calculator with every function, and the authoring and import
+ * affordances turned off (Bluebook does not offer those either).
  *
- * `restrictedFunctions` is Desmos's own option for this: "Show a restricted
- * menu of available functions", which is what standardized tests run. The rest
- * turn off authoring and import affordances that have no place in a practice
- * question and that Bluebook does not offer either.
+ * Every function is on because the SAT's calculator has ones that Desmos's
+ * `restrictedFunctions` menu blocks. Measured on API v1.11 (2026-10-22):
+ * restricted mode errors on distance, midpoint, mad and sec/csc/cot, and
+ * students use distance() on the SAT. A practice calculator that does a little
+ * more than the test's is harmless; one that does less fails a method they
+ * will use on test day.
  *
- * This is the public Desmos API build with test options set. It is NOT College
- * Board's own bundle, which is theirs and not ours to ship.
+ * This is the public Desmos API build. It is NOT College Board's own bundle,
+ * which is theirs and not ours to ship.
  */
 const CONFIG = {
-  restrictedFunctions: true,   // the standardized-testing function menu
+  restrictedFunctions: false,  // every function, distance() and midpoint() included
   folders: false,              // no authoring the expression list
   notes: false,
   images: false,
