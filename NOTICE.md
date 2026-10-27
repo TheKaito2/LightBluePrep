@@ -141,5 +141,9 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
 - 2026-10-22: Plan sets check each answer as it is given (Submit shows right
   or wrong, with the same Try again / Show answer as open practice). Attempts
   are still recorded when the set ends.
+- 2026-10-28: Sync Worker: Sign in with Apple (/auth/apple, RS256 checked
+  against Apple's keys, subs stored as apple:<sub>) and an optional second
+  Google audience (GOOGLE_IOS_CLIENT_ID), for the iPhone app; privacy page
+  covers the app.
 
 The full history of changes is in the git log.

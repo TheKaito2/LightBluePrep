@@ -14,6 +14,8 @@
  * Bindings and variables:
  *   DB                D1 database binding, named exactly `DB`
  *   GOOGLE_CLIENT_ID  secret, the OAuth client id ending .apps.googleusercontent.com
+ *   GOOGLE_IOS_CLIENT_ID  secret, OPTIONAL. The iOS app's OAuth client; its
+ *                     tokens are accepted beside the website's.
  *   ALLOWED_SUBS      secret, OPTIONAL. Comma-separated Google subs. Unset means
  *                     anyone may sign in; setting it makes the site single-user
  *                     again, which is the kill switch.
@@ -293,22 +295,83 @@ async function hashToken(token) {
  * minted for ANY other Google app authenticates to this one.
  *
  * @param {string} credential
- * @param {string} clientId
+ * @param {string[]} clientIds Every audience this Worker accepts.
  * @returns {Promise<string | null>}
  */
-async function verifyGoogleToken(credential, clientId) {
+async function verifyGoogleToken(credential, clientIds) {
   const url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(credential)
   const res = await fetch(url)
   if (!res.ok) return null
 
   const info = await res.json()
-  if (info.aud !== clientId) return null
+  if (!clientIds.includes(info.aud)) return null
   if (info.iss !== 'accounts.google.com' && info.iss !== 'https://accounts.google.com') return null
   if (!info.sub) return null
   if (info.exp && Number(info.exp) * 1000 < Date.now()) return null
 
   // info.email exists here. It is deliberately not read, not stored, not logged.
   return info.sub
+}
+
+/** The iOS app's bundle id: the `aud` of every Sign in with Apple token it gets. */
+const APPLE_BUNDLE_ID = 'com.kristpaul.lightblueprep'
+const APPLE_ISSUER = 'https://appleid.apple.com'
+
+/** base64url to bytes. */
+function b64url(s) {
+  const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4))
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0))
+}
+
+/**
+ * Verify a Sign in with Apple identity token and return its subject, or null.
+ *
+ * Apple has no tokeninfo endpoint, so the RS256 signature is checked here with
+ * WebCrypto against Apple's published keys (fetched per sign-in, which is rare).
+ * Then the claims: issuer, audience (our bundle id; without it a token minted
+ * for any other app would work here), expiry, and the nonce, which Apple stores
+ * as the SHA-256 hex of the one the app sent.
+ * @param {string} credential
+ * @param {string} audience
+ * @param {string} nonce
+ * @param {(url: string) => Promise<Response>} [get] For tests.
+ * @returns {Promise<string | null>}
+ */
+async function verifyAppleToken(credential, audience, nonce, get = fetch) {
+  const parts = credential.split('.')
+  if (parts.length !== 3) return null
+  let header, claims
+  try {
+    header = JSON.parse(new TextDecoder().decode(b64url(parts[0])))
+    claims = JSON.parse(new TextDecoder().decode(b64url(parts[1])))
+  } catch {
+    return null
+  }
+  if (header.alg !== 'RS256' || typeof header.kid !== 'string') return null
+
+  const res = await get('https://appleid.apple.com/auth/keys')
+  if (!res.ok) return null
+  const { keys } = await res.json()
+  const jwk = Array.isArray(keys) ? keys.find((k) => k.kid === header.kid) : null
+  if (!jwk) return null
+  const key = await crypto.subtle.importKey(
+    'jwk', { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify'],
+  )
+  const ok = await crypto.subtle.verify(
+    'RSASSA-PKCS1-v1_5', key, b64url(parts[2]), new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
+  )
+  if (!ok) return null
+
+  if (claims.iss !== APPLE_ISSUER) return null
+  if (claims.aud !== audience) return null
+  if (typeof claims.exp !== 'number' || claims.exp * 1000 < Date.now()) return null
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(nonce))
+  const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+  if (claims.nonce !== hex) return null
+  if (typeof claims.sub !== 'string' || !claims.sub || claims.sub.length > 200) return null
+  // The email (often a private relay address) is not read, stored or logged.
+  return claims.sub
 }
 
 /**
@@ -551,26 +614,39 @@ function cleanAnnotations(raw) {
  * @param {string | null} origin
  * @returns {Promise<Response>}
  */
-async function handleAuth(request, env, origin) {
-  // Every call costs a request to Google and, on success, a D1 write, so it is
-  // limited per IP like feedback. The IP is only a key and is never stored.
+async function handleAuth(request, env, origin, provider = 'google') {
+  // Every call costs a request to Google or Apple and, on success, a D1 write,
+  // so it is limited per IP like feedback. The IP is only a key and is never stored.
   if (!(await allowed(env.AUTH_LIMITER, ipKey(request)))) {
     return fail('Too many sign-in attempts. Try again in a minute.', 429, origin)
   }
   const { tooBig, body } = await readJson(request, BODY_LIMIT.auth)
   if (tooBig) return fail('Request too large.', 413, origin)
-  // A Google ID token is a JWT of a couple of kilobytes; anything else is junk.
+  // An ID token is a JWT of a couple of kilobytes; anything else is junk.
   if (!body || typeof body.credential !== 'string' || body.credential.length > 4096) {
     return fail('Missing sign-in credential.', 400, origin)
   }
 
-  if (!env.GOOGLE_CLIENT_ID) {
-    // The detail is for the owner's logs; a student only needs to know it is down.
-    console.error('GOOGLE_CLIENT_ID is not set on the Worker. Check GET /health.')
-    return fail('Sign-in is temporarily unavailable.', 500, origin)
+  let sub = null
+  if (provider === 'apple') {
+    // Apple's subs live under a prefix, so one can never equal a Google sub.
+    // The nonce is the iOS app's, hashed into the token by Apple: it ties the
+    // token to the one sign-in the app started.
+    if (typeof body.nonce !== 'string' || body.nonce.length < 16 || body.nonce.length > 128) {
+      return fail('Missing sign-in nonce.', 400, origin)
+    }
+    const appleSub = await verifyAppleToken(body.credential, APPLE_BUNDLE_ID, body.nonce)
+    sub = appleSub ? `apple:${appleSub}` : null
+  } else {
+    if (!env.GOOGLE_CLIENT_ID) {
+      // The detail is for the owner's logs; a student only needs to know it is down.
+      console.error('GOOGLE_CLIENT_ID is not set on the Worker. Check GET /health.')
+      return fail('Sign-in is temporarily unavailable.', 500, origin)
+    }
+    // The website's client, and the iOS app's once GOOGLE_IOS_CLIENT_ID is set.
+    const audiences = [env.GOOGLE_CLIENT_ID, env.GOOGLE_IOS_CLIENT_ID].filter(Boolean)
+    sub = await verifyGoogleToken(body.credential, audiences)
   }
-
-  const sub = await verifyGoogleToken(body.credential, env.GOOGLE_CLIENT_ID)
   if (!sub) return fail('Sign-in failed. Try again.', 401, origin)
 
   const allowList = (env.ALLOWED_SUBS || '').split(',').map((s) => s.trim()).filter(Boolean)
@@ -1236,11 +1312,15 @@ export default {
           d1Ok,
           limiters,
           googleClientId: env.GOOGLE_CLIENT_ID || null,
+          googleIosClientId: env.GOOGLE_IOS_CLIENT_ID || null,
           allowedSubsCount: subs.length,
         }, 200, origin)
       }
       if (url.pathname === '/auth/google' && request.method === 'POST') {
         return await handleAuth(request, env, origin)
+      }
+      if (url.pathname === '/auth/apple' && request.method === 'POST') {
+        return await handleAuth(request, env, origin, 'apple')
       }
       if (url.pathname === '/sync' && request.method === 'POST') {
         return await handleSync(request, env, origin)
@@ -1274,4 +1354,4 @@ export default {
 // For worker/test only; nothing routes to them. Functions and nothing else:
 // workerd treats every named export of the main module as a possible
 // entrypoint and refuses to start on one that is a number, string or array.
-export { cleanAttempts, cleanMarks, cleanAnnotations, cleanMistakes, cleanSets, existingKeys }
+export { cleanAttempts, cleanMarks, cleanAnnotations, cleanMistakes, cleanSets, existingKeys, verifyAppleToken }

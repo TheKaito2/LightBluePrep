@@ -46,6 +46,7 @@ interface Env {
   DB: D1Database
   /** OAuth client id, ending .apps.googleusercontent.com. */
   GOOGLE_CLIENT_ID: string
+  GOOGLE_IOS_CLIENT_ID?: string
   /** Optional kill switch. Unset means anyone may sign in. */
   ALLOWED_SUBS?: string
   /** Comma-separated Google subs allowed to read the feedback inbox. */
