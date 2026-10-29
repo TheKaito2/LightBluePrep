@@ -137,10 +137,12 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
       const ordered = (set.items ?? [])
         .map((i) => byId.get(i.question_id))
         .filter((q): q is SetItem => Boolean(q))
-      const firstOpen = (set.items ?? []).findIndex((i) => i.response === null)
+      // Indexed in `ordered`, which a retired question has already dropped out of.
+      const open = new Set((set.items ?? []).filter((i) => i.response === null).map((i) => i.question_id))
+      const firstOpen = ordered.findIndex((q) => open.has(q.id))
       enter(set)
       setItems(ordered)
-      setIndex(firstOpen < 0 ? 0 : Math.min(firstOpen, ordered.length - 1))
+      setIndex(Math.max(0, firstOpen))
       navigate('practice')
     } catch (e) { fail(e) }
   }, [enter, setItems, setIndex, fail, navigate])
@@ -244,13 +246,22 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
     const left = Math.max(0, total - (activeSet.seconds ?? 0))
     setRemaining(left)
     if (!left) return
-    const started = Date.now()
+    // Runs only while the page is visible, like the question timer whose time is
+    // banked into the set: otherwise a hidden tab ran the clock down (and could
+    // end the set) by time a reload would hand back.
+    let spent = 0
+    let last = Date.now()
+    const onVisibility = () => { last = Date.now() }
+    document.addEventListener('visibilitychange', onVisibility)
     const tick = setInterval(() => {
-      const now = Math.max(0, left - Math.floor((Date.now() - started) / 1000))
+      const t = Date.now()
+      if (document.visibilityState === 'visible') spent += t - last
+      last = t
+      const now = Math.max(0, left - Math.floor(spent / 1000))
       setRemaining(now)
       if (now <= 0) clearInterval(tick)
     }, 1000)
-    return () => clearInterval(tick)
+    return () => { clearInterval(tick); document.removeEventListener('visibilitychange', onVisibility) }
     // activeSet.id rather than activeSet: re-running this on every answer would
     // restart the clock from the top each time.
   // oxlint-disable-next-line react-hooks/exhaustive-deps -- activeSet.seconds is read once per set: see above

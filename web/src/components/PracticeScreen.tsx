@@ -240,6 +240,13 @@ export function PracticeScreen({
         if (stale) return
         setQuestion(d.question); setAnnotations(d.annotations); setFlagged(d.flagged)
         setMistake(d.mistake)
+        // A plan set keeps the first checked answer. Back on one already answered,
+        // show it checked again so the choices stay locked to that answer.
+        if (held && activeSetRef.current?.filters.instant) {
+          api.explain(current.id, held)
+            .then((r) => { if (!stale) { setResult(r); setMasked(!r.correct) } })
+            .catch((e: Error) => !stale && fail(e))
+        }
         // Once this one is on screen, so the warming never competes with it:
         // the next few in THIS list's order, and the one before for Back.
         api.prefetch([...items.slice(index + 1, index + 1 + prefetchAhead()), items[index - 1]]
@@ -398,7 +405,7 @@ export function PracticeScreen({
       // too, or it comes back on return and is graded at the end.
       if (response === label) {
         setResponse(null)
-        if (activeSetRef.current) hold(null, seconds)
+        if (activeSetRef.current && !(activeSetRef.current.filters.instant && result)) hold(null, seconds)
       }
     }
     crossOuts.set(crossKey(current.id), next)
@@ -408,7 +415,8 @@ export function PracticeScreen({
   /** An answer from a click or a key. A set holds it until the end. */
   function respond(value: string | null) {
     setResponse(value)
-    if (activeSet) hold(value, seconds)
+    // Once a plan set has checked this answer, a retry is never held: only the first try counts.
+    if (activeSet && !(activeSet.filters.instant && result)) hold(value, seconds)
   }
 
   /**

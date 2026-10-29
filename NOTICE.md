@@ -145,5 +145,16 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   against Apple's keys, subs stored as apple:<sub>) and an optional second
   Google audience (GOOGLE_IOS_CLIENT_ID), for the iPhone app; privacy page
   covers the app.
+- 2026-10-29: Fixes from a code review: plan sets keep the first checked
+  answer (a retry or a revisit no longer replaces it), and a plan session
+  started before a reload continues its set instead of starting a second; a
+  timed set's clock pauses while the tab is hidden, like the time it records;
+  resuming a set skips retired questions correctly; sync on hide works after
+  signing in mid-session; the Worker keeps oversized sets and highlights
+  queued (reported in `refused`) instead of dropping them silently, and takes
+  set filters up to 16 KB; two questions whose College Board explanation uses
+  stale choice letters say so (CONTENT-FIXES.md). A whole-bank integrity
+  check (web/checks/bank.check.test.ts) runs every question through the app's
+  own pipeline.
 
 The full history of changes is in the git log.

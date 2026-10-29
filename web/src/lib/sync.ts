@@ -350,15 +350,16 @@ export function start(): void {
   if (started || !auth.configured) return
   started = true
 
-  if (!auth.signedIn()) { emit('off'); return }
-  void syncNow()
-
+  // Added even when signed out at boot: signing in later does not call start again.
   document.addEventListener('visibilitychange', () => {
     if (!auth.signedIn()) return
     // Flush on the way out so nothing is stranded when a laptop closes, and
     // pull on the way back in to pick up the other machine.
     void syncNow()
   })
+
+  if (!auth.signedIn()) { emit('off'); return }
+  void syncNow()
 }
 
 export async function refreshStatus(): Promise<void> {

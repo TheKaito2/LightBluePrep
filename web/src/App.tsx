@@ -148,12 +148,16 @@ export default function App() {
    */
   const startPlanSession = useCallback(async (s: PlanSession, ref?: string) => {
     try {
+      // Read from the store, not set.activeSets: that list loads only on Home,
+      // so after a reload on the Plan page it was empty and a started session
+      // got a second set, leaving the first one's answers behind.
+      const active = new Set((await api.listSets(true)).map((a) => a.id))
       // A day of process types: one type at a time, each its own set. With no
       // type named, the next one not yet done.
       if (s.parts?.length) {
         const part = ref ? s.parts.find((p) => p.ref === ref) : nextPart(s)
         if (!part) return
-        if (part.set_id && set.activeSets.some((a) => a.id === part.set_id)) { set.open(part.set_id); return }
+        if (part.set_id && active.has(part.set_id)) { set.open(part.set_id); return }
         const d = await api.questionSet({ section: undefined, skills: [part.skill], types: [part.ref], statuses: ['unseen'] })
         if (!d.questions.length) { setError({ message: `No unanswered ${part.label} questions are left.` }); return }
         const id = await start(d.questions.slice(0, part.n), {
@@ -166,7 +170,7 @@ export default function App() {
         return
       }
       // Already started and not finished: carry on with that set, not a second one.
-      if (s.set_id && set.activeSets.some((a) => a.id === s.set_id)) { set.open(s.set_id); return }
+      if (s.set_id && active.has(s.set_id)) { set.open(s.set_id); return }
       let id: string | null
       if (s.phase === 'baseline') id = await set.scoreCheck()
       else {

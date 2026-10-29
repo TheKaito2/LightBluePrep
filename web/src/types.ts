@@ -24,6 +24,8 @@ export interface Question {
   stem_html: string
   options: Option[] | null
   key_recovered: boolean
+  /** College Board's explanation names the choices by other letters than shown (a stale reorder). */
+  letters_differ?: boolean
   source_path: string
   /** College Board's short id (e.g. 'f8befe75'), the one videos quote. */
   cb_id?: string | null

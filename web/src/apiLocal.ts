@@ -267,8 +267,8 @@ export function prefetch(ids: string[]): void {
  */
 function strip(q: StoredQuestion): Question {
   const { correct, explanations, rationale_html, flags, ...rest } = q
-  void correct; void explanations; void rationale_html; void flags
-  return rest
+  void correct; void explanations; void rationale_html
+  return { ...rest, letters_differ: Boolean(flags?.some((f) => f.startsWith('explanation_key_mismatch'))) }
 }
 
 function lastAttempt(c: Cache, id: string): store.Attempt | null {

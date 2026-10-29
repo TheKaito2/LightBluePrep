@@ -51,9 +51,15 @@ test('oversize strings are cut to their ceiling', () => {
     items: [{ question_id: 'q1', response: 'x'.repeat(999) }],
   }])
   assert.equal(s.items[0].response.length, 200)
+  // Every skill and question type ticked is about 7 KB of filters, and must sync.
+  assert.equal(cleanSets([{
+    id: 's3', created_at: Date.now(), updated_at: Date.now(), items: [], filters: { q: 'x'.repeat(7000) },
+  }]).length, 1)
+  const oversize = []
   assert.deepEqual(cleanSets([{
-    id: 's2', created_at: Date.now(), updated_at: Date.now(), items: [], filters: { q: 'x'.repeat(3000) },
-  }]), [], 'a set whose filters are over 2000 characters is not a set')
+    id: 's2', created_at: Date.now(), updated_at: Date.now(), items: [], filters: { q: 'x'.repeat(17000) },
+  }], oversize), [], 'a set whose filters are over 16 KB is not a set')
+  assert.deepEqual(oversize, ['sets'], 'and the reply says so, so the client keeps it queued')
 })
 
 test('non-finite and future numbers are dropped or clamped', () => {

@@ -135,6 +135,12 @@ export function Explanation({
         </div>
       ) : null}
 
+      {question.letters_differ ? (
+        <p className="note small">
+          College Board's explanation below calls the choices by different letters
+          than this question shows, so read its letters with care.
+        </p>
+      ) : null}
       {result.rationale_html ? (
         <details className="explain-full" open={!isMcq}>
           <summary>Full explanation</summary>

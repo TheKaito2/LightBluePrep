@@ -504,7 +504,7 @@ function cleanMistakes(raw) {
  * merges last-write-wins.
  * @param {unknown} raw
  */
-function cleanSets(raw) {
+function cleanSets(raw, oversize = []) {
   if (!Array.isArray(raw)) return []
   const out = []
   for (const r of raw.slice(0, MAX_ITEMS_PER_REQUEST)) {
@@ -512,7 +512,7 @@ function cleanSets(raw) {
     if (!notFutureMs(r.updated_at)) continue
     if (!Array.isArray(r.items)) continue
     // The app makes sets of up to 50; anything past this is not one.
-    if (r.items.length > 200) continue
+    if (r.items.length > 200) { oversize.push('sets'); continue }
     const items = []
     for (const i of r.items) {
       if (!i || !isStr(i.question_id)) continue
@@ -524,7 +524,8 @@ function cleanSets(raw) {
       })
     }
     const filters = r.filters && typeof r.filters === 'object' ? r.filters : {}
-    if (JSON.stringify(filters).length > 2000) continue
+    // Every skill plus every question type ticked is about 7 KB.
+    if (JSON.stringify(filters).length > 16 * 1024) { oversize.push('sets'); continue }
     const deleted = r.deleted === true
     out.push({
       id: r.id,
@@ -574,12 +575,13 @@ function cleanStudy(raw) {
 }
 
 /** @param {unknown} raw */
-function cleanAnnotations(raw) {
+function cleanAnnotations(raw, oversize = []) {
   if (!Array.isArray(raw)) return []
   const out = []
   for (const r of raw.slice(0, MAX_ITEMS_PER_REQUEST)) {
     if (!r || !isStr(r.question_id) || !isInt(r.updated_at) || !notFutureMs(r.updated_at)) continue
-    if (!Array.isArray(r.items) || r.items.length > MAX_HIGHLIGHTS) continue
+    if (!Array.isArray(r.items)) continue
+    if (r.items.length > MAX_HIGHLIGHTS) { oversize.push('annotations'); continue }
     // Rebuilt field by field rather than stored as sent, so a row is always a
     // list of highlights and never an arbitrary blob of someone's JSON.
     const items = []
@@ -729,12 +731,16 @@ async function handleSync(request, env, origin) {
   if (!body) return fail('Bad request.', 400, origin)
 
   let since = isInt(body.since) ? Math.trunc(body.since) : 0
+  // Rows dropped for size, not shape: their tables go in `refused`, so the
+  // client keeps them queued and says why instead of clearing them as synced.
+  /** @type {string[]} */
+  const oversize = []
   const incoming = {
     attempts: cleanAttempts(body.attempts),
     marks: cleanMarks(body.marks),
-    annotations: cleanAnnotations(body.annotations),
+    annotations: cleanAnnotations(body.annotations, oversize),
     mistakes: cleanMistakes(body.mistakes),
-    sets: cleanSets(body.sets),
+    sets: cleanSets(body.sets, oversize),
   }
   const study = cleanStudy(body.study)
   // Sent but not storable (too big or malformed): say so, so the client keeps
@@ -914,6 +920,7 @@ async function handleSync(request, env, origin) {
   )
 
   if (body.study && !study) refused.push('study')
+  for (const t of oversize) if (!refused.includes(t)) refused.push(t)
 
   const results = await env.DB.batch(batch)
   const pages = results.slice(-7, -2)
