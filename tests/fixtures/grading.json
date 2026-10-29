@@ -25,7 +25,7 @@
     {"response": "6/4", "accepted": ["3/2"], "correct": true, "match": "equivalent", "why": "an unreduced fraction"},
     {"response": ".5", "accepted": ["1/2"], "correct": true, "match": "equivalent", "why": "a decimal with no leading zero"},
     {"response": "0.1", "accepted": ["1/10"], "correct": true, "match": "equivalent", "why": "exact where a float is not"},
-    {"response": ".1765", "accepted": ["3/17"], "correct": false, "match": null, "why": "a rounded decimal is not the fraction it rounds"},
+    {"response": ".1765", "accepted": ["3/17"], "correct": true, "match": "equivalent", "why": "a decimal that fills the box, rounded from the fraction (Bluebook rule), even when only the fraction is listed"},
     {"response": "-3/4", "accepted": ["-.75"], "correct": true, "match": "equivalent", "why": "negative fraction for a negative decimal"},
     {"response": "-.5", "accepted": ["-1/2"], "correct": true, "match": "equivalent", "why": "negative decimal for a negative fraction"},
     {"response": "−4", "accepted": ["-4"], "correct": true, "match": "listed", "why": "unicode minus"},
@@ -46,7 +46,14 @@
     {"response": "   ", "accepted": ["4"], "correct": false, "match": null, "why": "only spaces"},
     {"response": "3/0", "accepted": ["3"], "correct": false, "match": null, "why": "division by zero"},
     {"response": "--3", "accepted": ["-3"], "correct": false, "match": null, "why": "a doubled minus"},
-    {"response": "1..2", "accepted": ["1.2"], "correct": false, "match": null, "why": "a doubled point"}
+    {"response": "1..2", "accepted": ["1.2"], "correct": false, "match": null, "why": "a doubled point"},
+    {"response": "-0.326", "accepted": ["-.3266", "-.3267", "-49/150"], "correct": true, "match": "equivalent", "why": "429fb7c0: fills the 6-character box with its leading zero, truncated; College Board's explanation lists it"},
+    {"response": "-0.327", "accepted": ["-.3266", "-.3267", "-49/150"], "correct": true, "match": "equivalent", "why": "429fb7c0: same, rounded"},
+    {"response": "-.326", "accepted": ["-.3266", "-.3267", "-49/150"], "correct": false, "match": null, "why": "429fb7c0: cut short without filling the box"},
+    {"response": "0.941", "accepted": [".9411", ".9412", "16/17"], "correct": true, "match": "equivalent", "why": "e6cb2402: fills the 5-character box, listed in the explanation"},
+    {"response": "0.942", "accepted": [".9411", ".9412", "16/17"], "correct": false, "match": null, "why": "e6cb2402: fills the box but is neither the rounded nor the truncated value"},
+    {"response": "0.063", "accepted": [".0625", "1/16"], "correct": true, "match": "equivalent", "why": "5edc8c98: rounded to fill the box"},
+    {"response": "3.000", "accepted": ["2"], "correct": false, "match": null, "why": "a whole number padded with zeros is not a cut-short decimal"}
   ],
   "mcq": [
     {"response": "B", "accepted": ["B"], "correct": true, "match": "listed", "why": "the key"},

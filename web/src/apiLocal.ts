@@ -297,7 +297,7 @@ export function isLive(stub: Stub, live: Record<Section, Set<string>>): boolean 
   return stub._path === 'external_id' && (live[stub._section]?.has(stub._id) ?? false)
 }
 
-function matches(stub: Stub, c: Cache, f: Filters): boolean {
+function matches(stub: Stub, c: Cache, f: Filters, held: Set<string>): boolean {
   if (f.section && stub._section !== f.section) return false
   if (!anyOf(f.domains, stub.primary_class_cd)) return false
   if (!anyOf(f.skills, stub.skill_cd)) return false
@@ -307,7 +307,7 @@ function matches(stub: Stub, c: Cache, f: Filters): boolean {
   if (f.statuses?.length) {
     const last = lastAttempt(c, stub._id)
     const hit = f.statuses.some((s) => (
-      s === 'unseen' ? !last
+      s === 'unseen' ? !last && !held.has(stub._id)
         : s === 'wrong' ? last?.correct === 0
           : s === 'correct' ? last?.correct === 1
             : c.flagged.has(stub._id)))
@@ -374,10 +374,15 @@ export async function taxonomy(): Promise<{ taxonomy: TaxonomyRow[]; stats: Stat
 export async function questionSet(filters: Filters):
     Promise<{ count: number; questions: SetItem[] }> {
   const c = await boot()
+  // Answered in a set not yet finished: not graded until it is, but done, so
+  // "not done yet" leaves it out rather than drawing it again.
+  const held = new Set((await store.loadSets())
+    .filter((s) => !s.deleted && s.finished_at === null)
+    .flatMap((s) => (s.items ?? []).filter((i) => i.response !== null).map((i) => i.question_id)))
   // The whole pool, never a slice. A practice set draws its questions at
   // random from this and freezes them, so there is nothing to limit here.
   const questions = c.stubs
-    .filter((stub) => matches(stub, c, filters))
+    .filter((stub) => matches(stub, c, filters, held))
     .map((stub) => toSetItem(stub, c))
     .sort(byShuffleKey)
   return { count: questions.length, questions }

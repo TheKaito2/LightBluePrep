@@ -156,5 +156,12 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   stale choice letters say so (CONTENT-FIXES.md). A whole-bank integrity
   check (web/checks/bank.check.test.ts) runs every question through the app's
   own pipeline.
+- 2026-10-29: Grid-in grading follows Bluebook's rule for long decimals: a
+  rounded or truncated decimal that fills the whole box (5 characters, 6 with
+  a minus, a leading zero included) is right, so -0.326 is accepted for
+  -49/150 as College Board's explanation says (both graders, shared fixture).
+  Home no longer starts a first visit at 10 questions; the default is no
+  limit. Questions answered in a set that is not finished yet count as done
+  for "not done yet", so they are not drawn again.
 
 The full history of changes is in the git log.

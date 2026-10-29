@@ -6,12 +6,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import * as api from '../api'
 import { arrange, type Order } from './order'
 import { loadFilters, loadOrder, saveFilters, saveOrder } from './prefs'
-import { hasDeepLink } from './useRoute'
 import type { View } from './route'
-import type { Filters, SetItem, Stats } from '../types'
-
-/** Session length for someone with no answers yet: a short set with an end, not all 3,767 (H-31). */
-const FIRST_SIZE = 10
+import type { Filters, SetItem } from '../types'
 
 export function useQuestionList({ view, dataVersion, fail }: {
   view: View
@@ -23,18 +19,9 @@ export function useQuestionList({ view, dataVersion, fail }: {
   const [storedFilters] = useState(loadFilters)
   const [filters, setFilters] = useState<Filters>(() => storedFilters ?? {})
   useEffect(() => saveFilters(filters), [filters])
-  /** Nothing stored and no link: the first-visit default may still apply once stats say there is no history. */
-  const [firstVisit] = useState(() => storedFilters === null && !hasDeepLink())
   const [items, setItems] = useState<SetItem[]>([])
   const [index, setIndex] = useState(0)
   const [listLoading, setListLoading] = useState(true)
-
-  /** Hands the first stats in: no history yet means a short first session. */
-  const onFirstStats = useCallback((stats: Stats) => {
-    if (!firstVisit || stats.attempts) return
-    // Unless a length was already picked in the moment before this landed.
-    setFilters((f) => ('size' in f ? f : { ...f, size: FIRST_SIZE }))
-  }, [firstVisit])
 
   /** Home list order; `seed` changes each time Reshuffle is pressed. Both kept across reloads. */
   const [storedOrder] = useState(loadOrder)
@@ -90,6 +77,5 @@ export function useQuestionList({ view, dataVersion, fail }: {
   return {
     filters, setFilters, items, setItems, index, setIndex, listLoading, loadList, order, seed, reorder,
     facet: filters.difficulties?.length || filters.statuses?.length ? facetItems : null,
-    onFirstStats,
   }
 }

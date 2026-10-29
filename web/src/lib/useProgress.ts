@@ -16,9 +16,7 @@ import type { Stats, TaxonomyRow } from '../types'
  */
 const PROGRESS_VIEWS = new Set<View>(['home', 'stats', 'review', 'results'])
 
-/** `onFirst` gets the stats of the first read that succeeds. */
-export function useProgress(view: View, fail: (e: unknown, retry?: () => void) => void,
-  onFirst: (stats: Stats) => void) {
+export function useProgress(view: View, fail: (e: unknown, retry?: () => void) => void) {
   /** Bumped by an answer, a flag, a pull or a delete; drives the refetch below. */
   const progressVersion = useSyncExternalStore(api.onProgress, api.progressVersion)
   const [taxonomy, setTaxonomy] = useState<TaxonomyRow[]>([])
@@ -29,7 +27,6 @@ export function useProgress(view: View, fail: (e: unknown, retry?: () => void) =
   /** Bumped by Retry to re-run the read. */
   const [reloadKey, setReloadKey] = useState(0)
   const reload = useCallback(() => setReloadKey((n) => n + 1), [])
-  const first = useRef(true)
 
   /**
    * Re-read the taxonomy and history when progress has changed since they were
@@ -60,8 +57,6 @@ export function useProgress(view: View, fail: (e: unknown, retry?: () => void) =
       .then((d) => {
         if (!latest()) return
         setTaxonomy(d.taxonomy); setStats(d.stats)
-        if (first.current) onFirst(d.stats)
-        first.current = false
       })
       .catch((e: Error) => {
         if (!latest()) return
@@ -73,7 +68,7 @@ export function useProgress(view: View, fail: (e: unknown, retry?: () => void) =
     api.history()
       .then((d) => { if (latest()) setAttemptLog(d.history) })
       .catch(() => {})
-  }, [view, progressVersion, reloadKey, fail, reload, onFirst])
+  }, [view, progressVersion, reloadKey, fail, reload])
 
   return { taxonomy, taxonomyLoading, stats, setStats, attemptLog, reload }
 }

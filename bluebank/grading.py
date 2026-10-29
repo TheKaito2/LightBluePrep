@@ -62,7 +62,43 @@ def grade_spr(response, accepted):
             other = as_fraction(a)
             if other is not None and other == value:
                 return True, "equivalent"
+    if _fills_grid(response) and _cut_short(response, accepted):
+        return True, "equivalent"
     return False, None
+
+
+def _fills_grid(response):
+    """Bluebook's rule for a decimal too long for the box: round it or cut it
+    short, so long as it fills the whole box (5 characters, 6 with a minus).
+    Twin of fillsGrid in web/src/lib/grading.ts."""
+    s = "".join(str(response or "").split())
+    for bad, good in _MINUS.items():
+        s = s.replace(bad, good)
+    body = s[1:] if s.startswith("-") else s
+    return ("." in s and "/" not in s and body.replace(".", "").isdigit()
+            and len(s) == (6 if s.startswith("-") else 5))
+
+
+def _cut_short(response, accepted):
+    """The response is an accepted value rounded or truncated to its own places."""
+    r = canonical(response)
+    if "." not in r:
+        return False
+    places = len(r) - r.index(".") - 1
+    scale = 10 ** places
+    value = as_fraction(r)
+    if value is None or (value * scale).denominator != 1:
+        return False
+    target = int(value * scale)
+    for a in accepted:
+        x = as_fraction(a)
+        if x is None:
+            continue
+        sign = -1 if x < 0 else 1
+        n, d = abs(x.numerator), x.denominator
+        if target in (sign * (n * scale // d), sign * ((2 * n * scale + d) // (2 * d))):
+            return True
+    return False
 
 
 def grade_mcq(response, accepted):

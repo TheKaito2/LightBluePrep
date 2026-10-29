@@ -59,7 +59,40 @@ export function gradeSpr(response: string | null, accepted: string[]): [boolean,
       if (other && equals(other, value)) return [true, 'equivalent']
     }
   }
+  if (fillsGrid(response) && cutShort(response, accepted)) return [true, 'equivalent']
   return [false, null]
+}
+
+/**
+ * Bluebook's rule for a decimal too long for the box: round it or cut it
+ * short, so long as it fills the whole box (5 characters, 6 with a minus).
+ * A leading zero takes a place, so 0.941 is right for 16/17 and -0.326 for
+ * -49/150; College Board's explanations list those forms, its keys do not.
+ */
+function fillsGrid(response: string | null): boolean {
+  let s = String(response ?? '').replace(/\s+/g, '')
+  for (const [bad, good] of Object.entries(MINUS)) s = s.split(bad).join(good)
+  return s.includes('.') && !s.includes('/') && /^-?[\d.]+$/.test(s) && s.length === (s.startsWith('-') ? 6 : 5)
+}
+
+/** The response is an accepted value rounded or truncated to the response's own places. */
+function cutShort(response: string | null, accepted: string[]): boolean {
+  const r = canonical(response)
+  if (!r.includes('.')) return false
+  const places = r.length - r.indexOf('.') - 1
+  const scale = 10n ** BigInt(places)
+  const value = parseRational(r)
+  if (!value || (value.n * scale) % value.d !== 0n) return false
+  const target = (value.n * scale) / value.d
+  return accepted.some((a) => {
+    const x = asFraction(a)
+    if (!x) return false
+    const sign = x.n < 0n ? -1n : 1n
+    const abs = x.n * sign
+    const truncated = sign * ((abs * scale) / x.d)
+    const rounded = sign * ((2n * abs * scale + x.d) / (2n * x.d))
+    return target === truncated || target === rounded
+  })
 }
 
 export function gradeMcq(response: string | null, accepted: string[]): [boolean, Match] {

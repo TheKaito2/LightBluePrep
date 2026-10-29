@@ -56,7 +56,7 @@ export default function App() {
 
   const list = useQuestionList({ view, dataVersion, fail })
   const { filters, setFilters, items, setItems, index, setIndex, order, seed, loadList } = list
-  const { taxonomy, taxonomyLoading, stats, setStats, attemptLog, reload } = useProgress(view, fail, list.onFirstStats)
+  const { taxonomy, taxonomyLoading, stats, setStats, attemptLog, reload } = useProgress(view, fail)
   const set = usePracticeSet({ view, items, index, setItems, setIndex, navigate, fail, dataVersion })
   const { start, shownSet, setShownSet } = set
   useEffect(() => { beforePop.current = set.beforePop }, [set.beforePop])
