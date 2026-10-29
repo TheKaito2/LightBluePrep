@@ -83,7 +83,7 @@ export function OptionsDialog({
         </div>
         <Segmented legend="Session length" options={LENGTHS} value={value.size ?? 0}
                    onChange={(n) => onChange({ size: n || undefined })}
-                   hint="Sets are graded at the end, like Bluebook." />
+                   hint="Each answer is checked as you go. A timed set grades at the end, like Bluebook." />
         <Segmented legend="Order" options={ORDERS} value={order === 'topic' ? 'topic' : 'shuffled'}
                    onChange={(o) => onOrder(o === 'topic' ? 'topic' : 'mixed')}
                    hint={<span aria-live="polite">{reshuffled ? 'New order, kept the same every visit' : 'Same order every visit'}</span>}

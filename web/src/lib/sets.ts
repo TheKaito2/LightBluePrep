@@ -4,6 +4,17 @@
  */
 import type { Filters, SetAnswer, SetItem } from '../types'
 
+/**
+ * The one attempt a set records for a question. The same id on every device,
+ * so a changed answer overwrites it rather than counting twice. Dashes go so
+ * a uuid set and a uuid question fit the Worker's 64-character id.
+ */
+export const setAttemptId = (setId: string, questionId: string) =>
+  setId.replace(/-/g, '') + questionId.replace(/-/g, '')
+
+/** Checks each answer as it is given: a plan's sets and every untimed set. Timed sets grade at the end, like Bluebook. */
+export const checksEach = (f: Filters | undefined) => Boolean(f?.instant || !f?.speed)
+
 /** Now, in the Unix seconds every stored timestamp uses. */
 export const nowSec = () => Math.floor(Date.now() / 1000)
 

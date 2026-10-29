@@ -820,12 +820,21 @@ async function handleSync(request, env, origin) {
   ]
 
   for (const a of incoming.attempts) {
-    // Union by (sub, id). An attempt is immutable once written, so IGNORE is
-    // the whole merge rule: replaying the same attempt is a no-op.
+    // Union by (sub, id). A practice set keeps one attempt per question under
+    // a fixed id and overwrites it when a timed set's answer changes, so a
+    // changed row takes the new seq and reaches the other devices. Replaying
+    // the same attempt changes nothing and keeps its seq; an id can never
+    // move to another question.
     batch.push(env.DB.prepare(
-      'INSERT OR IGNORE INTO attempts'
+      'INSERT INTO attempts'
       + ' (sub, id, question_id, answered_at, response, correct, seconds, seq)'
-      + ' SELECT ?,?,?,?,?,?,?,' + seqOf + live,
+      + ' SELECT ?,?,?,?,?,?,?,' + seqOf + live
+      + ' ON CONFLICT(sub, id) DO UPDATE SET'
+      + '   answered_at = excluded.answered_at, response = excluded.response,'
+      + '   correct = excluded.correct, seconds = excluded.seconds, seq = excluded.seq'
+      + ' WHERE attempts.question_id = excluded.question_id'
+      + '   AND (attempts.response IS NOT excluded.response OR attempts.correct <> excluded.correct'
+      + '        OR attempts.seconds IS NOT excluded.seconds)',
     ).bind(sub, a.id, a.question_id, a.answered_at, a.response, a.correct, a.seconds, sub, sub))
   }
 

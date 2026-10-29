@@ -39,6 +39,8 @@ vi.mock('./store', () => ({
   getMeta: async () => undefined,
   setMeta: async () => {},
   loadAttempts: async () => [],
+  saveAttempt: async () => {},
+  requestPersistence: async () => {},
   loadMarks: async () => [],
   loadQuestion: async () => undefined,
   saveQuestion: async () => {},
@@ -74,6 +76,13 @@ describe('static backend data layer', () => {
     expect('correct' in opened.question).toBe(false)
     await new Promise((r) => setTimeout(r, 40))
     expect(calls.detail).toBe(2)
+  })
+
+  it('overwrites a set\'s attempt at a question when answered again under its id', async () => {
+    await local.answer('b', 'A', 5, 'set1b')
+    await local.answer('b', 'C', 9, 'set1b')
+    const { attempts } = await local.attemptsFor('b')
+    expect(attempts.map((a) => [a.id, a.response, a.correct])).toEqual([['set1b', 'C', 0]])
   })
 
   it('finds by College Board ID: exact first, at most 5, with the total', async () => {

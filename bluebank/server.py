@@ -171,7 +171,8 @@ def _question(conn, query, body, question_id):
 @Api.route("POST", r"/api/questions/([^/]+)/answer")
 def _answer(conn, query, body, question_id):
     result = session.submit(conn, question_id, body.get("response"),
-                            seconds=body.get("seconds"))
+                            seconds=body.get("seconds"),
+                            attempt_id=body.get("attempt_id"))
     result.pop("question", None)
     return result
 

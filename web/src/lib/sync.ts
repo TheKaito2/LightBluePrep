@@ -7,11 +7,13 @@
  * app behaves exactly as it did before. That is the anonymous-first guarantee,
  * and it is structural rather than a promise.
  *
- * The merge is easy for one reason: attempts are a grow-only set keyed by uuid.
- * A sync that fails, half-lands, duplicates, or arrives out of order cannot
- * lose or corrupt anything, so there is no reconciliation logic here and none
- * is needed. Marks and annotations are last-write-wins per question, decided
- * server-side.
+ * The merge is easy for one reason: attempts are a set keyed by id, and the
+ * only one that ever changes is a practice set's attempt at a question (a
+ * fixed id, lib/sets setAttemptId), which the server stores as sent and hands
+ * on under a new seq. A sync that fails, half-lands, duplicates, or arrives
+ * out of order cannot lose or corrupt anything, so there is no reconciliation
+ * logic here and none is needed. Marks and annotations are last-write-wins per
+ * question, decided server-side.
  */
 import * as auth from './auth'
 import * as store from './store'
@@ -241,8 +243,8 @@ async function collect(keys: string[]) {
 async function apply(data: ServerResponse): Promise<void> {
   const wrote = Boolean(data.attempts?.length || data.marks?.length
     || data.annotations?.length || data.mistakes?.length || data.sets?.length || data.study)
-  // Attempts: union. Re-putting one we already have is a no-op by construction,
-  // which is why the server can safely echo our own writes back.
+  // Attempts: union, a changed one overwriting by id. Re-putting one we already
+  // have is a no-op, which is why the server can safely echo our own writes back.
   if (data.attempts?.length) {
     await store.putMany(store.STORE_ATTEMPTS, data.attempts)
   }

@@ -8,7 +8,7 @@ import * as api from '../api'
 import { sample, sampleBalanced } from './draw'
 import { setSeconds } from './pacing'
 import type { View } from './route'
-import { commitItem, gradeItems, holdItem, newSet, nowSec, sumSeconds, type GradedCache } from './sets'
+import { commitItem, gradeItems, holdItem, newSet, nowSec, setAttemptId, sumSeconds, type GradedCache } from './sets'
 import type { Filters, PracticeSet, SetAnswer, SetItem } from '../types'
 
 export type PracticeSetApi = ReturnType<typeof usePracticeSet>
@@ -211,9 +211,12 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
     const retry = () => { void finish() }
     try {
       const spent = live.seconds ?? 0
-      // Everything is graded here rather than as it was answered, which is also
-      // where the attempts get recorded. A question left blank is not attempted.
-      const { items: graded, failure } = await gradeItems(live.id, live.items ?? [], api.answer, gradedRef.current)
+      // Each answer was recorded as it was given; grading again here under the
+      // same attempt id overwrites it with the final answer and time, and
+      // records any a set from before that change still holds. A question left
+      // blank is not attempted.
+      const { items: graded, failure } = await gradeItems(live.id, live.items ?? [],
+        (q, r, s) => api.answer(q, r, s, setAttemptId(live.id, q)), gradedRef.current)
       // A question that could not be graded is not wrong: stay in the set and
       // offer Retry rather than score it 0 and move on.
       if (failure) { fail(failure, retry); return }

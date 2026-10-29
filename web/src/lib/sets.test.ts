@@ -7,7 +7,7 @@
 import { act, createElement, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
-import { commitItem, gradeItems, holdItem, newSet, sumSeconds, type GradedCache } from './sets'
+import { checksEach, commitItem, gradeItems, holdItem, newSet, setAttemptId, sumSeconds, type GradedCache } from './sets'
 import { usePracticeSet, type PracticeSetApi } from './usePracticeSet'
 import type { View } from './route'
 import type { PracticeSet, SetAnswer, SetItem } from '../types'
@@ -133,5 +133,21 @@ describe('usePracticeSet finish', () => {
     expect(hook.activeSet).toBeNull()
     expect(hook.shownSet?.id).toBe(finished[0]!.id)
     act(() => root.unmount())
+  })
+})
+
+describe('per-question attempts', () => {
+  it('names a set\'s attempt at a question the same way every time, within the Worker\'s 64 characters', () => {
+    const set = 'a3f1c2d4-5b6e-4f70-8a9b-0c1d2e3f4a5b'
+    const ids = [setAttemptId(set, 'dbf413aa-7ed0-4c04-a674-6de10190f3f5'), setAttemptId(set, '015193-DC')]
+    for (const id of ids) expect(id).toMatch(/^[A-Za-z0-9_-]{1,64}$/)
+    expect(setAttemptId(set, '015193-DC')).toBe(ids[1])
+    expect(ids[0]).not.toBe(ids[1])
+  })
+
+  it('checks each answer in every set but a timed one', () => {
+    expect(checksEach({})).toBe(true)
+    expect(checksEach({ instant: true, speed: 1 })).toBe(true)
+    expect(checksEach({ speed: 1 })).toBe(false)
   })
 })

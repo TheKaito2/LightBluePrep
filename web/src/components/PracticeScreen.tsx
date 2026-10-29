@@ -25,7 +25,7 @@ import { formatClock } from '../lib/pacing'
 import { Desmos, ReferenceSheet, SetReview } from '../lib/pages'
 import { titleFor, type View } from '../lib/route'
 import { nextAnnotationId } from '../lib/ranges'
-import { isBlank, nowSec, type CellState } from '../lib/sets'
+import { checksEach, isBlank, nowSec, setAttemptId, type CellState } from '../lib/sets'
 import { COACH_KEY, getMeta, setMeta } from '../lib/store'
 import { loadProcessTypes, similarTo, typeOf } from '../lib/similar'
 import type { PracticeSetApi } from '../lib/usePracticeSet'
@@ -40,7 +40,7 @@ import type { Annotation, Filters, GradeResult, Mistake, Question, SetItem, Stat
  */
 const SET_FLUSH_SECONDS = 5
 
-/** Practice shortcuts, as Directions lists them. A set has no Enter: nothing is checked until the end. */
+/** Practice shortcuts, as Directions lists them. A timed set has no Enter: nothing is checked until the end. */
 const KEYS_OPEN = 'Keyboard: ← → move, A–D choose, Enter check, M mark'
 const KEYS_SET = 'Keyboard: ← → move, A–D choose, M mark'
 
@@ -153,8 +153,8 @@ export function PracticeScreen({
   practiceMany: (ids: string[], title: string) => void
 }) {
   const { activeSet, activeSetRef, remaining, commit, hold, setBank } = set
-  /** A set holds answers to the end, except one that marks each answer as given. */
-  const deferred = Boolean(activeSet) && !activeSet?.filters.instant
+  /** A timed set holds answers to the end; every other set checks each answer as it is given. */
+  const deferred = Boolean(activeSet) && !checksEach(activeSet?.filters)
   const toast = useToast()
   const current = items[index] ?? null
   const crossKey = (id: string) => `${activeSetRef.current?.id ?? ''}:${id}`
@@ -242,7 +242,7 @@ export function PracticeScreen({
         setMistake(d.mistake)
         // A plan set keeps the first checked answer. Back on one already answered,
         // show it checked again so the choices stay locked to that answer.
-        if (held && activeSetRef.current?.filters.instant) {
+        if (held && activeSetRef.current && checksEach(activeSetRef.current.filters)) {
           api.explain(current.id, held)
             .then((r) => { if (!stale) { setResult(r); setMasked(!r.correct) } })
             .catch((e: Error) => !stale && fail(e))
@@ -302,10 +302,11 @@ export function PracticeScreen({
   }, [seconds, activeSet, commit])
 
   async function submit() {
-    // Inside a set nothing is submitted, unless the set marks each answer as
-    // given (a plan's sets): then it is checked here and recorded at the end.
-    const instant = Boolean(activeSetRef.current?.filters.instant)
-    if ((activeSetRef.current && !instant) || !current || !response || !question) return
+    // A timed set submits nothing until the end. Any other set checks the
+    // answer here and records it at once, as the set's one attempt at it.
+    const live = activeSetRef.current
+    const instant = Boolean(live && checksEach(live.filters))
+    if ((live && !instant) || !current || !response || !question) return
     if (result) {
       if (retry !== null) return
       const again = regrade(result, question.type, response)
@@ -313,8 +314,8 @@ export function PracticeScreen({
       return
     }
     try {
-      if (instant) {
-        const checked = await api.explain(current.id, response)
+      if (live && instant) {
+        const checked = await api.answer(current.id, response, seconds, setAttemptId(live.id, current.id))
         setResult(checked); setMasked(!checked.correct)
         return
       }
@@ -403,20 +404,25 @@ export function PracticeScreen({
       next.add(label)
       // Crossing out your answer withdraws it. In a set the held copy has to go
       // too, or it comes back on return and is graded at the end.
-      if (response === label) {
-        setResponse(null)
-        if (activeSetRef.current && !(activeSetRef.current.filters.instant && result)) hold(null, seconds)
-      }
+      if (response === label) respond(null)
     }
     crossOuts.set(crossKey(current.id), next)
     setCrossOut(next)
   }
 
-  /** An answer from a click or a key. A set holds it until the end. */
+  /**
+   * An answer from a click or a key. A set holds it. A timed set also records
+   * it now, unseen, overwriting its attempt at this question on each change,
+   * so a set left unfinished still counts what was answered.
+   */
   function respond(value: string | null) {
     setResponse(value)
-    // Once a plan set has checked this answer, a retry is never held: only the first try counts.
-    if (activeSet && !(activeSet.filters.instant && result)) hold(value, seconds)
+    const live = activeSetRef.current
+    if (!live || !current) return
+    // Once a set has checked this answer, a retry is never held: only the first try counts.
+    if (checksEach(live.filters)) { if (!result) hold(value, seconds); return }
+    hold(value, seconds)
+    api.answer(current.id, value, seconds, setAttemptId(live.id, current.id)).catch(fail)
   }
 
   /**
@@ -668,7 +674,7 @@ export function PracticeScreen({
                   <Icon name="info" size={18} />
                   <p>
                     {question.type === 'mcq' ? 'Pick an answer' : 'Enter your answer'}
-                    {/* A set has no Submit: answers are held and graded at the end. */}
+                    {/* A timed set has no Submit: answers are held and graded at the end. */}
                     {deferred ? ', then Next. The set is graded at the end, with every explanation.'
                       : ", then Submit. You'll see the explanation right away."}
                   </p>
@@ -794,7 +800,7 @@ export function PracticeScreen({
       ) : null}
 
       {showDirections ? (
-        <Directions lines={DIRECTIONS[section]} keys={activeSet ? KEYS_SET : KEYS_OPEN}
+        <Directions lines={DIRECTIONS[section]} keys={deferred ? KEYS_SET : KEYS_OPEN}
                     spr={question?.type === 'spr'}
                     onClose={() => setShowDirections(false)} />
       ) : null}

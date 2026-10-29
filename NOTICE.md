@@ -163,5 +163,11 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   Home no longer starts a first visit at 10 questions; the default is no
   limit. Questions answered in a set that is not finished yet count as done
   for "not done yet", so they are not drawn again.
+- 2026-10-29: Each answer is graded and saved as it is given. Untimed sets
+  check every answer on Submit (Try again / Show answer, first try kept);
+  timed sets still reveal nothing until the end but save each answer at
+  once, overwriting it if the answer changes. A set keeps one attempt per
+  question under a fixed id; the sync Worker now updates an attempt when it
+  changes (same id, same question) and hands the change to other devices.
 
 The full history of changes is in the git log.

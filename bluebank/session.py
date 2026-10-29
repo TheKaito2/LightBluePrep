@@ -57,17 +57,20 @@ def pick(conn, section=None, domain=None, difficulty=None, skill=None,
     return _row_to_question(random.Random(seed).choice(rows))
 
 
-def submit(conn, question_id, response, seconds=None, record=True):
-    """Grade a response against the official key and record the attempt."""
+def submit(conn, question_id, response, seconds=None, record=True, attempt_id=None):
+    """Grade a response against the official key and record the attempt.
+
+    A set passes its own `attempt_id` per question, so answering again
+    replaces that attempt instead of adding one."""
     question = get_question(conn, question_id)
     result = grading.grade(question, response)
     result["question"] = question
 
     if record:
         conn.execute(
-            "INSERT INTO attempts (id, question_id, answered_at, response, correct, seconds)"
+            "INSERT OR REPLACE INTO attempts (id, question_id, answered_at, response, correct, seconds)"
             " VALUES (?,?,?,?,?,?)",
-            (db.new_attempt_id(), question_id, int(time.time()),
+            (attempt_id if isinstance(attempt_id, str) and attempt_id else db.new_attempt_id(), question_id, int(time.time()),
              None if response is None else str(response),
              int(result["correct"]), seconds))
         conn.commit()

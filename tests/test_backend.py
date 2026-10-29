@@ -374,6 +374,17 @@ class TestAttemptIds(unittest.TestCase):
         self.assertEqual(uuid.UUID(stored).version, 4)
         conn.close()
 
+    def test_submit_with_an_attempt_id_replaces_it(self):
+        """A set's attempt at a question keeps its id; a changed answer overwrites it."""
+        conn = db.connect(self.path)
+        conn.execute(INSERT_QUESTION)
+        conn.commit()
+        session.submit(conn, "q1", "3", attempt_id="set1q1")
+        session.submit(conn, "q1", "4", attempt_id="set1q1")
+        rows = conn.execute("SELECT id, response FROM attempts").fetchall()
+        self.assertEqual([(r["id"], r["response"]) for r in rows], [("set1q1", "4")])
+        conn.close()
+
 class TestFilterSql(unittest.TestCase):
     """Practice-set filters are multi-select: OR inside one filter, AND between
     them. The trap is an empty list, which means "filter is off" and must never

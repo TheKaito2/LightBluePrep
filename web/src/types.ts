@@ -249,7 +249,7 @@ export interface Backend {
   }>
   /** Warm the cache for questions likely to be opened next. Never throws. */
   prefetch(ids: string[]): void
-  answer(id: string, response: string | null, seconds: number): Promise<GradeResult>
+  answer(id: string, response: string | null, seconds: number, attemptId?: string): Promise<GradeResult>
   flag(id: string, flagged: boolean): Promise<{ flagged: boolean }>
   saveAnnotations(id: string, annotations: Annotation[]): Promise<{ annotations: Annotation[] }>
   explain(id: string, response: string | null): Promise<GradeResult>

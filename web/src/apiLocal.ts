@@ -475,15 +475,16 @@ export async function explain(id: string, response: string | null): Promise<Grad
 /** requestPersistence() has run this session; see answer(). */
 let persistAsked = false
 
+/** `attemptId` is a set's own id for this question (lib/sets setAttemptId): answering again overwrites it. */
 export async function answer(
-  id: string, response: string | null, seconds: number,
+  id: string, response: string | null, seconds: number, attemptId?: string,
 ): Promise<GradeResult> {
   const c = await boot()
   const full = await loadFull(id)
   const result = grade(full, response)
 
   const attempt: store.Attempt = {
-    id: crypto.randomUUID(),
+    id: attemptId ?? crypto.randomUUID(),
     question_id: id,
     answered_at: nowSec(),
     response,
@@ -499,9 +500,9 @@ export async function answer(
     persistAsked = true
     void store.requestPersistence()
   }
-  const list = c.attempts.get(id)
-  if (list) list.push(attempt)
-  else c.attempts.set(id, [attempt])
+  const list = (c.attempts.get(id) ?? []).filter((a) => a.id !== attempt.id)
+  list.push(attempt)
+  c.attempts.set(id, list)
   // Keyed by question, so this is different questions answered, not answers.
   void usage.answered(c.attempts.size)
 

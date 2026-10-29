@@ -87,10 +87,10 @@ export function explain(id: string, response: string | null) {
   })
 }
 
-export function answer(id: string, response: string | null, seconds: number) {
+export function answer(id: string, response: string | null, seconds: number, attemptId?: string) {
   return call<GradeResult>(`/api/questions/${encodeURIComponent(id)}/answer`, {
     method: 'POST',
-    body: JSON.stringify({ response, seconds }),
+    body: JSON.stringify({ response, seconds, attempt_id: attemptId }),
   })
 }
 
