@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as api from '../api'
 import { Footer } from './Footer'
+import { ProgressRow, ProgressStrip } from './ProgressStrip'
 import { Icon } from './Icon'
 import { EmptyState } from './EmptyState'
 import { ActiveSets } from './home/ActiveSets'
 import { DifficultyChips } from './home/DifficultyChips'
 import type { TopicPicks } from './home/DomainCard'
 import { Hero } from './home/Hero'
+import { NextUp } from './home/NextUp'
 import { OptionsDialog } from './home/OptionsDialog'
 import { SectionPanel } from './home/SectionPanel'
 import { StartBar } from './home/StartBar'
@@ -24,7 +26,7 @@ import { rollup, type DomainTally } from '../lib/taxonomy'
 import type { Order } from '../lib/order'
 import type { HistoryRow } from '../lib/progress'
 import type {
-  Filters, PracticeSet, Section, SetItem, Stats, Status, TaxonomyRow,
+  Filters, PracticeSet, Section, SetItem, Status, TaxonomyRow,
 } from '../types'
 
 interface Props {
@@ -38,7 +40,6 @@ interface Props {
    * null when neither filter is set. Drives the per-skill filtered counts.
    */
   facet: SetItem[] | null
-  stats: Stats | null
   history: HistoryRow[]
   value: Filters
   /** The filtered pool, in the order practice walks it. */
@@ -79,12 +80,13 @@ const STATUS_WORD: Record<Status, string> = {
 }
 
 /**
- * Home: the hero, unfinished sets, the topic picker and the start bar. The
+ * Home: the hero, the topic picker, a rail of what is next and how it's going,
+ * unfinished sets and the start bar. The
  * pieces live in ./home; what the picks mean (ticks, counts, the Start label)
  * is worked out here, once, and handed down.
  */
 export function Home({
-  taxonomy, taxonomyLoading, onRetryBoot, facet, stats, history, value, items, loading, onChange, onOpen, onStart,
+  taxonomy, taxonomyLoading, onRetryBoot, facet, history, value, items, loading, onChange, onOpen, onStart,
   order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId, onScoreCheck, onStartPlan,
   planning, onPlanDate, onPlanAdd, onPlanCancel,
 }: Props) {
@@ -308,17 +310,17 @@ export function Home({
     onOpen(pool.firstNew < 0 ? 0 : pool.firstNew)
   }
 
+  const nextUp = (
+    <NextUp planNext={planNext} hasPlan={!study.loaded || Boolean(study.plan)} resumable={resumable}
+            planStarted={Boolean(planNext?.session.set_id && activeSets.some((a) => a.id === planNext.session.set_id))}
+            onStartPlan={onStartPlan} onResume={onResume} />
+  )
+
   const difficulty = <DifficultyChips value={value.difficulties} onChange={(difficulties) => set({ difficulties })} />
 
   return (
     <div className="home">
-      {planning ? null : (
-        <Hero total={totals.all} seen={totals.seen} resumable={resumable} onResume={onResume}
-              findIds={findIds} onOpenId={onOpenId}
-              history={history} stats={stats} onScoreCheck={onScoreCheck}
-              planNext={planNext} hasPlan={!study.loaded || Boolean(study.plan)} onStartPlan={onStartPlan}
-              planStarted={Boolean(planNext?.session.set_id && activeSets.some((a) => a.id === planNext.session.set_id))} />
-      )}
+      {planning ? null : <Hero total={totals.all} findIds={findIds} onOpenId={onOpenId} />}
 
       <div className="hwrap">
         {planning ? (
@@ -335,20 +337,39 @@ export function Home({
             </label>
             <button type="button" className="btn quiet" onClick={onPlanCancel}>Cancel</button>
           </section>
-        ) : <ActiveSets sets={activeSets} onResume={onResume} onAbandon={onAbandon} />}
+        ) : (
+          // Under 1280px there is no rail beside the topics: the next step and
+          // the headline numbers sit above them, the full cards below.
+          <div className="hcompact">
+            {nextUp}
+            <ProgressRow history={history} covered={totals.seen} total={totals.all} />
+          </div>
+        )}
 
-        <TopicsHead section={value.section} onPick={pickSection} />
+        <div className={planning ? 'hlayout solo' : 'hlayout'}>
+          <div className="hmain">
+            <TopicsHead section={value.section} onPick={pickSection} />
 
-        {waiting ? <TopicsLoading /> : !domains.length ? (
-          <EmptyState mood="oops" className="topics-fail"
-                      title="Couldn't reach College Board's question server"
-                      body="Some school or office networks block it. Try another network, or retry."
-                      action={{ label: 'Try again', onClick: onRetryBoot }} />
-        ) : SECTIONS.filter((s) => !value.section || s === value.section).map((sec) => (
-          <SectionPanel key={sec} sec={sec} tally={secStats[sec]} picks={picks}
-                        domains={domains.filter((d) => d.section === sec)} />
-        ))}
+            {waiting ? <TopicsLoading /> : !domains.length ? (
+              <EmptyState mood="oops" className="topics-fail"
+                          title="Couldn't reach College Board's question server"
+                          body="Some school or office networks block it. Try another network, or retry."
+                          action={{ label: 'Try again', onClick: onRetryBoot }} />
+            ) : SECTIONS.filter((s) => !value.section || s === value.section).map((sec) => (
+              <SectionPanel key={sec} sec={sec} tally={secStats[sec]} picks={picks}
+                            domains={domains.filter((d) => d.section === sec)} />
+            ))}
 
+            {planning ? null : <ActiveSets sets={activeSets} onResume={onResume} onAbandon={onAbandon} />}
+          </div>
+
+          {planning ? null : (
+            <aside className="hrail" aria-label="Your progress">
+              {nextUp}
+              <ProgressStrip history={history} onScoreCheck={onScoreCheck} />
+            </aside>
+          )}
+        </div>
       </div>
 
       <Footer context="home" />

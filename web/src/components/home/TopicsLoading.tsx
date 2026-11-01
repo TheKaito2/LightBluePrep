@@ -16,11 +16,12 @@ export function TopicsLoading() {
         <p>Loading the question list from College Board. First visit only, about 1.5 MB.</p>
         {slow ? <p>Slow connection. This only happens once.</p> : null}
       </div>
-      <div className="dgrid" aria-hidden="true">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="dcard dskel">
+      <div className="sktiles" aria-hidden="true">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="sktile dskel">
             <span className="skel skel-t" />
-            {[0, 1, 2].map((j) => <span key={j} className="skel skel-row" />)}
+            <span className="skel skel-row" />
+            <span className="skel skel-row" />
           </div>
         ))}
       </div>

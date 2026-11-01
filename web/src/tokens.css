@@ -134,6 +134,19 @@
   --fill-bad: #c8102e;
   --rw-fill: #a3245a;
   --math-fill: #075f99;
+
+  /* ---- 3D edges: the solid bottom lip on buttons and chunky cards ---- */
+  --fill-brand-edge: #0a4a7a;
+  --fill-bad-edge: #7c0a1d;
+  --rw-edge: #7f1a45;
+  --math-edge: #054a78;
+  --hair-edge: #c3cad3;
+
+  /* ---- page bands: one flat colour per page, with --band-fg on top ---- */
+  --band-blue: #1479c2;
+  --band-mint: #15803d;
+  --band-amber: #f4b400;
+  --band-violet: #6242d0;
 }
 
 :root {
@@ -156,10 +169,10 @@
   --fw-bold: 750;
   /* Shorthands for `font:`; pair each with its --tr-* letter-spacing. */
   --type-display: 800 64px/64px var(--display);
-  --type-title:   800 44px/46px var(--display);
-  --type-h1:      800 32px/36px var(--display);
-  --type-h2:      750 20px/26px var(--display);
-  --type-h3:      700 16px/22px var(--display);
+  --type-title:   800 48px/50px var(--display);
+  --type-h1:      800 34px/38px var(--display);
+  --type-h2:      800 22px/28px var(--display);
+  --type-h3:      750 17px/22px var(--display);
   --type-lead:    400 17px/26px var(--sans);
   --type-body:    400 15px/24px var(--sans);
   --type-ui:      500 14px/20px var(--sans);
@@ -197,7 +210,7 @@
   --rad-sm: 8px;
   --rad-md: 12px;
   --rad-lg: 16px;
-  --rad-xl: var(--rad-lg);      /* legacy alias, was 20px; cards move to --rad-md, panels/dialogs to --rad-lg */
+  --rad-xl: 24px;               /* section blocks and page-level cards */
   --rad-pill: 999px;
 
   /* ---- motion ---- */
@@ -216,9 +229,9 @@
 @media (max-width: 819px) {
   :root {
     --type-display: 800 40px/42px var(--display);
-    --type-title:   800 32px/34px var(--display);
-    --type-h1:      800 24px/28px var(--display);
-    --type-h2:      750 19px/24px var(--display);
+    --type-title:   800 34px/36px var(--display);
+    --type-h1:      800 26px/30px var(--display);
+    --type-h2:      800 20px/26px var(--display);
     --type-lead:    400 16px/24px var(--sans);
     --num-xl: 56px; --num-l: 28px; --num-m: 24px; --num-s: 18px;
     --gutter: 16px;
@@ -276,6 +289,7 @@
   --hair-2: #36404b;
   --hair-ctl: #76808d;
   --hair-inv: rgba(255, 255, 255, .12);
+  --hair-edge: #36404b;
 
   --ok-50: #0f2a1c;  --ok-200: #1f5a3a;  --ok-700: #4fd08a;
   --bad-50: #33141a; --bad-200: #6b2532; --bad-700: #ff8a95;
@@ -298,10 +312,10 @@
 .sec-RW {
   --sec-50: var(--rw-50); --sec-100: var(--rw-100); --sec-200: var(--rw-200);
   --sec-300: var(--rw-300); --sec-500: var(--rw-500); --sec-600: var(--rw-600);
-  --sec-700: var(--rw-700); --sec-fill: var(--rw-fill);
+  --sec-700: var(--rw-700); --sec-fill: var(--rw-fill); --sec-edge: var(--rw-edge);
 }
 .sec-MATH {
   --sec-50: var(--math-50); --sec-100: var(--math-100); --sec-200: var(--math-200);
   --sec-300: var(--math-300); --sec-500: var(--math-500); --sec-600: var(--math-600);
-  --sec-700: var(--math-700); --sec-fill: var(--math-fill);
+  --sec-700: var(--math-700); --sec-fill: var(--math-fill); --sec-edge: var(--math-edge);
 }

@@ -190,7 +190,7 @@ function Trend({ history }: { history: HistoryRow[] }) {
 function Loading() {
   return (
     <>
-      <PageHead tone="ink" title="Stats" sub={SUB}>
+      <PageHead tone="mint" title="Stats" sub={SUB}>
         <div className="stat-group stats-skel-strip" aria-hidden="true">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="stat">
@@ -232,7 +232,7 @@ export function Stats({ taxonomy, history, onPractice, onStart }: Props) {
   if (SECTIONS.every((s) => sections[s].seen < UNLOCK)) {
     return (
       <>
-        <PageHead tone="ink" title="Stats" sub={SUB} />
+        <PageHead tone="mint" title="Stats" sub={SUB} />
         <div className="stats">
           <EmptyState className="stats-locked" heading="h2" title={`Stats unlock at ${UNLOCK} answers per section`}
                       body="Answer a few questions in each section and this page shows where you're losing points."
@@ -261,7 +261,7 @@ export function Stats({ taxonomy, history, onPractice, onStart }: Props) {
 
   return (
     <>
-    <PageHead tone="ink" title="Stats" sub={SUB}>
+    <PageHead tone="mint" title="Stats" sub={SUB}>
       <StatGroup className="stats-strip">
         <Stat size="l" label="Accuracy" value={pct(total.correct, total.seen)} unit="%"
               sub={`${fmt(total.correct)} of ${fmt(total.seen)}`} />
@@ -331,7 +331,7 @@ export function Stats({ taxonomy, history, onPractice, onStart }: Props) {
                   <span className="diff-dot" aria-hidden="true" />
                   <span className="diff-name">{DIFFICULTY_NAME[f]}</span>
                   <span className="diff-meta">
-                    {' · '}{t.seen ? `${fmt(t.seen)} answered` : 'Not tried yet'}
+                    {t.seen ? `${fmt(t.seen)} answered` : 'Not tried yet'}
                     {g ? <>{' · '}<span className={`grade-${g.grade}`}>{g.pct}%</span></> : null}
                   </span>
                 </span>

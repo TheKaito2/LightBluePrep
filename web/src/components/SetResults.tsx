@@ -12,6 +12,7 @@ import { Mascot } from './Mascot'
 import { PageHead } from './PageHead'
 import { ConfirmDelete } from './ConfirmDelete'
 import { QuestionDetail } from './QuestionDetail'
+import { StreakMoment } from './StreakMoment'
 import { duration } from '../lib/pacing'
 import { DIFFICULTY_NAME, VERDICT, describeSet, fmt, plural, setSection } from '../lib/labels'
 import { dayKey, setGains, streak, type HistoryRow } from '../lib/progress'
@@ -82,6 +83,15 @@ export function SetResults({ set, history, onPractice, onPracticeMany, onRedo, o
   const order = items.map((item, i) => ({ item, n: i + 1 }))
   const rows = [...order.filter((r) => !r.item.correct), ...(showAll ? order.filter((r) => r.item.correct) : [])]
 
+  /** Open one question from the strip, showing the correct ones if it is one of them. */
+  function jump(item: SetAnswer) {
+    if (item.correct) setShowAll(true)
+    setOpen(item.question_id)
+    requestAnimationFrame(() => document.getElementById(`setq-${item.question_id}`)?.scrollIntoView({ block: 'nearest' }))
+  }
+
+  const answeredPace = set.answered && set.seconds ? Math.round(set.seconds / set.answered) : 0
+
   const chips = [
     days ? <span key="s" className="chip static"><Icon name="flame" size={14} />Streak: {plural(days, 'day')}</span> : null,
     delta ? (
@@ -113,10 +123,9 @@ export function SetResults({ set, history, onPractice, onPracticeMany, onRedo, o
                   </span>
                 )}
                 sub={[
-                  missed.length ? `${pct}% correct` : 'Perfect set: every answer correct',
-                  set.seconds ? duration(set.seconds) : '',
+                  missed.length ? '' : 'Perfect set: every answer correct',
                   set.answered < total ? `${fmt(total - set.answered)} ${VERDICT.unanswered.toLowerCase()}` : '',
-                ].filter(Boolean).join(' · ')}
+                ].filter(Boolean).join(' · ') || undefined}
                 foot={chips.length ? <div className="chips">{chips}</div> : null}>
         <div className="setres-acts">
           {missed.length ? (
@@ -152,6 +161,34 @@ export function SetResults({ set, history, onPractice, onPracticeMany, onRedo, o
       </PageHead>
 
       <div className={section ? `review setres-body sec-${section}` : 'review setres-body'}>
+        <ul className="restiles">
+          <li className="restile c-ok"><span className="restile-cap">Correct</span><span className="restile-n">{pct}%</span></li>
+          {set.seconds ? (
+            <li className="restile c-time"><span className="restile-cap">Time</span><span className="restile-n">{duration(set.seconds)}</span></li>
+          ) : null}
+          {answeredPace ? (
+            <li className="restile c-pace"><span className="restile-cap">Per question</span><span className="restile-n">{duration(answeredPace)}</span></li>
+          ) : null}
+        </ul>
+
+        {total > 1 ? (
+          <ol className="qdots" aria-label="Jump to a question">
+            {order.map(({ item, n }) => {
+              const [cls, word] = item.response === null ? ['none', VERDICT.unanswered]
+                : item.correct ? ['ok', VERDICT.correct] : ['bad', VERDICT.incorrect]
+              return (
+                <li key={item.question_id}>
+                  <button type="button" className={`qdot ${cls}`} aria-label={`Question ${n}: ${word}`}
+                          aria-current={open === item.question_id ? 'true' : undefined} onClick={() => jump(item)}>
+                    {n}
+                    {cls === 'none' ? null : <Icon name={cls === 'ok' ? 'check' : 'close'} size={14} strokeWidth={3.4} />}
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        ) : null}
+
         <h2 className="setres-h">
           {missed.length ? `${fmt(missed.length)} missed` : `All ${fmt(total)} correct`}
         </h2>
@@ -182,6 +219,8 @@ export function SetResults({ set, history, onPractice, onPracticeMany, onRedo, o
           </button>
         ) : null}
       </div>
+      {/* shortcut: "just finished" is the last 10 minutes, not a flag from the set's end; reopening a set that soon can still show it. */}
+      {days && nowSec() - finished < 600 ? <StreakMoment history={history} /> : null}
     </div>
   )
 }
@@ -201,7 +240,7 @@ function Row({ item, n, q, load, timed, open, onToggle, children }: {
   const [mark, label, icon] = item.response === null ? ['neutral', VERDICT.unanswered, null]
     : item.correct ? ['ok', VERDICT.correct, 'check' as const] : ['bad', VERDICT.incorrect, 'close' as const]
   return (
-    <li className={open ? 'review-item open' : 'review-item'}>
+    <li id={`setq-${item.question_id}`} className={open ? 'review-item open' : 'review-item'}>
       <button className="review-row" aria-expanded={open} onClick={onToggle}>
         <span className="q-num">{n}</span>
         <span className={`review-badge badge ${mark}`}>

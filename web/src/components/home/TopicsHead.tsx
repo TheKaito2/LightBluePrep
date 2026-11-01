@@ -14,14 +14,8 @@ export function TopicsHead({ section, onPick }: {
   ]
   return (
     <div className="topics-head">
-      <div className="topics-title">
-        <h2 className="h1-section" id="topics-title" tabIndex={-1}>Topics</h2>
-        <p className="topics-sub">
-          Pick skills to build a session, or select a whole domain.{' '}
-          {/* The static skill pages are the only indexable content; link them. */}
-          <a className="link" href="/skills/">Browse by skill</a>
-        </p>
-      </div>
+      {/* The hero's line is the visible heading; this one names the region. */}
+      <h2 className="sr-only" id="topics-title" tabIndex={-1}>Topics</h2>
       <div className="seg sectabs" role="group" aria-label="Section">
         {tabs.map((t) => (
           <button key={t.label} aria-pressed={section === t.key}
@@ -32,6 +26,8 @@ export function TopicsHead({ section, onPick }: {
           </button>
         ))}
       </div>
+      {/* The static skill pages are the only indexable content; link them. */}
+      <a className="link topics-browse" href="/skills/">Browse by skill</a>
     </div>
   )
 }

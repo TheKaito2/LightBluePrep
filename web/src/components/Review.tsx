@@ -223,7 +223,7 @@ export function Review({ onPractice, onPracticeMany, onOpenSet, onDeleteSet, onS
   ) : null
 
   const head = (aside?: ReactNode) => (
-    <PageHead tone="ink" title="Review"
+    <PageHead tone="amber" title="Review"
               sub="Every question you've answered, with its explanation one click away.">
       {aside}
     </PageHead>

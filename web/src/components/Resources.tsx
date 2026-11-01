@@ -106,7 +106,7 @@ function ResourceCard({ r }: { r: Resource }) {
 export function Resources() {
   return (
     <>
-      <PageHead tone="ink" eyebrow="Free · hand-picked" title="Resources"
+      <PageHead tone="violet" eyebrow="Free · hand-picked" title="Resources"
                 sub="Free resources worth your time next to LightBluePrep, and how to use each one." />
       <div className="resources">
         {RESOURCES.map((r) => <ResourceCard key={r.name} r={r} />)}

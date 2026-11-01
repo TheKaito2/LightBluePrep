@@ -1,6 +1,6 @@
 /* Review (one filter bar; every attempt by section then day; one question
    expanded; finished sets last) and the Results screen at the end of a set. */
-.review { max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) 96px; }
+.review { max-width: 1160px; margin: 0 auto; padding: var(--sp-8) var(--sp-8) 96px; }
 .review-empty { margin: 20px 0; font: var(--type-body); color: var(--fg-3); }
 
 /* ---- the filter bar (spec 8.2): pile, section, and Redo for exactly what
@@ -34,43 +34,45 @@
 
 /* Section, then day. Reading and Maths are studied separately, so the top
    level splits them; the day says which sitting it was. */
-.review-section { margin-top: var(--sp-6); }
-/* Rows run edge to edge inside the panel, their text lined up with the
-   header's. */
-.review-section .review-list { margin: 0 calc(var(--sp-6) * -1); }
-.review-section .review-row { padding-left: var(--sp-6); padding-right: var(--sp-6); }
+.review-section { margin-top: var(--sp-8); }
 .review-group + .review-group { margin-top: var(--sp-6); }
 /* Day divider (spec 7.11): the day on the left, how it went on the right.
    The whole line folds the day; older days start folded. */
-.review-day { margin: 0; border-bottom: 1px solid var(--hair-2); }
+.review-day { margin: 0 0 var(--sp-2); }
 .review-day-b {
-  display: flex; align-items: center; gap: var(--sp-2); width: 100%; padding: 0 0 8px;
+  display: flex; align-items: center; gap: var(--sp-2); width: 100%; padding: 0;
   border: 0; background: none; cursor: pointer; text-align: left; color: var(--fg-3);
 }
 .review-day-b > svg { flex: none; }
-.review-day-t { font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; }
+.review-day-t { font: 750 15px/20px var(--display); color: var(--fg-1); }
 .review-day-sum { margin-left: auto; font: var(--type-small); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .review-day-b:hover { color: var(--fg-1); }
 .shell .review-day-b:focus-visible { outline-offset: 2px; }
-.review-list { list-style: none; margin: 0; padding: 0; }
+/* One chunky card of rows. */
+.review-list {
+  list-style: none; margin: 0; padding: 0;
+  border: 2px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: 0 3px 0 var(--hair-1);
+}
 .shell .btn.review-more { margin: var(--sp-3) 0 0 -12px; }
 
 /* Rows (spec 7.11): 56px, hairline between, a tint on hover; the open row
    keeps the tint and a 2px bar in the section colour. */
 .review-item { border-bottom: 1px solid var(--hair-1); }
-.review-item:last-child { border-bottom: 0; }
-.review-item.open { background: var(--surface-subtle); box-shadow: inset 2px 0 0 var(--sec-500, var(--brand-600)); }
+.review-item:last-child { border-bottom: 0; border-radius: 0 0 14px 14px; }
+.review-item:first-child { border-radius: 14px 14px 0 0; }
+.review-item:only-child { border-radius: 14px; }
+.review-item.open { background: var(--surface-subtle); }
 .review-row {
-  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px;
-  padding: 12px 16px; border: none; background: none; cursor: pointer;
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px;
+  padding: 12px var(--sp-4); border: none; border-radius: inherit; background: none; cursor: pointer;
   text-align: left; color: var(--fg-1);
 }
 .review-row:hover { background: var(--surface-subtle); }
 .review-row > svg { flex: none; color: var(--fg-3); }
-/* The set's question number: a small ink square. */
+/* The set's question number: a small circle, like the strip above the list. */
 .review-row .q-num {
   flex: none; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px;
-  border-radius: var(--rad-xs); background: var(--fg-1); color: var(--surface);
+  border-radius: 50%; background: var(--surface-sunken); color: var(--fg-1);
   font: 700 13px/1 var(--sans); font-variant-numeric: tabular-nums;
 }
 .review-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -111,14 +113,13 @@
 }
 
 /* Loading: six rows of the list's own shape. */
-.review-skel { margin-top: var(--sp-6); border: 1px solid var(--hair-1); border-radius: var(--rad-lg); overflow: hidden; }
+.review-skel { margin-top: var(--sp-6); overflow: hidden; }
 .review-skel .review-item { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 12px 16px; }
 .review-skel-b { flex: none; width: 72px; height: 22px; border-radius: var(--rad-pill); }
 
 /* ---- one expanded question ---- */
 /* Roomy left and right: this is a reading panel, not a table row. */
 .review-detail { padding: 10px 26px 30px; font-family: var(--sans); }
-.review-section .review-detail { padding-left: var(--sp-6); padding-right: var(--sp-6); }
 /* Loading: a stem over four choices, about the panel's real height. */
 .qd-skel-stem { width: 92%; height: 16px; margin: 6px 0 10px; }
 .qd-skel-stem.short { width: 58%; margin-bottom: 20px; }
@@ -211,8 +212,6 @@
   .review { padding: var(--sp-6) var(--sp-4) var(--sp-8); }
   .review-row { padding: 12px 8px; gap: 10px; }
   .review-detail { padding: 10px 14px 24px; }
-  .review-section .review-list { margin: 0 calc(var(--sp-4) * -1); }
-  .review-section :is(.review-row, .review-detail) { padding-left: var(--sp-4); padding-right: var(--sp-4); }
 }
 
 /* ---- the score screen (spec 8.3) ----
@@ -243,11 +242,45 @@
 .setres-bulb.rise { animation: bulb-rise 400ms var(--ease-out) both; }
 @keyframes bulb-rise { from { transform: translateY(6px); } }
 
-.setres-body { padding-top: var(--sp-8); }
+.setres-body { padding-top: var(--sp-6); }
+
+/* Three facts, each under a colored cap. The caps are fixed fills, so their
+   text holds in both themes. */
+.restiles { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: var(--sp-3); max-width: 560px; margin: 0 0 var(--sp-5); padding: 0; }
+.restile {
+  display: flex; flex-direction: column; overflow: hidden; text-align: center;
+  border: 2px solid var(--cap); border-radius: var(--rad-lg); background: var(--surface);
+}
+.restile.c-ok { --cap: var(--band-mint); --cap-fg: var(--fg-inv-1); }
+.restile.c-time { --cap: var(--band-blue); --cap-fg: var(--fg-inv-1); }
+.restile.c-pace { --cap: var(--band-amber); --cap-fg: #11151a; }
+.restile-cap { padding: 4px var(--sp-2); background: var(--cap); font: 700 13px/18px var(--sans); color: var(--cap-fg); }
+.restile-n {
+  padding: var(--sp-3) var(--sp-2); font: 800 var(--num-m)/1 var(--display); letter-spacing: var(--tr-num-m);
+  color: var(--fg-1); font-variant-numeric: tabular-nums lining-nums;
+}
+/* Every question as a numbered circle; the tints hold 4.5:1 in both themes. */
+.qdots { list-style: none; display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-6); padding: 0; }
+.qdot {
+  position: relative; width: 36px; height: 36px; padding: 0; border: 2px solid var(--hair-2); border-radius: 50%; background: var(--surface);
+  font: 700 13px/1 var(--sans); color: var(--fg-2); cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.qdot.ok { background: var(--ok-50); border-color: var(--ok-500); color: var(--ok-700); }
+.qdot.bad { background: var(--bad-50); border-color: var(--bad-500); color: var(--bad-700); }
+/* A mark as well as a tint, so right and wrong never rest on color alone. */
+.qdot svg { position: absolute; right: -4px; bottom: -4px; padding: 2px; border-radius: 50%; color: var(--surface); }
+.qdot.ok svg { background: var(--ok-700); }
+.qdot.bad svg { background: var(--bad-700); }
+.qdot[aria-current] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--fg-1); }
+
+/* The first set of the day (StreakMoment.tsx). */
+.moment-in { display: flex; flex-direction: column; align-items: center; gap: var(--sp-4); text-align: center; }
+.moment-in .bulb { animation: pop var(--dur-slow) var(--ease-out); }
+.moment-n { display: flex; flex-direction: column; margin: 0; font: 800 72px/1 var(--display); letter-spacing: var(--tr-num-xl); color: var(--streak-700); font-variant-numeric: tabular-nums lining-nums; }
+.moment-n span { margin-top: var(--sp-1); font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-1); }
+.moment-in .days { align-self: stretch; }
 .setres-h { margin: 0 0 var(--sp-3); font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
 .setres-note { margin: 0 0 var(--sp-3); font: var(--type-small); color: var(--fg-3); }
-.setres-list { border-top: 1px solid var(--hair-1); }
-.setres-list .review-item:last-child { border-bottom: 1px solid var(--hair-1); }
 .setres-skel-t { width: min(260px, 70%); height: 16px; }
 .setres-skel-m { width: min(180px, 50%); height: 12px; margin-top: 4px; }
 .setres-all { margin: var(--sp-3) 0 0 -12px; }
@@ -284,9 +317,9 @@
 .similar {
   display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; align-items: center;
   margin: var(--sp-5) 0 var(--sp-3); padding: 14px 16px;
-  border: 1px solid var(--sec-200, var(--hair-1)); border-radius: var(--rad-md); background: var(--sec-50, var(--surface));
+  border: 2px solid var(--sec-500, var(--hair-1)); border-radius: var(--rad-lg); background: var(--sec-50, var(--surface));
 }
-.similar-k { grid-column: 1; font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--sec-700, var(--fg-3)); }
+.similar-k { grid-column: 1; font: 600 13px/18px var(--sans); color: var(--sec-700, var(--fg-3)); }
 .similar-t { grid-column: 1; font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
 .similar-how { grid-column: 1; font: var(--type-small); color: var(--fg-2); }
 .similar-go { grid-column: 2; grid-row: 1 / 4; }

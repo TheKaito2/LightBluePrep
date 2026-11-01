@@ -169,5 +169,12 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   once, overwriting it if the answer changes. A set keeps one attempt per
   question under a fixed id; the sync Worker now updates an attempt when it
   changes (same id, same question) and hands the change to other devices.
+- 2026-11-01: A new look everywhere but the practice screen, which still
+  follows Bluebook: a left sidebar on desktop, a colored band per page,
+  press-down buttons and chunky cards. Home picks topics from skill tiles, with
+  question types in a sheet, beside a rail for the next step, streak and score.
+  Results adds a question strip and a streak moment once a day; Stats gets
+  focus cards and skill cells tinted by accuracy; the plan wizard asks one
+  question a screen with Bulb.
 
 The full history of changes is in the git log.

@@ -29,6 +29,9 @@
   .page, .page.page-home { flex: 1 0 auto; min-height: 0; overflow: visible; }
 }
 
+/* A lazy page's chunk still loading (App's PageWait): a band's shape, after a beat. */
+.pagewait { height: 176px; background: var(--surface-sunken); animation: fade-in var(--dur-fast) .3s both; }
+
 /* The whole-app crash screen: nothing else is on the page, so centre it. */
 .crash-page { display: flex; align-items: center; justify-content: center; padding: var(--sp-6) var(--sp-4); }
 .empty.crash .fb-link { margin-top: var(--sp-2); }
@@ -148,6 +151,8 @@
 }
 .navicon:hover { background: var(--surface-subtle); color: var(--fg-1); }
 .navicon[aria-current=page] { color: var(--brand-700); }
+/* The name beside the gear, in the sidebar only. */
+.navicon-t { display: none; }
 
 /* Support is a quiet button with a pink heart, not a pink pill: pink means
    Reading and Writing everywhere else. */
@@ -215,6 +220,65 @@
   .tabs { position: relative; }
 }
 
+/* ============================================================ sidebar
+   820px and up, on anything taller than a landscape phone (which keeps the top
+   bar above, since 390px is too short for a column of tabs). Labelled from
+   1150px; an icon rail below that, the names kept for screen readers and as
+   tooltips. Reaches past .shell's flex column with a grid; the rows are fixed so
+   an absent banner or install bar collapses to nothing. */
+@media (min-width: 820px) and (min-height: 501px) {
+  .shell {
+    display: grid; grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .shell > .errbar { grid-column: 2; grid-row: 1; }
+  .shell > .installbar { grid-column: 2; grid-row: 2; }
+  .shell > .page { grid-column: 2; grid-row: 3; }
+  .tabs {
+    grid-column: 1; grid-row: 1 / -1; position: relative; min-height: 0; overflow-y: auto;
+    padding-top: 0; border-bottom: 0; border-right: 2px solid var(--hair-1);
+  }
+  .tabs.scrolled { box-shadow: none; }
+  .tabs-inner {
+    flex-direction: column; align-items: stretch; max-width: none; min-height: 100%; height: auto; margin: 0;
+    padding: var(--sp-5) var(--sp-3) var(--sp-4);
+  }
+  .brand { align-self: flex-start; margin: 0 0 var(--sp-5); padding: 4px 8px; }
+  .wordmark { font-size: 20px; }
+  .tablinks { flex-direction: column; gap: 2px; align-self: stretch; }
+  .tab {
+    width: 100%; height: 44px; padding: 0 12px; gap: 12px;
+    border: 2px solid transparent; border-radius: var(--rad-md);
+    font: 750 15px/20px var(--display); letter-spacing: -.005em;
+    transition: background-color var(--dur-fast) var(--ease-std), border-color var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
+  }
+  .tab::after { content: none; }
+  .tab-ico svg { width: 22px; height: 22px; }
+  .tab:hover { background: var(--surface-subtle); }
+  .tab.on { background: var(--brand-100); color: var(--brand-800); }
+  .tab.on .tab-ico { color: var(--brand-800); }
+  .shell .tab:focus-visible { outline-offset: 2px; border-radius: var(--rad-md); }
+
+  .navright { flex-direction: column; align-items: stretch; gap: var(--sp-1); margin: auto 0 0; padding-top: var(--sp-5); }
+  .navicon, .supportlink {
+    width: 100%; height: 44px; justify-content: flex-start; gap: 12px; padding: 0 14px; border-radius: var(--rad-md);
+    font: 600 14px/20px var(--sans); color: var(--fg-2);
+  }
+  .navicon-t { display: inline; }
+  .navright .ghlink { display: none; }
+}
+@media (min-width: 820px) and (max-width: 1149px) and (min-height: 501px) {
+  .shell { grid-template-columns: 76px minmax(0, 1fr); }
+  .tabs-inner { align-items: center; padding-inline: 10px; }
+  .brand { align-self: center; padding: 4px; }
+  .brand .wordmark, .tab .tab-label, .navicon-t {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .tab, .tab:not(.on) { width: 52px; justify-content: center; padding: 0; }
+  .navright { align-items: center; }
+  .navicon, .supportlink { width: 52px; justify-content: center; padding: 0; }
+}
+
 /* ============================================================ footer
    components/Footer.tsx, at the end of every page but practice. */
 .foot { flex: none; border-top: 1px solid var(--hair-1); background: var(--surface); }
@@ -239,75 +303,64 @@
 }
 
 /* ============================================================ page heads
-   One flat band per page (spec 7.3): ink on Review, Stats, Resources, About
-   and the inbox; grey on Settings; the set's section colour on Results. The
-   copy column is pinned to the top and the band has a floor, so the eyebrow
-   and title land at the same y on every tab whatever the strip beside them. */
+   One flat colour per page, with --band-fg on top: blue on Plan, amber on Review,
+   mint on Stats, violet on Resources, ink on About and the inbox, grey on
+   Settings, the set's section colour on Results. The fills stay the same in both
+   themes, so the text on them never changes. */
 /* clip, not hidden: a band must never become a sideways scroll box. hidden
    is the fallback for browsers without clip. */
-.phead { flex: none; overflow: hidden; background: var(--surface-ink); color: var(--fg-inv-1); }
+.phead {
+  --band: var(--surface-ink); --band-fg: var(--fg-inv-1); --band-fg-2: rgba(255, 255, 255, .86); --band-fg-3: rgba(255, 255, 255, .78);
+  flex: none; overflow: hidden; background: var(--band); color: var(--band-fg);
+}
 @supports (overflow: clip) { .phead { overflow: clip visible; } }
-.phead.tone-grey { background: var(--surface-sunken); color: var(--fg-1); }
+/* Softened white drops under 4.5:1 on these two, so all their text is full white. */
+.phead.tone-blue { --band: var(--band-blue); --band-fg-2: var(--fg-inv-1); --band-fg-3: var(--fg-inv-1); }
+.phead.tone-mint { --band: var(--band-mint); --band-fg-2: var(--fg-inv-1); --band-fg-3: var(--fg-inv-1); }
+.phead.tone-violet { --band: var(--band-violet); }
+.phead.tone-amber { --band: var(--band-amber); --band-fg: #11151a; --band-fg-2: #2a2410; --band-fg-3: #3a3115; }
+.phead.tone-grey { --band: var(--surface-sunken); --band-fg: var(--fg-1); --band-fg-2: var(--fg-2); --band-fg-3: var(--fg-3); }
 /* A mixed set has no section scope, so --sec-fill falls back to ink. */
-.phead.tone-section { background: var(--sec-fill, var(--surface-ink)); }
+.phead.tone-section { --band: var(--sec-fill, var(--surface-ink)); }
 .phead-in {
-  max-width: 1160px; min-height: 208px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) var(--sp-8);
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-10); align-items: end;
+  max-width: 1160px; min-height: 176px; margin: 0 auto; padding: var(--sp-8);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-10); align-items: center;
 }
-.phead-copy { align-self: start; min-width: 0; }
+.phead-copy { min-width: 0; }
 .phead-eyebrow {
-  display: block; min-height: 16px;
-  font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-inv-3);
+  display: block;
+  font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--band-fg-3);
 }
-.phead-t { margin: 8px 0 0; font: var(--type-title); letter-spacing: var(--tr-title); color: var(--fg-inv-1); }
+.phead-eyebrow:empty { display: none; }
+.phead-t { margin: 4px 0 0; font: var(--type-title); letter-spacing: var(--tr-title); color: var(--band-fg); }
 .phead-blue { color: var(--brand-300); }
-.phead-sub { margin: 12px 0 0; max-width: 52ch; font: var(--type-lead); color: var(--fg-inv-2); }
+.phead-sub { margin: var(--sp-2) 0 0; max-width: 52ch; font: var(--type-lead); color: var(--band-fg-2); }
 .phead-aside { min-width: 0; }
-/* Section band (Results): white at fixed alphas, which stay at 5:1 or better
-   on every -700 fill and on ink. */
-.tone-section .phead-eyebrow { color: rgba(255, 255, 255, .75); }
-.tone-section .phead-sub { color: rgba(255, 255, 255, .86); }
 /* Optional slots: a back link above, Bulb beside the copy, chips below it. */
 .phead-in.has-back { row-gap: var(--sp-4); }
 .phead-back { grid-column: 1 / -1; }
 .phead-in.has-media { grid-template-columns: auto minmax(0, 1fr) auto; column-gap: var(--sp-6); }
 .phead-media { align-self: start; padding-top: var(--sp-1); }
 .phead-foot { margin-top: var(--sp-4); }
-/* Quiet buttons and static chips on a coloured or ink band. */
-.shell .phead:not(.tone-grey) .btn.quiet { color: rgba(255, 255, 255, .86); }
-.shell .phead:not(.tone-grey) .btn.quiet:hover:not(:disabled) { background: rgba(255, 255, 255, .12); color: var(--fg-inv-1); }
-.shell .phead:not(.tone-grey) .btn.quiet:active:not(:disabled) { background: rgba(255, 255, 255, .16); }
+/* Quiet buttons and static chips on a band. */
+.shell .phead .btn.quiet { color: var(--band-fg-2); }
+.shell .phead .btn.quiet:hover:not(:disabled) { background: color-mix(in srgb, var(--band-fg) 12%, transparent); color: var(--band-fg); }
+.shell .phead .btn.quiet:active:not(:disabled) { background: color-mix(in srgb, var(--band-fg) 16%, transparent); }
 .shell .tone-section .chip.static { height: 28px; background: rgba(255, 255, 255, .12); border-color: transparent; color: var(--fg-inv-1); }
 .shell .tone-section .chip.static svg { flex: none; width: 14px; height: 14px; }
-.tone-grey .phead-eyebrow { color: var(--fg-3); }
-.tone-grey .phead-t { color: var(--fg-1); }
-.tone-grey .phead-sub { color: var(--fg-2); }
 
-/* The stat strip: one Stat group on ink-2, cells split by hairlines. On the
-   grey band it turns white. */
-.phead .stat-group { background: var(--surface-ink-2); border-color: var(--hair-inv); }
+/* The stat strip: one white Stat group on the band, its own edge under it. */
+.phead .stat-group { box-shadow: 0 4px 0 color-mix(in srgb, #000 22%, transparent); border-color: transparent; }
 /* Cells grow to fit their figure: the aside column is as wide as the strip. */
 .phead .stat-group > .stat { flex: 1 0 auto; min-width: 132px; padding: var(--sp-4) var(--sp-5); }
-.phead .stat-group > .stat + .stat { border-left-color: var(--hair-inv); }
 /* Meter-only cell: label on top, sub at the bottom in line with its
    neighbours' subs, the meter between where their numbers sit. */
 .phead .stat-group > .stat-wide { min-width: 200px; justify-content: space-between; }
 .phead .stat-wide .meter { margin: 0; }
 .phead .stat-wide .stat-sub { order: 1; }
-.phead .stat-l, .phead .stat-sub { color: var(--fg-inv-3); }
-.phead .stat-n, .phead .stat-n small { color: var(--fg-inv-1); }
-.phead .stat .meter { background: rgba(255, 255, 255, .12); }
-.phead .stat .meter-fill { background: var(--brand-300); }
-.phead.tone-grey .stat-group { background: var(--surface); border-color: var(--hair-1); }
-.phead.tone-grey .stat-group > .stat + .stat,
-.phead.tone-grey .stat-group > .stat-wide { border-color: var(--hair-1); }
-.phead.tone-grey :is(.stat-l, .stat-sub, .stat-n small) { color: var(--fg-3); }
-.phead.tone-grey .stat-n { color: var(--fg-1); }
-.phead.tone-grey .stat .meter { background: var(--surface-sunken); }
-.phead.tone-grey .stat .meter-fill { background: var(--brand-600); }
 
 @media (max-width: 819px) {
-  .phead-in { min-height: 0; grid-template-columns: 1fr; gap: var(--sp-5); padding: var(--sp-6) var(--sp-4) var(--sp-5); }
+  .phead-in { min-height: 0; grid-template-columns: 1fr; gap: var(--sp-4); padding: var(--sp-5) var(--sp-4); }
   /* Bulb sits top right beside the eyebrow, title and sub; the copy's box
      dissolves into the grid so the chips and the aside below take the full
      width instead of the column left of Bulb. Spacing comes from margins. */
@@ -327,68 +380,64 @@
   /* The meter cell takes its own full-width row so the figures above keep
      room for their labels. */
   .phead .stat-group:has(> .stat-wide) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .phead .stat-group > .stat + .stat-wide { grid-column: 1 / -1; gap: 8px; border-left: 0; border-top: 1px solid var(--hair-inv); }
+  .phead .stat-group > .stat + .stat-wide { grid-column: 1 / -1; gap: 8px; border-left: 0; border-top: 1px solid var(--hair-1); }
 }
 
-/* ============================================================ buttons (spec 7.4)
-   Noto 600, 8px corners, never a pill; colour changes on hover and press,
-   nothing lifts. Sizes: .sm 32 (.small is its old name), default 40, .lg 48.
-   Variants: .secondary (also the default), .primary, .quiet, .danger,
-   .danger-secondary (the first click of anything destructive), .on-ink and
-   .on-ink-secondary (ink bands, the start bar), .on-colour (white on a
-   section-coloured block). */
+/* ============================================================ buttons
+   Press-down: a solid --edge lip under each button, which collapses as the button
+   drops onto it. Noto 600, 12px corners, never a pill or uppercase. Sizes: .sm 32
+   (.small is its old name), default 40, .lg 48. Variants: .secondary (also the
+   default), .primary, .quiet, .danger, .danger-secondary (the first click of
+   anything destructive), .on-ink and .on-ink-secondary (ink bands, the start
+   bar), .on-colour (white on a section-coloured block). */
 .shell .btn {
+  --edge: var(--hair-edge); --lip: 3px;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 40px; padding: 0 16px; border: 1px solid var(--hair-2); border-radius: var(--rad-sm);
+  min-height: 40px; padding: 0 16px; border: 2px solid var(--hair-2); border-radius: var(--rad-md);
   background: var(--surface); color: var(--fg-1); text-align: center; text-decoration: none; cursor: pointer;
   font: 600 14px/20px var(--sans); letter-spacing: var(--tr-ui);
+  box-shadow: 0 var(--lip) 0 var(--edge);
   transition: background-color var(--dur-fast) var(--ease-std), border-color var(--dur-fast) var(--ease-std),
-    color var(--dur-fast) var(--ease-std), transform var(--dur-instant) linear;
+    color var(--dur-fast) var(--ease-std), transform var(--dur-instant) linear, box-shadow var(--dur-instant) linear;
 }
 .shell .btn svg { flex: none; width: 16px; height: 16px; }
-.shell .btn:is(.sm, .small) { min-height: 32px; padding: 0 12px; font-size: 13px; line-height: 18px; }
-.shell .btn.lg { min-height: 48px; padding: 0 20px; font-size: 15px; line-height: 22px; }
+.shell .btn:is(.sm, .small) { --lip: 2px; min-height: 32px; padding: 0 12px; border-radius: 10px; font-size: 13px; line-height: 18px; }
+.shell .btn.lg { --lip: 4px; min-height: 48px; padding: 0 20px; font-size: 15px; line-height: 22px; }
 
 .shell .btn:hover:not(:disabled) { background: var(--surface-subtle); border-color: var(--hair-ctl); }
-.shell .btn:active:not(:disabled) { background: var(--surface-sunken); }
+.shell .btn:active:not(:disabled) { background: var(--surface-sunken); transform: translateY(var(--lip)); box-shadow: 0 0 0 var(--edge); }
 
 .shell .btn:is(.primary, .on-ink) {
+  --edge: var(--fill-brand-edge);
   background: var(--fill-brand); border-color: var(--fill-brand); color: var(--fg-inv-1);
-  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .18);
 }
 .shell .btn:is(.primary, .on-ink):hover:not(:disabled) { background: var(--fill-brand-hover); border-color: var(--fill-brand-hover); }
-.shell .btn:is(.primary, .on-ink):active:not(:disabled) {
-  background: var(--fill-brand-press); border-color: var(--fill-brand-press); transform: translateY(1px);
-}
+.shell .btn:is(.primary, .on-ink):active:not(:disabled) { background: var(--fill-brand-press); border-color: var(--fill-brand-press); }
 
-.shell .btn.quiet { background: none; border-color: transparent; color: var(--fg-2); }
+.shell .btn.quiet { --lip: 0px; background: none; border-color: transparent; color: var(--fg-2); }
 .shell .btn.quiet:hover:not(:disabled) { background: var(--surface-subtle); border-color: transparent; color: var(--fg-1); }
 .shell .btn.quiet:active:not(:disabled) { background: var(--surface-sunken); }
 
-.shell .btn.danger { background: var(--fill-bad); border-color: var(--fill-bad); color: var(--fg-inv-1); }
+.shell .btn.danger { --edge: var(--fill-bad-edge); background: var(--fill-bad); border-color: var(--fill-bad); color: var(--fg-inv-1); }
 .shell .btn.danger:hover:not(:disabled) { background: var(--bad-800); border-color: var(--bad-800); }
 .shell .btn.danger:active:not(:disabled) { background: var(--bad-900); border-color: var(--bad-900); }
 
-.shell .btn.danger-secondary { border-color: var(--bad-200); color: var(--bad-700); }
+.shell .btn.danger-secondary { --edge: var(--bad-200); border-color: var(--bad-200); color: var(--bad-700); }
 .shell .btn.danger-secondary:is(:hover, :active):not(:disabled) { background: var(--bad-50); border-color: var(--bad-200); }
 
-.shell .btn.on-ink-secondary { background: rgba(255, 255, 255, .06); border-color: var(--hair-inv); color: var(--fg-inv-1); }
+.shell .btn.on-ink-secondary { --edge: rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .06); border-color: var(--hair-inv); color: var(--fg-inv-1); }
 .shell .btn.on-ink-secondary:hover:not(:disabled) { background: rgba(255, 255, 255, .12); border-color: var(--hair-inv); }
 .shell .btn.on-ink-secondary:active:not(:disabled) { background: rgba(255, 255, 255, .16); }
 
-.shell .btn.on-colour { background: var(--surface); border-color: transparent; color: var(--sec-700, var(--fg-1)); }
+.shell .btn.on-colour { --edge: rgba(0, 0, 0, .25); background: var(--surface); border-color: transparent; color: var(--sec-700, var(--fg-1)); }
 .shell .btn.on-colour:hover:not(:disabled) { background: var(--sec-50, var(--surface-subtle)); border-color: transparent; }
-.shell .btn.on-colour:active:not(:disabled) { background: var(--sec-50, var(--surface-subtle)); transform: translateY(1px); }
+.shell .btn.on-colour:active:not(:disabled) { background: var(--sec-50, var(--surface-subtle)); }
 
 /* Disabled last, so it wins over every variant's resting fill. */
-.shell .btn:disabled { color: var(--fg-4); border-color: var(--hair-1); cursor: default; }
-.shell .btn:is(.primary, .danger):disabled {
-  background: var(--surface-sunken); border-color: var(--surface-sunken); box-shadow: none;
-}
+.shell .btn:disabled { color: var(--fg-4); border-color: var(--hair-1); box-shadow: none; cursor: default; }
+.shell .btn:is(.primary, .danger):disabled { background: var(--surface-sunken); border-color: var(--surface-sunken); }
 .shell .btn.quiet:disabled { border-color: transparent; }
-.shell .btn:is(.on-ink, .on-ink-secondary):disabled {
-  background: rgba(255, 255, 255, .08); border-color: transparent; color: var(--fg-inv-3); box-shadow: none;
-}
+.shell .btn:is(.on-ink, .on-ink-secondary):disabled { background: rgba(255, 255, 255, .08); border-color: transparent; color: var(--fg-inv-3); }
 
 /* ============================================================ chips (spec 7.5)
    Filter chips: a 32px pill. On is ink (section colour inside a section).
@@ -396,7 +445,7 @@
 .chips { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
 .shell .chip {
   display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px;
-  border: 1px solid var(--hair-2); border-radius: var(--rad-pill); background: var(--surface);
+  border: 2px solid var(--hair-2); border-radius: var(--rad-pill); background: var(--surface);
   font: var(--type-ui); letter-spacing: var(--tr-ui); color: var(--fg-2); white-space: nowrap; cursor: pointer;
   transition: border-color var(--dur-fast) var(--ease-std), background-color var(--dur-fast) var(--ease-std),
     color var(--dur-fast) var(--ease-std);
@@ -423,10 +472,10 @@
 /* ============================================================ segmented control
    Any single choice: section, order, the Review filter, feedback kind. Also in
    the Feedback dialog when it opens over practice. */
-.seg { display: flex; gap: 2px; padding: 3px; border-radius: var(--rad-sm); background: var(--surface-sunken); }
+.seg { display: flex; gap: 2px; padding: 4px; border-radius: 14px; background: var(--surface-sunken); }
 .seg-b {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 32px; padding: 0 12px;
-  border: 0; border-radius: var(--rad-xs); background: none; cursor: pointer; white-space: nowrap;
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 12px;
+  border: 0; border-radius: 10px; background: none; cursor: pointer; white-space: nowrap;
   font: 600 14px/20px var(--sans); letter-spacing: var(--tr-ui); color: var(--fg-2);
   transition: background-color var(--dur-fast) var(--ease-std), color var(--dur-fast) var(--ease-std);
 }
@@ -475,10 +524,10 @@
 }
 :is(.tone-ink, .startbar2) .sel:hover { border-color: rgba(255, 255, 255, .4); }
 
-/* ============================================================ cards (spec 7.6)
-   Hairline, no shadow. Clickable cards darken their border and take --sh-1 on
-   hover; a selected card gets an inset section-coloured ring and tint. */
-.card { padding: var(--sp-5); border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface); }
+/* ============================================================ cards
+   Chunky: a 2px border with a solid lip under it, no blur. A selected card gets
+   a section-coloured border, lip and tint. */
+.card { padding: var(--sp-5); border: 2px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: 0 3px 0 var(--hair-1); }
 .ico-tile {
   flex: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
   border-radius: var(--rad-sm); background: var(--surface-subtle); color: var(--fg-2);
@@ -489,44 +538,41 @@
 }
 
 /* ============================================================ section panels
-   Home topics, Review and Stats breakdowns: a white panel whose header is a
-   solid block of the section's colour. White text on --sec-600 is 5.24:1 (R&W)
-   and 4.72:1 (Math), so everything in the header stays fully white. */
-.spanel {
-  margin-top: var(--sp-5); padding: 0 var(--sp-6) var(--sp-5);
-  border: 1px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); overflow: hidden;
-}
+   Home topics, Review and Stats breakdowns: a short saturated banner, like a
+   course unit, with the section's content on the page below it, so nothing nests
+   more than one level. The fill does not change with the theme, so white on it
+   stays at 4.7:1 or better. */
+.spanel { margin-top: var(--sp-6); }
 .spanel-h {
-  display: flex; align-items: center; gap: var(--sp-3);
-  margin: 0 calc(var(--sp-6) * -1) var(--sp-5); padding: var(--sp-5) var(--sp-6);
-  background: var(--sec-600); color: var(--fg-inv-1);
+  display: flex; align-items: center; gap: var(--sp-3); margin: 0 0 var(--sp-5); padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--rad-lg); background: var(--sec-600); color: var(--fg-inv-1); box-shadow: 0 4px 0 var(--sec-edge);
 }
 .spanel-ico {
-  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
-  border-radius: var(--rad-sm); background: rgba(255, 255, 255, .18); color: var(--fg-inv-1);
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;
+  border-radius: var(--rad-md); background: rgba(255, 255, 255, .2); color: var(--fg-inv-1);
 }
-.spanel-ico svg { width: 18px; height: 18px; }
+.spanel-ico svg { width: 22px; height: 22px; }
 .spanel-txt { flex: 1; min-width: 0; }
 .spanel-t { margin: 0; font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-inv-1); }
-.spanel-sub { margin: 2px 0 0; font: var(--type-small); color: var(--fg-inv-1); }
+.spanel-sub { margin: 0; font: var(--type-small); color: var(--fg-inv-1); }
 /* Wraps between phrases, never inside one. */
 .spanel-sub > span { white-space: nowrap; }
 .spanel-pct {
-  font: 750 var(--num-s)/1 var(--display); letter-spacing: var(--tr-num-s); color: var(--fg-inv-1);
+  font: 800 28px/1 var(--display); letter-spacing: -.03em; color: var(--fg-inv-1);
   font-variant-numeric: tabular-nums lining-nums;
 }
-.spanel-pct small { margin-left: 2px; font: 600 13px/1 var(--sans); letter-spacing: 0; }
+.spanel-pct small { margin-left: 2px; font: 800 15px/1 var(--display); letter-spacing: 0; }
 @media (max-width: 819px) {
-  .spanel { padding: 0 var(--sp-4) var(--sp-4); }
-  .spanel-h { margin: 0 calc(var(--sp-4) * -1) var(--sp-4); padding: var(--sp-4); }
+  .spanel-h { margin-bottom: var(--sp-4); padding: var(--sp-3) var(--sp-4); }
+  .spanel-t { font-size: 19px; line-height: 24px; }
 }
 
-/* ============================================================ meters (spec 7.7)
-   6px, section colour inside a section, brand light blue elsewhere. A fill is
-   only rendered for a value above zero, and never thinner than 4px. */
-.meter { display: block; height: 6px; border-radius: var(--rad-pill); background: var(--surface-sunken); overflow: hidden; }
+/* ============================================================ meters
+   12px, section colour inside a section, brand light blue elsewhere. A fill is
+   only rendered for a value above zero, and never thinner than its own height. */
+.meter { display: block; height: 12px; border-radius: var(--rad-pill); background: var(--surface-sunken); overflow: hidden; }
 .meter-fill {
-  display: block; height: 100%; min-width: 4px; border-radius: inherit;
+  display: block; height: 100%; min-width: 12px; border-radius: inherit;
   background: var(--sec-500, var(--brand-600)); transition: width var(--dur-data) var(--ease-out);
 }
 
@@ -542,7 +588,7 @@
 .stat-n small { margin-left: 4px; font: 600 14px/1 var(--sans); letter-spacing: 0; color: var(--fg-3); }
 .stat-sub { font: var(--type-small); color: var(--fg-3); }
 .stat .meter { margin-top: 6px; }
-.stat-group { display: flex; border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface); }
+.stat-group { display: flex; border: 2px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: 0 3px 0 var(--hair-1); }
 .stat-group > .stat { flex: 1; padding: var(--sp-4) var(--sp-5); }
 .stat-group > .stat + .stat { border-left: 1px solid var(--hair-1); }
 @media (max-width: 819px) {
@@ -682,7 +728,8 @@ body:has(.startbar2) .toast { bottom: calc(72px + 16px); }
    plus halo. No box-shadow ring: it would wipe the components' own shadows. */
 .shell :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .shell :is(.tone-ink, .startbar2) :focus-visible { outline-color: var(--focus-inv); }
-.shell .hero2 :focus-visible { outline-color: var(--fg-1); }
+.shell .phead :focus-visible { outline-color: var(--band-fg); }
+.shell .hero3 :focus-visible { outline-color: var(--fg-1); }
 .shell .spanel-h :focus-visible { outline-color: var(--fg-inv-1); }
 .shell :where(input:not([type=checkbox], [type=radio], [type=range], [type=hidden]), textarea, select):focus-visible {
   outline: none; border-color: var(--brand-700); box-shadow: var(--focus-ring);
@@ -701,3 +748,20 @@ body:has(.startbar2) .toast { bottom: calc(72px + 16px); }
 .bulb-cheek { fill: var(--rw-200); }
 .bulb-sweat { fill: var(--brand-200); }
 .bulb-ray { fill: none; stroke: var(--streak-500); stroke-width: 4; stroke-linecap: round; }
+.bulb-dot { fill: var(--fg-inv-1); stroke: var(--n-900); stroke-width: 2.4; }
+.bulb-flame { fill: var(--streak-500); }
+.bulbsays { display: flex; align-items: center; gap: var(--sp-4); }
+.bulbsays .bulb { flex: none; }
+/* Bulb saying one short line: a 2px border, like every other card. */
+.bulbsays-t {
+  position: relative; margin: 0; padding: var(--sp-2) var(--sp-3);
+  border: 2px solid var(--hair-2); border-radius: var(--rad-md); background: var(--surface);
+  font: 600 14px/20px var(--sans); color: var(--fg-1);
+}
+.bulbsays-t::before {
+  content: ''; position: absolute; left: -7px; top: 50%; width: 10px; height: 10px; margin-top: -5px;
+  background: var(--surface); border-left: 2px solid var(--hair-2); border-bottom: 2px solid var(--hair-2);
+  transform: rotate(45deg);
+}
+/* One short pop for a choice or a win. The global reduced-motion rule ends it at once. */
+@keyframes pop { 40% { transform: scale(1.04); } }

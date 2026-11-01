@@ -26,12 +26,13 @@ import { useDeepLinks, useRoute } from './lib/useRoute'
 import type { Filters, SetItem } from './types'
 
 /**
- * What a lazy page shows while its chunk loads: nothing, so a fast load does
- * not flash a placeholder. Unmounting is the moment the page has arrived.
+ * What a lazy page shows while its chunk loads: the shape of a band, faded in
+ * after a beat so a fast load does not flash it. Unmounting is the moment the
+ * page has arrived.
  */
 function PageWait({ onDone }: { onDone: () => void }) {
   useEffect(() => onDone, [onDone])
-  return <div aria-busy="true" />
+  return <div className="pagewait" aria-busy="true" />
 }
 
 export default function App() {
@@ -256,7 +257,7 @@ export default function App() {
     home: () => (
       <Home taxonomy={taxonomy} taxonomyLoading={taxonomyLoading} onRetryBoot={retryBoot}
             facet={list.facet}
-            stats={stats} history={attemptLog} value={filters} items={items}
+            history={attemptLog} value={filters} items={items}
             findIds={api.findByCbId} onOpenId={practiceOne}
             loading={list.listLoading} onChange={setFilters}
             onOpen={(i) => { setIndex(i); navigate('practice') }}

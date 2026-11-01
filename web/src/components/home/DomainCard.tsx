@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Icon } from '../Icon'
+import { Modal } from '../Modal'
 import { fmt, progressPct, srTally } from '../../lib/labels'
 import type { ProcessTypes } from '../../lib/similar'
-import type { DomainTally } from '../../lib/taxonomy'
+import type { DomainTally, SkillTally } from '../../lib/taxonomy'
 import { SkillTypes } from './SkillTypes'
 
 /** What the topic picker shows as ticked and how it reports a tick. Home owns the maths. */
@@ -29,55 +31,72 @@ export function Prog({ seen, n }: { seen: number; n: number }) {
   return <span className="acc prog" aria-hidden="true">{progressPct(seen, n)}%</span>
 }
 
-/** One domain: a checkbox for the whole of it, then a checkbox per skill. */
+/** One skill: the tile ticks it; the link under it narrows it to question types. */
+function SkillTile({ s, picks, onTypes }: { s: SkillTally; picks: TopicPicks; onTypes: () => void }) {
+  const { ticked, facetCounts, facetWord, pt, types, onSkill } = picks
+  const on = ticked.has(s.code)
+  const left = facetCounts ? facetCounts.get(s.code) ?? 0 : null
+  const all = pt?.types[s.code]
+  const total = all ? Object.keys(all).length : 0
+  const picked = types?.filter((r) => r.startsWith(`${s.code}.`)).length ?? 0
+  return (
+    <li className={on ? 'sktile on' : 'sktile'}>
+      <button className="sktile-main" role="checkbox" aria-checked={on} onClick={() => onSkill(s.code)}>
+        <span className="sktile-t">{s.name}</span>
+        <span className={`box round is-${on ? 'on' : 'off'}`}>
+          <Icon name="check" size={13} strokeWidth={3.2} />
+        </span>
+        <span className="sktile-m" aria-hidden="true">
+          {fmt(s.seen)} of {fmt(s.n)}
+          {left !== null ? <span className="sktile-f"> · {fmt(left)} {facetWord}</span> : null}
+        </span>
+        <span className="sr-only">{srTally(s.seen, s.n)}{left !== null ? `, ${fmt(left)} ${facetWord}` : ''}</span>
+        <span className="skbar" aria-hidden="true">
+          <span style={{ transform: `scaleX(${s.n ? s.seen / s.n : 0})` }} />
+        </span>
+      </button>
+      {total ? (
+        <button className="sktile-types" onClick={onTypes}>
+          <span><span className="sr-only">{s.name}: </span>{picked ? `${picked} of ${total} question types` : `${total} question types`}</span>
+          <Icon name="chevron-right" size={14} strokeWidth={2.4} />
+        </button>
+      ) : null}
+    </li>
+  )
+}
+
+/** One domain: its name, a checkbox for the whole of it, then a tile per skill. */
 export function DomainCard({ d, picks }: { d: DomainTally; picks: TopicPicks }) {
-  const { ticked, facetCounts, facetWord, onDomain, onSkill } = picks
+  const { ticked, onDomain, onSkill } = picks
+  /** The skill whose question types are open. Here, not in the tile, whose pop animation would trap a fixed dialog. */
+  const [typesOf, setTypesOf] = useState<SkillTally | null>(null)
   const on = d.skills.filter((s) => ticked.has(s.code)).length
   const state = on === 0 ? 'off' : on === d.skills.length ? 'on' : 'mixed'
   return (
-    <article className={`dcard is-${state}`}>
-      <button className="dcard-h" onClick={() => onDomain(d)}
-              role="checkbox" aria-checked={state === 'mixed' ? 'mixed' : state === 'on'}>
-        <span className={`box is-${state}`}><Icon name="check" size={12} strokeWidth={3} /></span>
-        <span className="dcard-t">{d.name}</span>
-        <span className="dcard-stat">
-          {/* Compact on screen; spelled out for screen readers. */}
-          <span aria-hidden="true">{fmt(d.seen)}/{fmt(d.n)}</span>
-          <Prog seen={d.seen} n={d.n} />
-          <span className="sr-only">{srTally(d.seen, d.n)}</span>
-        </span>
-      </button>
-      <span className="dmeter" aria-hidden="true">
-        <span style={{ transform: `scaleX(${d.n ? d.seen / d.n : 0})` }} />
-      </span>
-      <ul className="sklist">
-        {d.skills.map((s) => {
-          const sOn = ticked.has(s.code)
-          const left = facetCounts ? facetCounts.get(s.code) ?? 0 : null
-          return (
-            <li key={s.code}>
-              <button className={sOn ? 'skrow on' : 'skrow'} role="checkbox" aria-checked={sOn}
-                      onClick={() => onSkill(s.code)}>
-                <span className={`box sm is-${sOn ? 'on' : 'off'}`}>
-                  <Icon name="check" size={10} strokeWidth={3.2} />
-                </span>
-                <span className="skrow-name">{s.name}</span>
-                <span className="skrow-end">
-                  {left !== null ? <span className="skrow-f">{fmt(left)} {facetWord}</span> : null}
-                  {/* Compact on screen; spelled out for screen readers below. */}
-                  <span className="skrow-n" aria-hidden="true">{fmt(s.seen)}/{fmt(s.n)}</span>
-                  <Prog seen={s.seen} n={s.n} />
-                </span>
-                <span className="sr-only">{srTally(s.seen, s.n)}</span>
-                <span className="skbar" aria-hidden="true">
-                  <span style={{ transform: `scaleX(${s.n ? s.seen / s.n : 0})` }} />
-                </span>
-              </button>
-              {sOn ? <SkillTypes skill={s} picks={picks} /> : null}
-            </li>
-          )
-        })}
+    <section className="dgroup" aria-label={d.name}>
+      <header className="dgroup-h">
+        <h4 className="dgroup-t">{d.name}</h4>
+        <span className="dgroup-n" aria-hidden="true">{fmt(d.seen)} of {fmt(d.n)}</span>
+        <span className="sr-only">{srTally(d.seen, d.n)}</span>
+        <button className="dgroup-all" onClick={() => onDomain(d)}
+                role="checkbox" aria-checked={state === 'mixed' ? 'mixed' : state === 'on'}
+                aria-label={`Select all of ${d.name}`}>
+          <span className={`box is-${state}`}><Icon name="check" size={12} strokeWidth={3} /></span>
+          Select all
+        </button>
+      </header>
+      <ul className="sktiles">
+        {d.skills.map((s) => (
+          <SkillTile key={s.code} s={s} picks={picks}
+                     onTypes={() => { if (!ticked.has(s.code)) onSkill(s.code); setTypesOf(s) }} />
+        ))}
       </ul>
-    </article>
+      {typesOf ? (
+        <Modal title={typesOf.name} className="types-sheet" onClose={() => setTypesOf(null)}
+               footer={<button type="button" className="btn primary" onClick={() => setTypesOf(null)}>Done</button>}>
+          <SkillTypes skill={typesOf} picks={picks} />
+        </Modal>
+      ) : null}
+    </section>
   )
 }

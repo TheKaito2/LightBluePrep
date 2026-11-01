@@ -1,17 +1,17 @@
 /**
  * The flat band at the top of every page except Home, which keeps its own
- * light hero. Three tones, each with a job: ink for the content pages, grey
- * for Settings so it reads apart from About, and section for a finished
- * set (its --sec-700, or ink when the set mixes sections).
+ * hero. One colour per page; `ink` for About and the inbox, `grey` for
+ * Settings, and `section` for a finished set (its --sec-fill, or ink when the
+ * set mixes sections).
  *
  * The aside is the stat strip: one <StatGroup> of <Stat size="l"> cells.
- * Results also uses `back` (a link above everything), `media` (Bulb beside
- * the copy) and `foot` (chips under the sub).
+ * Results also uses `back` (a link above everything) and `foot` (chips under
+ * the sub). `media` is Bulb, beside the copy.
  */
 import type { ReactNode } from 'react'
 import type { Section } from '../types'
 
-export type Tone = 'ink' | 'grey' | 'section'
+export type Tone = 'ink' | 'grey' | 'section' | 'blue' | 'mint' | 'amber' | 'violet'
 
 export function PageHead({ tone, section, eyebrow, title, sub, back, media, foot, children }: {
   tone: Tone
@@ -32,9 +32,7 @@ export function PageHead({ tone, section, eyebrow, title, sub, back, media, foot
         {back ? <div className="phead-back">{back}</div> : null}
         {media ? <div className="phead-media">{media}</div> : null}
         <div className="phead-copy">
-          {/* The eyebrow line is always there, empty or not, so the title sits
-              at the same height on every tab. */}
-          <span className="phead-eyebrow" aria-hidden={eyebrow ? undefined : true}>{eyebrow}</span>
+          {eyebrow ? <span className="phead-eyebrow">{eyebrow}</span> : null}
           <h1 className="phead-t" tabIndex={-1}>{title}</h1>
           {sub ? <p className="phead-sub">{sub}</p> : null}
           {foot ? <div className="phead-foot">{foot}</div> : null}

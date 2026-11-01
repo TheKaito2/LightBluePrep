@@ -9,6 +9,7 @@
  */
 import { useEffect, useId, useMemo, useState } from 'react'
 import * as api from '../api'
+import { BulbSays } from './Mascot'
 import { Modal } from './Modal'
 import { Segmented } from './Segmented'
 import { TARGETS, daysUntil, shortDate, type Goal } from '../lib/goal'
@@ -26,6 +27,17 @@ const WEEKDAYS = [
   { n: 1, short: 'Mon' }, { n: 2, short: 'Tue' }, { n: 3, short: 'Wed' }, { n: 4, short: 'Thu' },
   { n: 5, short: 'Fri' }, { n: 6, short: 'Sat' }, { n: 0, short: 'Sun' },
 ]
+
+/** What Bulb says on each step; the question itself stays with its field. */
+const BULB_LINE: Record<string, string> = {
+  what: "Let's set this up. It takes a minute.",
+  date: 'First, the big day.',
+  target: 'Aim high. You can change it later.',
+  days: 'Be honest about your week.',
+  start: 'So I know where to begin.',
+  focus: 'Almost done.',
+  preview: "Here's your plan.",
+}
 
 /** A test more than this far out is not planned day by day (and keeps the plan a sane size). */
 const MAX_DAYS = 400
@@ -165,13 +177,15 @@ export function PlanWizard({ mode, goal, skills, domains, estimate, onClose, onS
                </button>
              </>
            )}>
-      <p className="wiz-step" aria-live="polite">Step {at + 1} of {steps.length}</p>
+      <p className="sr-only" aria-live="polite">Step {at + 1} of {steps.length}</p>
+      <span className="wiz-prog" aria-hidden="true"><span style={{ width: `${((at + 1) / steps.length) * 100}%` }} /></span>
+      <BulbSays size={48} mood={step === 'preview' ? 'cheer' : 'neutral'}>{BULB_LINE[step]}</BulbSays>
 
       {step === 'what' ? (
         <Segmented legend="What should the plan do?" value={goalMode} onChange={setGoalMode}
                    options={[
                      { value: 'cover', label: 'Clear every question' },
-                     { value: 'skills', label: 'Practise my weak skills' },
+                     { value: 'skills', label: 'Practice my weak skills' },
                    ]}
                    hint={goalMode === 'cover'
                      ? `Every question you have not answered${bank ? ` (${bank.total.toLocaleString()})` : ''}, type by type, spread over your days.`

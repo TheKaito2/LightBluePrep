@@ -13,9 +13,6 @@ export function SectionPanel({ sec, tally, domains, picks }: {
   picks: TopicPicks
 }) {
   const covered = progressPct(tally.seen, tally.n)
-  // Two fixed columns rather than CSS columns: a card that opens its question
-  // types only pushes the cards under it, never hops to the other column.
-  const half = Math.ceil(domains.length / 2)
   return (
     <section className={`spanel sec-${sec}`} aria-labelledby={`spanel-${sec}`}>
       <header className="spanel-h">
@@ -30,12 +27,8 @@ export function SectionPanel({ sec, tally, domains, picks }: {
           {covered}<small>%</small><span className="sr-only"> covered</span>
         </span>
       </header>
-      <div className="dgrid">
-        {[domains.slice(0, half), domains.slice(half)].map((col, i) => (
-          <div className="dcol" key={i}>
-            {col.map((d) => <DomainCard key={d.code} d={d} picks={picks} />)}
-          </div>
-        ))}
+      <div className="dstack">
+        {domains.map((d) => <DomainCard key={d.code} d={d} picks={picks} />)}
       </div>
     </section>
   )

@@ -91,6 +91,7 @@ export function TopNav({ view, navigate }: { view: View; navigate: (next: View) 
                   onPointerEnter={() => prefetchPage('settings')}
                   onFocus={() => prefetchPage('settings')}>
             <Icon name="gear" size={20} strokeWidth={2} />
+            <span className="navicon-t">Settings</span>
           </button>
           <GithubLink />
           <SupportLink />

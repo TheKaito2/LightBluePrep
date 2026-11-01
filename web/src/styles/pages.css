@@ -69,8 +69,8 @@
 }
 .about .about-block {
   break-inside: avoid; display: inline-block; width: 100%;
-  margin-bottom: var(--sp-4); padding: var(--sp-6); border: 1px solid var(--hair-1); border-radius: var(--rad-md);
-  background: var(--surface);
+  margin-bottom: var(--sp-4); padding: var(--sp-6); border: 2px solid var(--hair-1); border-radius: var(--rad-lg);
+  background: var(--surface); box-shadow: 0 3px 0 var(--hair-1);
 }
 .about .about-h2 { margin: 0 0 var(--sp-3); padding: 0; border: 0; }
 @media (max-width: 819px) {
@@ -103,7 +103,7 @@
 .about-steps {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0 0 var(--sp-5); padding: 0; list-style: none;
-  border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface);
+  border: 2px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: 0 3px 0 var(--hair-1);
 }
 .about-steps li { min-width: 0; padding: var(--sp-5); }
 .about-steps li + li { border-left: 1px solid var(--hair-1); }
@@ -114,7 +114,7 @@
 /* Closing action card: one primary, one secondary, side by side. */
 .about-actions {
   display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin-top: var(--sp-2);
-  border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface);
+  border: 2px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: 0 3px 0 var(--hair-1);
 }
 .about-action { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-6); }
 .about-action + .about-action { border-left: 1px solid var(--hair-1); }
@@ -145,7 +145,7 @@
    nothing, so neither fills a card any more. */
 .rcard {
   display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-6);
-  border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface);
+  border: 2px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: 0 3px 0 var(--hair-1);
 }
 .rcard-top { display: flex; align-items: center; gap: var(--sp-4); }
 .rcard-ico {
@@ -171,7 +171,7 @@
 }
 .rcard-what { margin: 0; font: var(--type-body); color: var(--fg-2); }
 .rcard-take { margin: 0; padding: var(--sp-4); border-radius: var(--rad-sm); background: var(--surface-subtle); }
-.rcard-take figcaption { font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3); }
+.rcard-take figcaption { font: 600 13px/18px var(--sans); color: var(--fg-3); }
 .rcard-take blockquote { margin: 6px 0 0; font: var(--type-body); color: var(--fg-2); }
 /* One step darker than --fg-link: it sits on --surface-subtle, where the
    usual link blue falls just under 4.5:1. */
@@ -185,7 +185,7 @@
 /* The way back into practice, under the cards. */
 .res-next {
   grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-6);
-  padding: var(--sp-6); border-radius: var(--rad-md); background: var(--surface-subtle);
+  padding: var(--sp-6); border-radius: var(--rad-lg); background: var(--surface-subtle);
 }
 .res-next h2 { margin: 0; font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-1); }
 .res-next p { margin: var(--sp-1) 0 0; font: var(--type-body); color: var(--fg-2); }
@@ -228,14 +228,14 @@
 @media (max-width: 819px) {
   .phead .stat-group.inbox-strip { display: grid; grid-template-columns: 1fr 1fr; }
   .phead .stat-group.inbox-strip > .stat:nth-child(3) { border-left: 0; }
-  .phead .stat-group.inbox-strip > .stat:nth-child(n+3) { border-top: 1px solid var(--hair-inv); }
+  .phead .stat-group.inbox-strip > .stat:nth-child(n+3) { border-top: 1px solid var(--hair-1); }
 }
 .inbox-purge { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 12px; font: var(--type-small); color: var(--fg-3); }
 .inbox-purge .sel.inbox-span { height: 32px; margin-left: 4px; padding-right: 32px; font: var(--type-small); }
 .inbox-older { margin-top: 16px; }
 .inbox-seg { display: inline-flex; margin: 16px 0 6px; }
 .inbox-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.inbox-item { border: 1px solid var(--hair-1); border-radius: var(--rad-md); padding: 14px 16px; background: var(--surface); }
+.inbox-item { border: 2px solid var(--hair-1); border-radius: var(--rad-lg); padding: var(--sp-4); background: var(--surface); box-shadow: 0 3px 0 var(--hair-1); }
 .inbox-item.is-done { opacity: .62; }
 .inbox-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font: var(--type-small); color: var(--fg-3); }
 .inbox-kind { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--rad-pill); font: var(--type-badge); }

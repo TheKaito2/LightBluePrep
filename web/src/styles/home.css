@@ -17,7 +17,7 @@
 @media (max-width: 819px), (max-height: 500px) and (orientation: landscape) {
   .home { flex: 1 0 auto; overflow: visible; scroll-padding-bottom: 0; }
 }
-.hwrap { flex: 1 0 auto; width: 100%; max-width: 1160px; margin: 0 auto; padding: var(--sp-10) var(--sp-8) var(--sp-12); }
+.hwrap { flex: 1 0 auto; width: 100%; max-width: 1240px; margin: 0 auto; padding: var(--sp-6) var(--sp-8) var(--sp-16); }
 /* Field and list labels: small, semibold, sentence case. */
 .side-t { margin: 0 0 var(--sp-2); font: 600 13px/18px var(--sans); color: var(--fg-2); }
 .link {
@@ -26,44 +26,28 @@
 }
 .link:hover { color: var(--fg-link-hover); text-decoration: underline; }
 
-/* ---- hero band (spec 8.1) ----
-   Light brand fill, one Bulb, a real primary action and one score card.
-   overflow: clip stops anything wide from making the band a scroll box (a
-   focused input can otherwise scroll it sideways on phones) while letting the
-   ID results hang below it. Behind @supports, since minifiers drop a plain
-   hidden-then-clip pair down to the last one. */
-.hero2 {
-  position: relative; overflow: hidden; flex: none; z-index: 2;
-  background: var(--surface-hero); border-bottom: 1px solid var(--brand-200);
+/* ---- hero: Bulb, one bold line, the ID search ----
+   Slim on purpose: the topics start on the first screen. Its z-index keeps the
+   ID results over the topics below. brand-700 on the tint is 3.84:1, allowed
+   only because the highlight is large bold type (36px, 26px on a phone). */
+.hero3 {
+  position: relative; flex: none; z-index: 2;
+  background: var(--surface-hero); border-bottom: 2px solid var(--brand-200);
 }
-/* A brand-200 line is a glare stripe under the dark hero. */
-:root[data-theme=dark] .hero2 { border-bottom-color: var(--hair-1); }
-.hero2-in {
-  max-width: 1160px; margin: 0 auto; padding: var(--sp-16) var(--sp-8);
-  display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--sp-12); align-items: center;
+:root[data-theme=dark] .hero3 { border-bottom-color: var(--hair-1); }
+.hero3-in {
+  max-width: 1240px; margin: 0 auto; padding: var(--sp-5) var(--sp-8);
+  display: flex; align-items: center; gap: var(--sp-4);
 }
-.hero2-copy { position: relative; min-width: 0; }
-/* Small text on the light-blue hero is brand-800: brand-700 is under 4.5:1 there. */
-.hero2-eyebrow {
-  display: block; font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--brand-800);
-}
-.hero2-t { margin: var(--sp-3) 0 0; font: var(--type-display); letter-spacing: var(--tr-display); color: var(--fg-1); }
-.hero2-t:focus { outline: none; }
-/* brand-700 is 3.84:1 on brand-100: allowed only because this is 40px and up. */
-.hero2-hl { color: var(--brand-700); }
-@supports (overflow: clip) { .hero2 { overflow: clip visible; } }
-/* Level with the headline, clear of its longest line. */
-.hero2-bulb { position: absolute; top: 20px; right: 0; }
-.hero2-sub { margin: var(--sp-4) 0 0; max-width: 44ch; font: var(--type-lead); color: var(--fg-2); }
-.hero2 .phone { display: none; }
-.hero2-go { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-8); }
-.shell .hero2-main { min-width: 0; max-width: 100%; }
-.shell .hero2-main .hero2-main-n { margin-left: -4px; }
-.hero2-main-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hero2-main-n { flex: none; font-variant-numeric: tabular-nums; }
+.hero3-bulb { flex: none; }
+.hero3-copy { flex: 1; min-width: 0; }
+.hero3-t { margin: 0; font: 800 36px/40px var(--display); letter-spacing: var(--tr-title); color: var(--fg-1); }
+.hero3-t:focus { outline: none; }
+.hero3-hl { color: var(--brand-700); }
+.hero3-sub { margin: 2px 0 0; font: var(--type-body); color: var(--fg-2); }
 
 /* ---- ID search (spec 7.8): a real input, results as a popover ---- */
-.qsearch-f { position: relative; max-width: 440px; margin-top: var(--sp-8); }
+.qsearch-f { position: relative; flex: 0 0 320px; min-width: 0; }
 .qsearch-l { display: block; margin-bottom: 6px; font: 600 13px/18px var(--sans); color: var(--fg-2); }
 .qsearch {
   display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 var(--sp-3) 0 var(--sp-4);
@@ -116,19 +100,47 @@
 .lvl.d-M { color: var(--warn-700); background: var(--warn-50); }
 .lvl.d-H { color: var(--bad-700); background: var(--bad-50); }
 
-/* ---- score card (right side of the hero) ---- */
+/* ---- the rail: next step, streak, score, bank ----
+   One rhythm: cards 16 apart, 20 inside, 12 between their parts, one title size. */
+.hlayout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--sp-8); align-items: start; }
+.hlayout.solo { grid-template-columns: minmax(0, 1fr); }
+.hmain { min-width: 0; }
+/* Sticks while the much longer topic column scrolls. */
+.hrail { position: sticky; top: var(--sp-6); display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.hcompact { display: none; }
+
+.nextup {
+  display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-5);
+  border-radius: var(--rad-lg); background: var(--band-blue); color: var(--fg-inv-1);
+  box-shadow: 0 4px 0 var(--fill-brand-edge);
+}
+.nextup-txt { min-width: 0; }
+.nextup-l { display: block; font: 600 13px/18px var(--sans); color: var(--fg-inv-1); }
+.nextup-t { margin: 2px 0 0; font: 800 20px/26px var(--display); letter-spacing: var(--tr-h2); color: var(--fg-inv-1); }
+.nextup-m { margin: 2px 0 0; font: var(--type-small); color: var(--fg-inv-1); font-variant-numeric: tabular-nums; }
+.shell .nextup-go { flex: none; }
+.nextup-alt {
+  align-self: flex-start; padding: 0; border: 0; background: none; cursor: pointer; text-align: left;
+  font: 600 13px/18px var(--sans); color: var(--fg-inv-1); text-decoration: underline; text-underline-offset: 3px;
+}
+.shell .nextup :focus-visible { outline-color: var(--fg-inv-1); }
+
+.scard-wrap { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.railc {
+  display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; padding: var(--sp-5);
+  border: 2px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: 0 3px 0 var(--hair-1);
+}
+.railc-t { margin: 0; font: 800 17px/22px var(--display); letter-spacing: var(--tr-h3); color: var(--fg-1); }
+.railc-sub { margin: 2px 0 0; font: var(--type-small); color: var(--fg-3); }
+/* The score is the largest thing in a 320px rail, not 72px across a hero. */
 .scard {
-  display: flex; flex-direction: column; gap: var(--sp-5); min-width: 0; padding: var(--sp-8);
-  border: 1px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: var(--sh-2);
-  /* Between 820px and about 1140px the card's column is too narrow for three
-     footer cells side by side: see the @container rule further down. */
+  --num-xl: 48px;
+  /* Narrow columns drop the sparkline and the long section names: see @container below. */
   container-type: inline-size;
 }
+
 .scard-top { display: flex; align-items: center; gap: var(--sp-2); min-height: 22px; }
-.scard-l {
-  font: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--fg-3);
-}
-.scard-mid { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-4); margin-top: -8px; }
+.scard-mid { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-4); }
 .scard-big {
   display: flex; align-items: baseline; flex: none;
   font: 800 var(--num-xl)/1 var(--display); letter-spacing: var(--tr-num-xl);
@@ -150,28 +162,18 @@
 /* The target: a dashed hairline, quieter than the line it measures. */
 .spark-target { fill: none; stroke: var(--fg-4); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
 
-/* Goal (G-02): target and countdown on one wrapping line under the figure. */
-.scard-goal { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--sp-4); margin-top: -4px; }
+/* Goal (G-02): target and countdown on one wrapping line. */
+.scard-goal { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--sp-4); }
 .scard-goal-i {
   display: inline-flex; align-items: center; gap: 6px;
   font: 600 13px/18px var(--sans); color: var(--fg-2); font-variant-numeric: tabular-nums;
 }
 .scard-goal-i svg { flex: none; color: var(--fg-3); }
-.scard-goal-edit { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; }
+.scard-goal-edit { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; text-align: left; }
 .scard-goal-i + .scard-goal-edit { margin-left: auto; }
-.scard-lock .scard-goal { margin-top: var(--sp-2); }
+.shell .scard-go { align-self: stretch; }
 
-.scard-lock { display: flex; align-items: flex-start; gap: var(--sp-3); }
-.scard-lock-ico {
-  flex: none; width: 32px; height: 32px; border-radius: var(--rad-sm);
-  display: inline-flex; align-items: center; justify-content: center;
-  background: var(--surface-subtle); color: var(--fg-2);
-}
-.scard-lock-t { margin: 0; font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-1); }
-.scard-lock-sub { margin: 2px 0 0; font: var(--type-small); color: var(--fg-3); }
-.shell .scard-go { align-self: flex-start; }
-
-.secscores { display: flex; flex-direction: column; gap: 10px; }
+.secscores { display: flex; flex-direction: column; gap: var(--sp-2); }
 .secscore { display: grid; grid-template-columns: 136px minmax(0, 1fr) auto; align-items: center; gap: var(--sp-3); }
 .secscore-l { font: 600 13px/18px var(--sans); color: var(--sec-700); }
 /* A label with a long and a short spelling; the short one shows where space runs out. */
@@ -182,162 +184,135 @@
   min-width: 3ch; text-align: right; font: 750 var(--num-s)/1 var(--display); letter-spacing: var(--tr-num-s);
   color: var(--sec-700); font-variant-numeric: tabular-nums lining-nums;
 }
-.secscore-count { font: 600 13px/18px var(--sans); color: var(--sec-700); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.secscore-count { font: 600 13px/18px var(--sans); color: var(--fg-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
 
-/* Footer: three Stat cells split by hairlines, inside the card rather than a
-   box of their own. The streak cell is sized by its seven dots. */
-.scard-stats {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
-  margin-top: var(--sp-1); padding-top: var(--sp-4); border-top: 1px solid var(--hair-1);
+/* The streak: what it is in words, a flame beside it, then the week. */
+.streak-h { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); }
+.streak-txt { min-width: 0; }
+.streak-ico {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;
+  border-radius: var(--rad-md); background: var(--streak-100); color: var(--streak-500);
 }
-.scard-stats > .stat { padding: 0 var(--sp-4); }
-.scard-stats > .stat:first-child { padding-left: 0; }
-.scard-stats > .stat:last-child { padding-right: 0; }
-.scard-stats > .stat + .stat { border-left: 1px solid var(--hair-1); }
-.scard-stats .stat-n { display: inline-flex; align-items: baseline; }
-.scard-stats .stat-n small { font-size: 13px; }
-.st-streak .stat-n svg { align-self: center; margin-right: 4px; color: var(--streak-500); }
-.st-streak.none .stat-n svg { color: var(--fg-4); }
-/* Daily goal: the flame inside a ring of today's answers. The ring is 28px,
-   so the figure's line keeps its height. */
-.st-ring {
-  position: relative; flex: none; align-self: center; width: 28px; height: 28px; margin: -4px 6px -4px 0;
-  display: inline-flex; align-items: center; justify-content: center; color: var(--streak-500);
-}
-.st-streak .stat-n .st-ring > svg:first-child { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; transform: rotate(-90deg); }
-.st-streak .stat-n .st-ring > svg + svg { margin: 0; }
+.streak.none .streak-ico { background: var(--surface-sunken); color: var(--fg-4); }
+/* Daily goal: the flame inside a ring of today's answers. */
+.st-ring { position: relative; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+.st-ring > svg:first-child { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
 .st-ring circle { fill: none; stroke-width: 3; }
-.st-ring-track { stroke: var(--surface-sunken); }
+.st-ring-track { stroke: var(--surface); }
 .st-ring-fill { stroke: var(--streak-500); stroke-linecap: round; transition: stroke-dashoffset var(--dur-data) var(--ease-out); }
 .st-ring.met .st-ring-fill { stroke-linecap: butt; }
-.st-remind { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; margin-top: 4px; white-space: nowrap; }
-/* The label row carries the streak's Share button; the 32px button hangs into
-   the gap around the 16px label rather than pushing the figure down. */
-.st-top { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); height: 16px; }
-.shell .btn.st-share { margin: -8px -6px -8px 0; color: var(--fg-3); }
-.days { list-style: none; display: flex; gap: 2px; margin: 4px 0 0; padding: 0; }
-/* Letters are 11px here, the one exception to the 12px floor (spec 4). */
-.day {
-  width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-  font: 600 12px/1 var(--sans); color: var(--fg-3); background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--hair-2);
+
+.days { list-style: none; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 0; padding: 0; }
+.day { display: flex; flex-direction: column; align-items: center; gap: var(--sp-1); }
+.day-c {
+  width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-sunken); color: var(--surface-ink);
 }
-/* Ink letters on the orange dot: white there is 2.83:1. */
-.day > [aria-hidden] { font-size: 11px; }
-.day.on { background: var(--streak-500); color: var(--surface-ink); box-shadow: none; }
-.at-risk .day.today { box-shadow: 0 0 0 2px var(--streak-500); }
-.streak-risk { max-width: 152px; margin-top: 2px; color: var(--streak-700); }
-.scard-note { margin: var(--sp-3) 0 0; font: var(--type-small); color: var(--fg-3); }
-/* Between 820px and about 1140px the card's column is too narrow for three
-   footer cells side by side: the streak takes its own row. Phones keep one
-   row (their cells are tighter and the fold matters more there). */
-@media (min-width: 820px) {
-  @container (max-width: 360px) {
-    .scard-stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: var(--sp-4); }
-    .scard-stats > .st-streak { grid-column: 1 / -1; padding: 0 0 var(--sp-4); border-bottom: 1px solid var(--hair-1); }
-    .scard-stats > .st-streak + .stat { padding-left: 0; border-left: 0; }
-  }
-  @container (max-width: 340px) {
-    /* No room beside the 72px figure; the delta chip still carries the trend. */
-    .scard .spark { display: none; }
-  }
-  @container (max-width: 300px) {
-    .secscore { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; }
-    .secscore-l .long { display: none; }
-    .secscore-l .short { display: inline; }
-  }
+/* An ink check on the orange circle: white there is 2.83:1. */
+.day.on .day-c { background: var(--streak-500); }
+.day.today:not(.on) .day-c { background: none; box-shadow: inset 0 0 0 2px var(--hair-ctl); }
+.at-risk .day.today:not(.on) .day-c { box-shadow: inset 0 0 0 2px var(--streak-700); }
+.day-l { font: 600 12px/16px var(--sans); color: var(--fg-3); }
+.day.today .day-l { color: var(--fg-1); }
+.streak-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.st-remind, .st-sharelink { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; white-space: nowrap; }
+.scard-note { margin: 0; font: var(--type-small); color: var(--fg-3); }
+
+/* Under about 320px of card the section rows take their short names and the
+   sparkline goes; the delta chip still carries the trend. */
+@container (max-width: 320px) {
+  .scard .spark { display: none; }
+  .secscore { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 10px; }
+  .secscore-l .long { display: none; }
+  .secscore-l .short { display: inline; }
 }
 
-/* ---- sets in progress: right under the hero, before the topics ---- */
-.hwrap:has(> .qsets) { padding-top: var(--sp-6); }
-.qsets { margin-bottom: var(--sp-12); }
-.qsets-t { margin: 0 0 var(--sp-3); font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
+/* Under 1280px the sidebar leaves too little for a rail: one column, next step
+   and numbers on top, the full cards under the topics in a row of their own. */
+@media (max-width: 1279px) {
+  .hlayout { grid-template-columns: minmax(0, 1fr); }
+  .hrail { position: static; margin-top: var(--sp-4); }
+  .hrail > .nextup { display: none; }
+  .scard-wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
+  .hcompact { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-4); margin-bottom: var(--sp-6); }
+  .hcompact .nextup { flex-direction: row; align-items: center; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-4); }
+  .hcompact .nextup-txt { flex: 1; }
+  .qrow { align-items: stretch; }
+  .qrow > .stat { justify-content: center; min-width: 0; }
+}
+
+/* ---- sets in progress: after the topics; the rail's next step resumes the latest ---- */
+.qsets { margin-top: var(--sp-8); }
+.qsets-t { margin: 0 0 var(--sp-3); font: var(--type-h2); letter-spacing: var(--tr-h2); color: var(--fg-1); }
 .qsets-more { margin-top: var(--sp-2); }
 
 /* ---- topics ----
    The October 2026 overhaul made this a white panel with a solid header; the
    tinted panel holding white cards came back on request. Review and Stats keep
    the solid header from shell.css, so the panel rules here sit under .home. */
-.topics-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-4) var(--sp-6); margin-bottom: var(--sp-5); }
-.topics-title { min-width: 0; }
-.home .topics-head .h1-section { font: 800 48px/1 var(--display); letter-spacing: -.045em; }
-.topics-sub { margin: var(--sp-2) 0 0; font: 400 14.5px/20px var(--sans); color: var(--fg-3); }
-.topics-sub .link { font: inherit; font-weight: 600; }
-/* Section switch: pills, ink when on, the section's colour for a section. */
+.topics-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-4); margin-bottom: var(--sp-5); }
+.topics-browse { flex: none; }
+/* Section switch: the section's colour when on, ink for All. */
 .sectabs { flex: none; }
-.home .sectabs { gap: 4px; padding: 4px; border-radius: var(--rad-pill); background: var(--surface-subtle); }
+.home .sectabs { gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface-sunken); }
 .home .sectabs .seg-b {
-  height: 40px; padding: 0 18px; border-radius: var(--rad-pill);
-  font: 650 15px/20px var(--display); letter-spacing: 0; color: var(--fg-2);
-  transition: background-color var(--dur-fast), color var(--dur-fast), transform var(--dur-fast);
+  height: 40px; padding: 0 16px; border-radius: 10px;
+  font: 700 15px/20px var(--display); letter-spacing: 0; color: var(--fg-2);
+  transition: background-color var(--dur-fast), color var(--dur-fast), transform var(--dur-instant);
 }
-.home .sectabs .seg-b:hover { background: var(--surface-sunken); color: var(--fg-1); }
-.home .sectabs .seg-b:active { transform: scale(.97); }
+.home .sectabs .seg-b:hover { color: var(--fg-1); }
+.home .sectabs .seg-b:active { transform: translateY(1px); }
 .home .sectabs .seg-b.on { background: var(--fg-1); color: var(--surface); box-shadow: none; }
 .home .sectabs .seg-b.on:is(.sec-RW, .sec-MATH) { background: var(--sec-600); color: var(--fg-inv-1); }
 .home .sectabs .seg-b.on svg { color: inherit; }
 
-/* Each section is a tinted panel holding white topic cards. */
-.home .spanel { padding: var(--sp-6); border: 0; border-radius: 28px; background: var(--sec-100); overflow: visible; }
-.home .spanel-h { gap: var(--sp-4); margin: 4px 4px var(--sp-5); padding: 0; background: none; color: var(--fg-1); }
-.home .spanel-ico {
-  width: 56px; height: 56px; border-radius: 18px; background: var(--sec-600); color: var(--fg-inv-1);
-  box-shadow: 0 8px 18px -8px var(--sec-600);
+/* The shared banner (shell.css), first thing under the tabs. */
+.home .spanel { margin-top: 0; }
+.home .spanel + .spanel { margin-top: var(--sp-10); }
+/* Domains stack; each is a heading row over a grid of skill tiles. */
+.dstack { display: flex; flex-direction: column; gap: var(--sp-8); }
+.dgroup-h { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-3); }
+.dgroup-t { margin: 0; min-width: 0; font: 800 18px/24px var(--display); letter-spacing: var(--tr-h3); color: var(--fg-1); }
+.dgroup-n { flex: none; font: var(--type-small); color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.dgroup-all {
+  flex: none; margin-left: auto; display: inline-flex; align-items: center; gap: var(--sp-2); min-height: 32px; padding: 0 var(--sp-1);
+  border: 0; border-radius: var(--rad-sm); background: none; cursor: pointer;
+  font: 600 13px/18px var(--sans); color: var(--fg-2); white-space: nowrap;
 }
-.home .spanel-ico svg { width: 24px; height: 24px; }
-.home .spanel-t { font: 800 36px/1 var(--display); letter-spacing: -.04em; color: var(--sec-700); }
-.home .spanel-sub { margin-top: 6px; color: var(--fg-2); }
-.home .spanel-pct { font: 800 52px/1 var(--display); letter-spacing: -.05em; color: var(--sec-600); }
-.home .spanel-pct small { margin-left: 2px; font: 800 22px/1 var(--display); letter-spacing: 0; }
-/* -600 on the dark tint is under 3:1; the lighter -700 clears it. */
-:root[data-theme=dark] .home .spanel-pct { color: var(--sec-700); }
-
-/* Two fixed columns (SectionPanel splits the domains), each a stack, so cards
-   of different heights pack without gaps. */
-.dgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); align-items: start; }
-.dcol { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
-.dcard {
-  position: relative; border-radius: 20px; background: var(--surface); overflow: hidden;
-  box-shadow: 0 1px 2px rgba(20, 50, 90, .05), 0 10px 26px -18px var(--sec-500, var(--brand-600));
-  transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+.dgroup-all:hover { color: var(--fg-1); }
+/* Same-width tiles that wrap by what fits; every row in a domain lines up. */
+.sktiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: var(--sp-3); }
+.sktile {
+  display: flex; flex-direction: column; min-width: 0;
+  border: 2px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: 0 3px 0 var(--hair-1);
+  transition: background-color var(--dur-fast), border-color var(--dur-fast), box-shadow var(--dur-fast);
 }
-.dcard:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(20, 50, 90, .05), 0 18px 34px -18px var(--sec-500, var(--brand-600)); }
-.dcard:is(.is-on, .is-mixed) { box-shadow: 0 0 0 2.5px var(--sec-500), 0 18px 34px -18px var(--sec-500); }
-.dcard-h {
-  display: flex; align-items: center; gap: var(--sp-3); width: 100%; padding: var(--sp-5) var(--sp-5) var(--sp-3);
-  border: 0; background: none; font: inherit; text-align: left; color: var(--fg-1); cursor: pointer;
+.sktile:hover { border-color: var(--hair-ctl); box-shadow: 0 3px 0 var(--hair-ctl); }
+.sktile.on { background: var(--sec-50); border-color: var(--sec-500); box-shadow: 0 3px 0 var(--sec-500); animation: pop var(--dur-2) var(--ease-out); }
+.sktile-main {
+  flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start; gap: var(--sp-1) var(--sp-3);
+  width: 100%; padding: var(--sp-3) var(--sp-4); border: 0; border-radius: 14px; background: none;
+  font: inherit; text-align: left; color: var(--fg-1); cursor: pointer;
 }
-/* The card clips its corners, so the ring goes inside the header. */
-.shell .dcard-h:focus-visible { outline-offset: -2px; }
-.dcard-t { flex: 1; min-width: 0; font: 750 21px/1.15 var(--display); letter-spacing: -.025em; }
-.dcard-stat {
-  display: inline-flex; align-items: center; gap: var(--sp-2); flex: none;
-  font: 400 12px/16px var(--sans); color: var(--fg-3); font-variant-numeric: tabular-nums; white-space: nowrap;
-}
-.dmeter { display: block; height: 5px; margin: 0 var(--sp-5); background: var(--sec-50); border-radius: var(--rad-pill); overflow: hidden; }
-.dmeter > span { display: block; height: 100%; border-radius: inherit; background: var(--sec-500); transform-origin: left center; transition: transform var(--dur-data) var(--ease-out); }
-/* Skill rows: rounded, inset from the card's edge, a hairline meter under each. */
-.sklist { list-style: none; margin: var(--sp-2) 0 var(--sp-3); padding: 0 var(--sp-3); }
-.skrow {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 5px var(--sp-3);
-  width: 100%; min-height: 44px; padding: 10px var(--sp-2); border: 0; border-radius: var(--rad-md);
-  background: none; font: inherit; text-align: left; color: var(--fg-2); cursor: pointer;
-  transition: background-color var(--dur-fast), transform var(--dur-fast);
-}
-.shell .skrow:focus-visible { outline-offset: -2px; }
-.skrow:hover { background: var(--surface-subtle); color: var(--fg-1); }
-.skrow:active { transform: scale(.99); }
-.skrow.on { background: var(--sec-50); color: var(--fg-1); }
-.skrow-name { font: 500 14.5px/1.3 var(--sans); }
-.skrow.on .skrow-name { font-weight: 600; color: var(--sec-700); }
-.skrow-end { display: inline-flex; align-items: center; gap: var(--sp-2); justify-self: end; }
-.skrow-n { min-width: 4ch; text-align: right; font: 400 12px/16px var(--sans); color: var(--fg-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.shell .sktile-main:focus-visible, .shell .sktile-types:focus-visible { outline-offset: -2px; }
+/* Two lines' room, so counts and meters line up across a row of tiles. */
+.sktile-t { min-height: 40px; font: 700 15px/20px var(--display); letter-spacing: -.005em; }
+.sktile.on .sktile-t { color: var(--sec-700); }
+.sktile-m { grid-column: 1 / -1; font: var(--type-small); color: var(--fg-3); font-variant-numeric: tabular-nums; }
 /* The count the active difficulty or status filter leaves ("87 hard"). */
-.skrow-f { font: 600 12px/16px var(--sans); color: var(--sec-700); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.skbar { grid-column: 2 / -1; display: block; height: 3px; border-radius: var(--rad-pill); background: var(--surface-sunken); overflow: hidden; }
-.skbar > span { display: block; height: 100%; border-radius: inherit; background: var(--sec-300); transform-origin: left center; transition: transform var(--dur-data) var(--ease-out); }
-.skrow.on .skbar { background: var(--sec-100); }
-.skrow.on .skbar > span { background: var(--sec-500); }
+.sktile-f { font-weight: 600; color: var(--sec-700); }
+.skbar { grid-column: 1 / -1; display: block; height: 8px; margin-top: var(--sp-1); border-radius: var(--rad-pill); background: var(--surface-sunken); overflow: hidden; }
+.skbar > span { display: block; height: 100%; border-radius: inherit; background: var(--sec-500); transform-origin: left center; transition: transform var(--dur-data) var(--ease-out); }
+.sktile.on .skbar { background: var(--sec-100); }
+.sktile-types {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); width: 100%; min-height: 36px; padding: 0 var(--sp-4);
+  border: 0; border-top: 2px solid var(--hair-1); border-radius: 0 0 14px 14px; background: none; cursor: pointer;
+  font: 600 13px/18px var(--sans); color: var(--fg-2); text-align: left;
+}
+.sktile-types:hover { color: var(--fg-1); }
+.sktile-types svg { flex: none; color: var(--fg-3); }
+.sktile.on .sktile-types { border-top-color: color-mix(in srgb, var(--sec-500) 35%, transparent); color: var(--sec-700); }
+.sktile.on .sktile-types svg { color: var(--sec-700); }
 /* Accuracy: text tokens only, never a series colour. */
 .acc {
   min-width: 46px; text-align: right; padding: 2px 8px; border-radius: var(--rad-pill); white-space: nowrap;
@@ -347,16 +322,15 @@
 .acc.mid { color: var(--warn-700); background: var(--warn-50); }
 .acc.poor { color: var(--bad-700); background: var(--bad-50); }
 .acc.none { color: var(--fg-3); background: var(--surface-subtle); }
-.dcard .acc { text-align: center; }
 /* Progress: the share answered, in the section's colour. */
 .acc.prog { color: var(--sec-700); background: var(--sec-50); }
-.skrow.on .acc.prog, .sktype.on .acc.prog { background: var(--sec-100); }
+.sktype.on .acc.prog { background: var(--sec-100); }
 
 /* Checkbox look, drawn so a domain can show "some of its skills" (spec 7.8:
    18px, 6px corners, a control-grey border that clears 3:1). */
 .box {
   flex: none; width: 18px; height: 18px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--hair-ctl); border-radius: var(--rad-xs); background: var(--surface); color: var(--fg-inv-1);
+  border: 2px solid var(--hair-ctl); border-radius: var(--rad-xs); background: var(--surface); color: var(--fg-inv-1);
   transition: background-color var(--dur-fast), border-color var(--dur-fast);
 }
 .box svg { opacity: 0; transform: scale(.6); transition: opacity var(--dur-fast), transform var(--dur-fast) var(--ease-out); }
@@ -364,12 +338,7 @@
 .box.is-on svg { opacity: 1; transform: none; }
 .box.is-mixed { border-color: var(--sec-600, var(--brand-700)); background: var(--sec-50, var(--brand-50)); position: relative; }
 .box.is-mixed::after { content: ''; position: absolute; width: 8px; height: 2px; border-radius: 1px; background: var(--sec-600, var(--brand-700)); }
-.dcard-h:hover .box.is-off, .skrow:hover .box.is-off { border-color: var(--sec-600, var(--brand-700)); }
-/* Topic cards: a 2px border, and a 22px box for the whole domain. */
-.dcard .box { border-width: 2px; }
-.dcard-h .box { width: 22px; height: 22px; border-radius: 7px; }
-.dcard-h .box.is-mixed::after { width: 10px; height: 2.5px; }
-
+.sktile:hover .box.is-off, .dgroup-all:hover .box.is-off { border-color: var(--sec-600, var(--brand-700)); }
 /* First load: what is happening and why it takes a moment, over the shape of
    the cards. The words wait a beat, so a quick load from this device's own
    copy never flashes them. */
@@ -380,14 +349,13 @@
 .topics-fail { padding: var(--sp-10) 0 var(--sp-12); }
 /* Loading: the shape of the cards, pulsing, instead of a spinner. Opacity only,
    so the browser composites it instead of repainting every frame. */
-.dskel { padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-3); }
+.dskel { padding: var(--sp-4); gap: var(--sp-3); }
 .skel {
   display: block; height: 14px; border-radius: var(--rad-sm);
   background: var(--surface-sunken); animation: skel-pulse 1.2s ease-in-out infinite alternate;
 }
 .skel-t { width: 45%; height: 20px; margin-bottom: var(--sp-2); }
-.skel-row:nth-child(3) { width: 82%; }
-.skel-row:nth-child(4) { width: 64%; }
+.skel-row:nth-child(3) { width: 64%; }
 @keyframes skel-pulse { from { opacity: 1; } to { opacity: .55; } }
 
 /* ---- sticky start bar (spec 8.1): ink, 72px, the brand primary ----
@@ -399,7 +367,7 @@
   box-shadow: var(--sh-bar);
 }
 .startbar2-in {
-  box-sizing: border-box; max-width: 1160px; min-height: 72px; margin: 0 auto;
+  box-sizing: border-box; max-width: 1240px; min-height: 72px; margin: 0 auto;
   padding: 12px max(var(--sp-8), env(safe-area-inset-right)) 12px max(var(--sp-8), env(safe-area-inset-left));
   display: flex; align-items: center; gap: var(--sp-3);
 }
@@ -477,48 +445,42 @@
 .shell input.goal-input[type=date], .shell input.goal-input[type=time] { appearance: none; min-height: 40px; }
 
 @media (max-width: 819px) {
-  .hwrap { padding: var(--sp-6) var(--sp-4) var(--sp-6); }
-  .hero2-in { grid-template-columns: 1fr; gap: var(--sp-8); padding: var(--sp-8) var(--sp-4); }
-  /* Under 820px the headline needs the full width. */
-  .hero2-bulb { display: none; }
-  .hero2-sub { margin-top: var(--sp-3); }
-  .hero2 .desk { display: none; }
-  .hero2 .phone { display: inline; }
-  /* One row: the primary takes what the short secondary leaves. */
-  .hero2-go { flex-wrap: nowrap; margin-top: var(--sp-6); gap: var(--sp-2); }
-  .shell .hero2-go .btn { flex: none; }
-  .shell .hero2-go .hero2-main { flex: 1 1 auto; }
-  .qsearch-f { max-width: none; margin-top: var(--sp-6); }
+  .hwrap { padding: var(--sp-4) var(--sp-4) var(--sp-6); }
+  /* Bulb and the line on one row, the search full width under them. */
+  .hero3-in { flex-wrap: wrap; gap: var(--sp-3); padding: var(--sp-4); }
+  .hero3-bulb { width: 44px; height: auto; }
+  .hero3-copy { flex: 1 1 0; }
+  .hero3-t { font: 800 26px/30px var(--display); }
+  .hero3-sub { display: none; }
+  .qsearch-f { flex: 1 0 100%; }
+  .qsearch-l { display: none; }
   .qsearch-kbd { display: none; }
-  .scard { padding: var(--sp-5); gap: var(--sp-4); }
-  .scard-lock-sub, .scard-lock-ico { display: none; }
-  .shell .scard-go { align-self: stretch; }
-  .secscore { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; }
-  .secscore-l .long { display: none; }
-  .secscore-l .short { display: inline; }
-  .scard-stats > .stat { padding: 0 10px; }
-  .scard-stats .stat-l { letter-spacing: .03em; }
-  .scard-note { margin-top: var(--sp-2); }
-  /* One line on a 390px phone: the figures carry the meaning without icons. */
+  .railc { padding: var(--sp-4); }
   .scard-goal { column-gap: var(--sp-3); }
   .scard-goal-i svg { display: none; }
-  .hwrap:has(> .qsets) { padding-top: var(--sp-4); }
-  .qsets { margin-bottom: var(--sp-10); }
-  .topics-head { flex-direction: column; align-items: stretch; margin-bottom: var(--sp-4); }
-  .home .topics-head .h1-section { font-size: 38px; }
+  .scard-wrap { grid-template-columns: minmax(0, 1fr); }
+  .hcompact { grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); margin-bottom: var(--sp-4); }
+  /* One short row each, so the first topic card clears the start bar. */
+  .hcompact .nextup { padding: 10px var(--sp-3) 10px var(--sp-4); }
+  .hcompact .nextup-l { display: none; }
+  .hcompact .nextup-t { margin: 0; font: var(--type-h3); letter-spacing: var(--tr-h3); }
+  .shell .hcompact .nextup-go { --lip: 3px; min-height: 40px; padding: 0 12px; font-size: 14px; line-height: 20px; }
+  .qrow > .stat { padding: var(--sp-2) var(--sp-3); }
+  .qrow .stat-n { font-size: var(--num-s); }
+  .qsets { margin-top: var(--sp-6); }
+  .topics-head { margin-bottom: var(--sp-4); }
+  .sectabs { flex: 1; }
+  .topics-browse { display: none; }
   .seg-b { padding: 0 8px; }
   .home .sectabs .seg-b { padding: 0 10px; font-size: 14px; }
-  /* The panel runs to the screen edges; its cards keep the page gutter. */
-  .home .spanel { margin-inline: calc(var(--sp-4) * -1); padding: var(--sp-5) var(--sp-3); border-radius: 24px; }
-  .home .spanel-h { gap: var(--sp-3); margin: 0 4px var(--sp-4); padding: 0; }
-  .home .spanel-ico { width: 44px; height: 44px; border-radius: 14px; }
-  .home .spanel-t { font-size: 27px; }
-  .home .spanel-pct { font-size: 34px; }
-  .home .spanel-pct small { font-size: 15px; }
-  .dgrid { grid-template-columns: minmax(0, 1fr); }
-  .dgrid, .dcol { gap: var(--sp-3); }
-  .dcard-t { font-size: 19px; }
-  .skrow { padding: 11px var(--sp-2); }
+  .home .spanel + .spanel { margin-top: var(--sp-8); }
+  .dstack { gap: var(--sp-6); }
+  /* The name and Select all share the row; each tile carries its own count. */
+  .dgroup-n { display: none; }
+  /* One column of short tiles; question types appear once a skill is picked. */
+  .sktiles { grid-template-columns: minmax(0, 1fr); gap: var(--sp-2); }
+  .sktile-t { min-height: 0; }
+  .sktile:not(.on) .sktile-types { display: none; }
   /* Pinned to the viewport now, so it rides on the fixed tab bar. */
   .startbar2 { bottom: calc(60px + env(safe-area-inset-bottom)); }
   /* 64px: the title alone, Options as a 40px icon button, Start at md (H-45). */
@@ -540,7 +502,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .skel { animation: none; opacity: .8; }
-  .dcard:hover, .skrow:active { transform: none; }
 }
 
 /* ==================================================== practice sets
@@ -551,8 +512,11 @@
 
 .setlist {
   list-style: none; margin: 0; padding: 0;
-  border: 1px solid var(--hair-1); border-radius: var(--rad-md); background: var(--surface); overflow: hidden;
+  border: 2px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); box-shadow: 0 3px 0 var(--hair-1);
 }
+.setcard:first-child { border-radius: 14px 14px 0 0; }
+.setcard:last-child { border-radius: 0 0 14px 14px; }
+.setcard:only-child { border-radius: 14px; }
 .setcard { display: flex; align-items: center; gap: var(--sp-1); padding-right: var(--sp-2); transition: background-color var(--dur-fast); }
 .setcard + .setcard { border-top: 1px solid var(--hair-1); }
 .setcard:hover { background: var(--surface-subtle); }
@@ -603,31 +567,29 @@
   font: 750 var(--num-s)/1 var(--display); letter-spacing: var(--tr-num-s);
 }
 
-/* ---- Home: process types under a ticked skill ----
-   A nested checklist hung off a rail under the skill name, so it reads as part
-   of that skill rather than a second filter bar. */
-.sktypes { margin: 2px 0 8px 34px; padding-left: var(--sp-3); border-left: 2px solid var(--sec-200); }
-.sktypes-cap { display: block; padding: 4px var(--sp-2) 2px; font: 600 12px/16px var(--sans); color: var(--fg-2); }
-.sktypes-list { list-style: none; margin: 0; padding: 0; }
+/* ---- Home: the sheet a skill tile opens, narrowing it to question types ---- */
+.sktypes-cap { display: block; margin-bottom: var(--sp-3); font: var(--type-small); color: var(--fg-3); }
+.sktypes-list { list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; }
 .sktype {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--sp-2);
-  width: 100%; padding: 6px var(--sp-2); border: 0; border-radius: var(--rad-sm);
-  background: none; font: inherit; text-align: left; color: var(--fg-2); cursor: pointer;
-  transition: background-color var(--dur-fast);
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 2px var(--sp-3);
+  width: 100%; padding: var(--sp-3); border: 2px solid var(--hair-1); border-radius: var(--rad-md);
+  background: none; font: inherit; text-align: left; color: var(--fg-1); cursor: pointer;
+  transition: background-color var(--dur-fast), border-color var(--dur-fast);
 }
-.sktype:hover { background: var(--surface-subtle); color: var(--fg-1); }
+.sktype:hover { border-color: var(--hair-ctl); }
 .sktype:hover .box.is-off { border-color: var(--sec-600); }
-.sktype.on { background: var(--sec-50); color: var(--sec-700); }
-.sktype-name { font: var(--type-small); }
-.sktype.on .sktype-name { font-weight: 600; }
-.sktype-n { font-size: 12px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.sktype.on { background: var(--sec-50); border-color: var(--sec-500); }
+.sktype-name { font: 600 14px/20px var(--sans); }
+.sktype.on .sktype-name { color: var(--sec-700); }
+.sktype-n { font-size: 12px; line-height: 20px; color: var(--fg-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sktype-end { display: inline-flex; align-items: center; gap: var(--sp-2); justify-self: end; }
 .sktype .acc { min-width: 40px; text-align: center; }
-/* How to solve this type: a muted second line on the picked or focused type,
-   in place of the title tooltip that touch and keyboard never showed. */
-.sktype-how { display: none; grid-column: 2 / -1; margin-top: -4px; font: var(--type-small); color: var(--fg-3); }
-.sktype.on .sktype-how, .sktype:focus-visible .sktype-how { display: block; }
-.box.xs { width: 16px; height: 16px; }
+.sktype .box { margin-top: 1px; }
+.sktype-how { grid-column: 2 / -1; font: var(--type-small); color: var(--fg-3); }
+.box.xs { width: 18px; height: 18px; }
+/* The tick on a skill tile: a round badge, not a form control. */
+.box.round { width: 24px; height: 24px; border-width: 2px; border-radius: 50%; }
+.box.round svg { width: 13px; height: 13px; }
 @media (max-width: 380px) {
   .sectabs .long { display: none; }
   .sectabs .short { display: inline; }

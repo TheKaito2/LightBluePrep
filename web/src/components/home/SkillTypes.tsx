@@ -4,9 +4,8 @@ import type { SkillTally } from '../../lib/taxonomy'
 import { Prog, type TopicPicks } from './DomainCard'
 
 /**
- * The process types under a ticked skill, each a checkbox that narrows the
- * skill to that kind of question. Shown only when the skill is ticked and the
- * process-type file has types for it.
+ * A skill's process types, each a checkbox that narrows the skill to that kind
+ * of question. The body of the sheet a skill tile opens.
  */
 export function SkillTypes({ skill, picks }: { skill: SkillTally; picks: TopicPicks }) {
   const { pt, types: pickedTypes, facetCounts, facetWord, ptCounts, ptSeen, onType } = picks
@@ -17,7 +16,7 @@ export function SkillTypes({ skill, picks }: { skill: SkillTally; picks: TopicPi
   return (
     <div className="sktypes">
       <span className="sktypes-cap">
-        {picked ? `${picked} of ${types.length} types` : 'All question types · pick to narrow'}
+        {picked ? `${picked} of ${types.length} types picked` : 'All types are in. Pick some to practice only those.'}
       </span>
       <ul className="sktypes-list" aria-label={`${skill.name}: question types`}>
         {types.map(([key, t]) => {
@@ -43,7 +42,6 @@ export function SkillTypes({ skill, picks }: { skill: SkillTally; picks: TopicPi
                 <span className="sr-only">
                   {facetCounts ? `, ${fmt(facetCounts.get(ref) ?? 0)} ${facetWord}` : ''}{ptSeen ? srTally(seen, n) : ''}
                 </span>
-                {/* Shown on the picked or focused type; always the description. */}
                 <span className="sktype-how" id={`how-${ref}`} aria-hidden="true">{t.how}</span>
               </button>
             </li>

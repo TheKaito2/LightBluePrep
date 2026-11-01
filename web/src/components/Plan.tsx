@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EmptyState } from './EmptyState'
 import { Icon } from './Icon'
+import { Mascot } from './Mascot'
 import { Modal } from './Modal'
 import { PageHead } from './PageHead'
 import { PlanSessionEditor } from './PlanSessionEditor'
@@ -101,12 +102,12 @@ export function Plan({ taxonomy, history, onStartSession, onPickTopics }: {
     </>
   )
 
-  if (!loaded) return <PageHead tone="ink" eyebrow="Study plan" title="Plan" sub="What to practise and when, up to your test." />
+  if (!loaded) return <PageHead tone="blue" eyebrow="Study plan" title="Plan" sub="What to practice and when, up to your test." />
 
   if (!plan) {
     return (
       <>
-        <PageHead tone="ink" eyebrow="Study plan" title="Plan" sub="What to practise and when, up to your test." />
+        <PageHead tone="blue" eyebrow="Study plan" title="Plan" sub="What to practice and when, up to your test." />
         <div className="plan">
           <EmptyState title="No plan yet" heading="h2"
                       body="Answer five questions and get sessions for every practice day up to your test, weighted to your weak skills. Or lay it out yourself.">
@@ -135,9 +136,11 @@ export function Plan({ taxonomy, history, onStartSession, onPickTopics }: {
 
   return (
     <>
-      <PageHead tone="ink" eyebrow="Study plan" title="Plan"
+      <PageHead tone="blue" eyebrow="Study plan" title="Plan"
+                media={<Mascot mood={late.length ? 'think' : 'cheer'} size={72} />}
                 sub={[until ?? `Test was ${shortDate(plan.test_date)}`, plan.target ? `Target ${plan.target}` : null,
-                  `${fmt(progress.done)} of ${plural(progress.total, 'session')} done`].filter(Boolean).join(' · ')}>
+                  `${fmt(progress.done)} of ${plural(progress.total, 'session')} done`,
+                  late.length ? `${fmt(late.length)} behind` : 'On schedule'].filter(Boolean).join(' · ')}>
         <div className="plan-head-go">
           <button type="button" className="btn" onClick={() => setCalendar(true)}>
             <Icon name="calendar" size={16} strokeWidth={2} />Add to calendar
@@ -162,7 +165,7 @@ export function Plan({ taxonomy, history, onStartSession, onPickTopics }: {
               {PHASE_NAME[next.session.phase]} · {plural(next.session.filters.size ?? questionsFor(plan.minutes), 'question')}
               {next.session.filters.speed ? ' · timed' : ''}
             </p>
-            <button type="button" className="btn primary lg" onClick={() => onStartSession(next.session)}>
+            <button type="button" className="btn on-colour lg" onClick={() => onStartSession(next.session)}>
               {next.session.parts?.length ? 'Start next type' : 'Start'}<Icon name="arrow-right" size={16} strokeWidth={2.2} />
             </button>
           </section>
@@ -172,7 +175,15 @@ export function Plan({ taxonomy, history, onStartSession, onPickTopics }: {
 
         {[...weeks].map(([week, sessions]) => (
           <section key={week} className="plan-week" aria-label={`Week of ${shortDate(week)}`}>
-            <h3 className="plan-week-t">Week of {shortDate(week)}</h3>
+            <div className="plan-week-h">
+              <h3 className="plan-week-t">Week of {shortDate(week)}</h3>
+              <span className="sr-only">{fmt(sessions.filter((s) => s.done_at).length)} of {fmt(sessions.length)} done</span>
+              <span className="plan-dots" aria-hidden="true">
+                {sessions.map((s) => (
+                  <i key={s.id} className={s.done_at ? 'on' : s.date === today ? 'now' : s.date < today && !s.skipped ? 'late' : undefined} />
+                ))}
+              </span>
+            </div>
             <ul className="plan-list">
               {sessions.map((s) => {
                 const state = s.done_at ? 'done' : s.skipped ? 'skipped' : s.date < today ? 'missed' : s.date === today ? 'today' : 'ahead'
