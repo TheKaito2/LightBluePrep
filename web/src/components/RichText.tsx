@@ -56,6 +56,10 @@ const NO_ANNOTATIONS: Annotation[] = []
 
 /** Narrower than this, an image or SVG is an inline glyph or an answer-choice thumbnail. */
 const FIGURE_MIN = 120
+/** How far past its own size an SVG may grow. */
+const SVG_SCALE = 1.25
+/** A PNG's width attribute to its reading width. */
+const RASTER_SCALE = 2.2
 
 /** An SVG length attribute in CSS pixels, or NaN for a unit we do not convert. */
 function svgLength(value: string | null): number {
@@ -67,18 +71,21 @@ function svgLength(value: string | null): number {
 /**
  * Mark the graphs and diagrams so CSS can size them as figures.
  *
- * The bank's own sizes are too small to read: a stopping-distance graph ships
- * as a 480px PNG tagged width="176", so its tick labels drew 7px tall. Figures
- * get a common reading width in bluebook.css instead; inline math images (the
- * disclosed items set every equation as a PNG) and anything inside an answer
- * choice keep their own size. The aspect ratio rides along as --fig-ar so a
- * tall diagram is capped by height rather than stretched to the full width.
+ * Each figure is sized from its own drawing, so a small dot plot stays small
+ * and a full grid gets room, inside the limits in bluebook.css. A PNG's width
+ * attribute is a print size (a 480px stopping-distance graph is tagged
+ * width="176", with tick labels 7px tall), hence RASTER_SCALE; a scale for SVG
+ * keeps its labels near text size rather than blown up to fill the column.
+ * Inline math images (the disclosed items set every equation as a PNG) and
+ * anything inside an answer choice keep their own size. The aspect ratio rides
+ * along as --fig-ar so a tall diagram is capped by height.
  */
 function markFigures(host: HTMLElement): void {
   if (host.closest('button')) return
-  const mark = (el: HTMLElement | SVGElement, width: number, height: number) => {
-    if (!(width > FIGURE_MIN)) return
+  const mark = (el: HTMLElement | SVGElement, width: number, height: number, scale: number) => {
+    if (!(width * scale > FIGURE_MIN)) return
     el.classList.add('fig-block')
+    el.style.setProperty('--fig-w', `${width * scale}px`)
     if (height > 0) el.style.setProperty('--fig-ar', String(width / height))
   }
   for (const svg of host.querySelectorAll('svg')) {
@@ -94,14 +101,14 @@ function markFigures(host: HTMLElement): void {
     } else if (width > 0 && height > 0) {
       svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
     }
-    mark(svg, width, height)
+    mark(svg, width, height, SVG_SCALE)
   }
   for (const img of host.querySelectorAll('img')) {
     if (img.classList.contains('math-img') || img.closest('.math-container')) continue
-    if (img.getAttribute('width')) mark(img, Number(img.getAttribute('width')), Number(img.getAttribute('height')))
-    else if (img.naturalWidth) mark(img, img.naturalWidth, img.naturalHeight)
+    if (img.getAttribute('width')) mark(img, Number(img.getAttribute('width')), Number(img.getAttribute('height')), RASTER_SCALE)
+    else if (img.naturalWidth) mark(img, img.naturalWidth, img.naturalHeight, 1)
     // A data: image is still decoding when it is first inserted.
-    else img.addEventListener('load', () => mark(img, img.naturalWidth, img.naturalHeight), { once: true })
+    else img.addEventListener('load', () => mark(img, img.naturalWidth, img.naturalHeight, 1), { once: true })
   }
 }
 

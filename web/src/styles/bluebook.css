@@ -464,13 +464,16 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
 .richtext img, .richtext svg { max-width: 100%; height: auto; }
 
 /*
- * Graphs and diagrams, as RichText marks them: a common reading width rather
- * than the bank's own, which drew a graph 176px wide with 7px tick labels. A
- * tall diagram is held to the same 440px by height (--fig-ar is width/height),
- * so it does not push the choices a screen further down. Display rules only:
- * the images stay as College Board serves them.
+ * Graphs and diagrams, as RichText marks them: each at its own reading size
+ * (--fig-w), up to 440px wide. A tall diagram is held by height (--fig-ar is
+ * width/height) to at most 55% of the window, so it does not push the choices
+ * a screen further down, with a floor that keeps a grid readable. Display rules
+ * only: the images stay as College Board serves them.
  */
-.richtext .fig-block { width: min(100%, 440px, calc(440px * var(--fig-ar, 1))); height: auto; }
+.richtext .fig-block {
+  width: min(100%, var(--fig-w, 440px), 440px, calc(min(440px, max(300px, 55vh)) * var(--fig-ar, 1)));
+  height: auto;
+}
 /* A <figure> brings its own margin; a bare image sat flush under the text. */
 .richtext img.fig-block { display: block; margin: 12px 0; }
 
@@ -630,9 +633,6 @@ mark.hl-note { box-shadow: 0 2px 0 var(--accent); }
 
   /* Fitting rather than scrolling, for the tables narrow enough to manage it. */
   .richtext table { font-size: 14px; }
-
-  /* A phone gives a figure the whole column: at 390px, 440px is not the limit. */
-  .richtext .fig-block { width: min(100%, 480px); }
 
   /* The grid-in field and its Submit are the whole interaction here. */
   .spr-input { width: 100%; }
