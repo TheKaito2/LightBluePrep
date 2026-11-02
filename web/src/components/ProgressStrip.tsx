@@ -1,15 +1,15 @@
 /**
  * The cards in Home's rail: the streak and its week, then the estimated score
  * with its trend and section rows (or, before there is an estimate, what unlocks
- * it). ProgressRow is the headline numbers in one line, for where the rail sits
- * below the topics. Numbers come from lib/progress.ts; this only draws them.
+ * it). DoneCounts is how many questions, today and overall. ProgressRow is the
+ * headline numbers in one line, for where the rail sits below the topics. Numbers come from lib/progress.ts; this only draws them.
  */
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from './Icon'
 import { GoalDialog } from './GoalDialog'
 import { ReminderDialog } from './ReminderDialog'
-import { NoData, Stat } from './Stat'
+import { NoData, Stat, StatGroup } from './Stat'
 import { score, streak, UNLOCK_AFTER, type HistoryRow } from '../lib/progress'
 import { SECTIONS, SECTION_NAME, SECTION_SHORT, fmt, noun, plural, progressPct } from '../lib/labels'
 import { useShareCard } from '../lib/share'
@@ -21,8 +21,24 @@ const DAY_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
 interface Props {
   history: HistoryRow[]
+  /** Different questions answered, and how many the bank has. */
+  covered: number
+  total: number
   /** Start the balanced 20-question set that unlocks the estimate. */
   onScoreCheck: () => void
+}
+
+/**
+ * Today counts every answer, the same as the daily goal, so a re-drill counts
+ * as work done. Overall counts different questions, so it can reach the bank's total.
+ */
+export function DoneCounts({ history, covered, total }: Pick<Props, 'history' | 'covered' | 'total'>) {
+  return (
+    <StatGroup className="done-counts" label="Questions done">
+      <Stat label="Done today" value={fmt(streak(history).today)} />
+      <Stat label="Done overall" value={fmt(covered)} unit={`of ${fmt(total)}`} />
+    </StatGroup>
+  )
 }
 
 /**
@@ -105,7 +121,7 @@ function SectionRow({ section, value, counted }: {
   )
 }
 
-export function ProgressStrip({ history, onScoreCheck }: Props) {
+export function ProgressStrip({ history, covered, total, onScoreCheck }: Props) {
   const now = new Date()
   // A few thousand rows at most: cheap enough to recompute every render.
   const st = streak(history, now)
@@ -140,6 +156,7 @@ export function ProgressStrip({ history, onScoreCheck }: Props) {
 
   return (
     <div className="scard-wrap">
+      <DoneCounts history={history} covered={covered} total={total} />
       <section className={`railc streak${st.atRisk ? ' at-risk' : ''}${st.current ? '' : ' none'}`} aria-label="Streak">
         <div className="streak-h">
           <div className="streak-txt">
@@ -241,10 +258,13 @@ export function ProgressRow({ history, covered, total }: {
   const st = streak(history)
   const sc = score(history)
   return (
-    <div className="stat-group qrow">
-      <Stat label="Streak" value={fmt(st.current)} unit={noun(st.current, 'day')} />
-      <Stat label="Estimate" value={sc.total ?? <NoData />} />
-      <Stat label="Bank" value={progressPct(covered, total)} unit="%" />
+    <div className="qstack">
+      <DoneCounts history={history} covered={covered} total={total} />
+      <div className="stat-group qrow">
+        <Stat label="Streak" value={fmt(st.current)} unit={noun(st.current, 'day')} />
+        <Stat label="Estimate" value={sc.total ?? <NoData />} />
+        <Stat label="Bank" value={progressPct(covered, total)} unit="%" />
+      </div>
     </div>
   )
 }

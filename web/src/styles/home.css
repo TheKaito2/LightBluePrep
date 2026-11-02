@@ -234,9 +234,12 @@
   .hrail { position: static; margin-top: var(--sp-4); }
   .hrail > .nextup { display: none; }
   .scard-wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
+  /* The compact row above the topics already has these. */
+  .scard-wrap > .done-counts { display: none; }
   .hcompact { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-4); margin-bottom: var(--sp-6); }
   .hcompact .nextup { flex-direction: row; align-items: center; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-4); }
   .hcompact .nextup-txt { flex: 1; }
+  .qstack { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
   .qrow { align-items: stretch; }
   .qrow > .stat { justify-content: center; min-width: 0; }
 }
@@ -465,8 +468,8 @@
   .hcompact .nextup-l { display: none; }
   .hcompact .nextup-t { margin: 0; font: var(--type-h3); letter-spacing: var(--tr-h3); }
   .shell .hcompact .nextup-go { --lip: 3px; min-height: 40px; padding: 0 12px; font-size: 14px; line-height: 20px; }
-  .qrow > .stat { padding: var(--sp-2) var(--sp-3); }
-  .qrow .stat-n { font-size: var(--num-s); }
+  .qrow > .stat, .done-counts > .stat { padding: var(--sp-2) var(--sp-3); }
+  .qrow .stat-n, .done-counts .stat-n { font-size: var(--num-s); }
   .qsets { margin-top: var(--sp-6); }
   .topics-head { margin-bottom: var(--sp-4); }
   .sectabs { flex: 1; }

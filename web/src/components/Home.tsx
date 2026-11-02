@@ -366,7 +366,7 @@ export function Home({
           {planning ? null : (
             <aside className="hrail" aria-label="Your progress">
               {nextUp}
-              <ProgressStrip history={history} onScoreCheck={onScoreCheck} />
+              <ProgressStrip history={history} covered={totals.seen} total={totals.all} onScoreCheck={onScoreCheck} />
             </aside>
           )}
         </div>
