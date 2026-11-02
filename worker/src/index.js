@@ -886,7 +886,11 @@ async function handleSync(request, env, origin) {
       + '   seconds = excluded.seconds, filters_json = excluded.filters_json,'
       + '   items_json = excluded.items_json, seq = excluded.seq,'
       + '   deleted = excluded.deleted'
-      + ' WHERE excluded.updated_at > sets.updated_at',
+      // A device that has not heard a set finished or was deleted must not
+      // bring it back.
+      + ' WHERE excluded.updated_at > sets.updated_at'
+      + '   AND (sets.finished_at IS NULL OR excluded.finished_at IS NOT NULL OR excluded.deleted = 1)'
+      + '   AND (sets.deleted = 0 OR excluded.deleted = 1)',
     ).bind(sub, st.id, st.created_at, st.finished_at, st.updated_at, st.seconds,
            JSON.stringify(st.filters), JSON.stringify(st.items), sub, st.deleted, sub))
   }

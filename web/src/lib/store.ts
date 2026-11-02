@@ -171,8 +171,8 @@ export const saveAttempt = (a: Attempt) => put(STORE_ATTEMPTS, a)
 
 /**
  * `updated_at` on these two is what makes the last-write-wins merge possible.
- * Attempts do not need one: they are a grow-only set merged by uuid, so there
- * is nothing to compare.
+ * Attempts do not need one: they merge by id, and the server hands on the only
+ * kind that changes (a set's attempt at a question), so there is nothing to compare.
  */
 export interface MarkRecord { question_id: string; flagged: number; updated_at: number }
 export interface AnnotationRecord {
@@ -232,7 +232,7 @@ export const saveAnnotations = (question_id: string, items: Annotation[]) =>
  * edit. Read and write in one transaction so nothing lands between them.
  */
 function putIfNewer<T extends { updated_at: number }>(
-  store: string, key: IDBValidKey, row: T,
+  store: string, key: IDBValidKey, row: T, winsAnyway?: (mine: T) => boolean,
 ): Promise<void> {
   return open().then((db) => new Promise((resolve, reject) => {
     const tx = db.transaction(store, 'readwrite')
@@ -240,7 +240,7 @@ function putIfNewer<T extends { updated_at: number }>(
     const current = objectStore.get(key)
     current.onsuccess = () => {
       const mine = current.result as T | undefined
-      if (mine && mine.updated_at > row.updated_at) return
+      if (mine && mine.updated_at > row.updated_at && !winsAnyway?.(mine)) return
       if (objectStore.keyPath === null) objectStore.put(row as unknown as never, key)
       else objectStore.put(row as unknown as never)
     }
@@ -340,7 +340,33 @@ export const loadSet = (id: string) => get<SetRecord>(STORE_SETS, id)
  * Guarded locally too: the server decides between devices, but a pull that
  * arrives while this tab is mid-set must not undo what it just wrote.
  */
-export const putSet = (row: SetRecord) => putIfNewer(STORE_SETS, row.id, row)
+export const putSet = (row: SetRecord) => putIfNewer(STORE_SETS, row.id, row,
+  // Finished or deleted elsewhere beats a newer stamp here: that stamp only says
+  // a tab or device was still writing to a set it had not heard was over.
+  (mine) => Boolean(!mine.deleted && (row.deleted || (row.finished_at && !mine.finished_at))))
+
+/**
+ * Change one stored set in a single transaction, starting from what is stored
+ * now rather than a copy held in memory, which another tab or a pull may have
+ * moved on from. Null, and nothing written, when the set is gone or over.
+ */
+export function patchSet(id: string, change: (row: SetRecord) => SetRecord): Promise<SetRecord | null> {
+  return open().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_SETS, 'readwrite')
+    const objectStore = tx.objectStore(STORE_SETS)
+    const current = objectStore.get(id)
+    let stamped: SetRecord | null = null
+    current.onsuccess = () => {
+      const held = current.result as SetRecord | undefined
+      if (!held || held.deleted || held.finished_at) return
+      stamped = { ...change(held), updated_at: Math.max(Date.now(), held.updated_at + 1) }
+      objectStore.put(stamped)
+    }
+    tx.oncomplete = () => resolve(stamped)
+    tx.onerror = () => reject(tx.error)
+    tx.onabort = () => reject(tx.error)
+  }))
+}
 
 /** Write a local change and stamp it (putStamped), which is what the merge compares. */
 export const saveSet = (row: Omit<SetRecord, 'updated_at'>): Promise<SetRecord> =>

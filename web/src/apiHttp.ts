@@ -9,7 +9,7 @@
 import type { HistoryRow } from './lib/progress'
 import type {
   Annotation, Attempt, Filters, GradeResult, Mistake, MistakeTag, PracticeSet,
-  Question, SetInput, SetItem, Stats, TaxonomyRow,
+  Question, SetAnswer, SetInput, SetItem, Stats, TaxonomyRow,
 } from './types'
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -132,6 +132,12 @@ export function saveSet(set: SetInput) {
     method: 'POST',
     body: JSON.stringify({ ...set, updated_at: Date.now() }),
   }).then((d) => d.set)
+}
+
+/** One user on one machine: the copy in hand is the stored one. */
+export function patchSet(set: SetInput, change: (items: SetAnswer[]) => SetAnswer[]) {
+  const items = change(set.items)
+  return saveSet({ ...set, items, seconds: items.reduce((sum, i) => sum + (i.seconds || 0), 0) })
 }
 
 export function deleteSet(id: string) {

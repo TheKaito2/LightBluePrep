@@ -64,6 +64,18 @@ export function commitItem(items: SetAnswer[], id: string, seconds: number): Set
   return items.map((i) => (i.question_id === id ? { ...i, seconds } : i))
 }
 
+/**
+ * What a finish grades: the stored answer wherever there is one, since another
+ * tab or device may have answered since this copy was read.
+ */
+export function latestItems(mine: SetAnswer[], stored: SetAnswer[]): SetAnswer[] {
+  const byId = new Map(stored.map((i) => [i.question_id, i]))
+  return mine.map((m) => {
+    const s = byId.get(m.question_id)
+    return s ? { ...m, response: s.response ?? m.response, seconds: Math.max(m.seconds || 0, s.seconds || 0) } : m
+  })
+}
+
 /** What a finish already graded, keyed by set and question, with the answer it was for. */
 export type GradedCache = Map<string, { response: string; correct: 0 | 1 }>
 

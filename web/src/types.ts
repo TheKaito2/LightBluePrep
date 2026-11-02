@@ -262,5 +262,7 @@ export interface Backend {
   listSets(active?: boolean, limit?: number): Promise<PracticeSet[]>
   getSet(id: string): Promise<PracticeSet>
   saveSet(set: SetInput): Promise<PracticeSet>
+  /** Change a running set's items from their stored state. Null when the set is gone or over. */
+  patchSet(set: SetInput, change: (items: SetAnswer[]) => SetAnswer[]): Promise<PracticeSet | null>
   deleteSet(id: string): Promise<void>
 }

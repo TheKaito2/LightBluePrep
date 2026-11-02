@@ -240,11 +240,15 @@ export function PracticeScreen({
         if (stale) return
         setQuestion(d.question); setAnnotations(d.annotations); setFlagged(d.flagged)
         setMistake(d.mistake)
-        // A plan set keeps the first checked answer. Back on one already answered,
-        // show it checked again so the choices stay locked to that answer.
-        if (held && activeSetRef.current && checksEach(activeSetRef.current.filters)) {
-          api.explain(current.id, held)
-            .then((r) => { if (!stale) { setResult(r); setMasked(!r.correct) } })
+        // A set keeps the first checked answer. Back on one already submitted,
+        // show it checked again so the choices stay locked to that answer. One
+        // picked and never submitted has no attempt: it comes back open.
+        const live = activeSetRef.current
+        if (held && live && checksEach(live.filters)) {
+          const attemptId = setAttemptId(live.id, current.id)
+          api.attemptsFor(current.id)
+            .then(({ attempts }) => (attempts.some((a) => a.id === attemptId) ? api.explain(current.id, held) : null))
+            .then((r) => { if (r && !stale) { setResult(r); setMasked(!r.correct) } })
             .catch((e: Error) => !stale && fail(e))
         }
         // Once this one is on screen, so the warming never competes with it:

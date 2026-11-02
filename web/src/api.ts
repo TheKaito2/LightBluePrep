@@ -155,6 +155,7 @@ export const history = impl.history
 export const listSets = impl.listSets
 export const getSet = impl.getSet
 export const saveSet = impl.saveSet
+export const patchSet = impl.patchSet
 export const deleteSet = impl.deleteSet
 
 /**

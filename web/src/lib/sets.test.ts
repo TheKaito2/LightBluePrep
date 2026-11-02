@@ -7,12 +7,16 @@
 import { act, createElement, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
-import { checksEach, commitItem, gradeItems, holdItem, newSet, setAttemptId, sumSeconds, type GradedCache } from './sets'
+import {
+  checksEach, commitItem, gradeItems, holdItem, latestItems, newSet, setAttemptId, sumSeconds, type GradedCache,
+} from './sets'
 import { usePracticeSet, type PracticeSetApi } from './usePracticeSet'
 import type { View } from './route'
 import type { PracticeSet, SetAnswer, SetItem } from '../types'
 
 const saved: PracticeSet[] = []
+/** What storage holds now, which another tab or a pull can move on from this hook's copy. */
+const stored = new Map<string, PracticeSet>()
 vi.mock('../api', () => ({
   saveSet: vi.fn(async (row: Omit<PracticeSet, 'updated_at' | 'total' | 'answered' | 'correct'>) => {
     const items = row.items ?? []
@@ -22,6 +26,19 @@ vi.mock('../api', () => ({
       correct: items.filter((i) => i.correct).length,
     }
     saved.push(set)
+    stored.set(set.id, set)
+    return set
+  }),
+  patchSet: vi.fn(async (row: PracticeSet, change: (items: SetAnswer[]) => SetAnswer[]) => {
+    const held = stored.get(row.id)
+    if (!held || held.finished_at) return null
+    const next = { ...held, items: change(held.items ?? []) }
+    stored.set(row.id, next)
+    return next
+  }),
+  getSet: vi.fn(async (id: string) => {
+    const set = stored.get(id)
+    if (!set) throw new Error(`unknown set ${id}`)
     return set
   }),
   // A slow grader, so a second Finish lands while the first is still grading.
@@ -133,6 +150,103 @@ describe('usePracticeSet finish', () => {
     expect(hook.activeSet).toBeNull()
     expect(hook.shownSet?.id).toBe(finished[0]!.id)
     act(() => root.unmount())
+  })
+
+  /** A hook in a set of q1..q3 on q1, with `answered` as another tab's write to storage. */
+  async function inSet() {
+    let hook!: PracticeSetApi
+    let view: View = 'home'
+    function Probe() {
+      const [items, setItems] = useState<SetItem[]>([])
+      const [index, setIndex] = useState(0)
+      const [shown, setView] = useState<View>('home')
+      view = shown
+      hook = usePracticeSet({
+        view: shown, items, index, setItems, setIndex, navigate: setView, fail: (e) => { throw e }, dataVersion: 0,
+      })
+      return null
+    }
+    const root = createRoot(document.createElement('div'))
+    await act(async () => root.render(createElement(Probe)))
+    const pool = ['q1', 'q2', 'q3'].map((id) => ({ id, section: 'RW' }) as SetItem)
+    await act(async () => { await hook.start(pool, { size: 3 }) })
+    const id = hook.activeSet!.id
+    return {
+      get hook() { return hook }, get view() { return view }, id, root,
+      elsewhere(change: Partial<PracticeSet>) { stored.set(id, { ...stored.get(id)!, ...change }) },
+    }
+  }
+
+  it('keeps an answer another tab saved when this tab writes, and grades it', async () => {
+    const api = await import('../api')
+    vi.mocked(api.answer).mockClear()
+    const t = await inSet()
+    t.elsewhere({ items: [row('q1'), row('q2', 'B', 3), row('q3')] })
+
+    await act(async () => { t.hook.hold('A', 4) })
+
+    expect(stored.get(t.id)!.items!.map((i) => i.response)).toEqual(['A', 'B', null])
+    expect(t.hook.activeSet!.items!.map((i) => i.response)).toEqual(['A', 'B', null])
+    await act(async () => { await t.hook.finish() })
+    expect(vi.mocked(api.answer).mock.calls.map((c) => c[0])).toEqual(['q1', 'q2'])
+    act(() => t.root.unmount())
+  })
+
+  it('shows the score of a set finished elsewhere without grading or reopening it', async () => {
+    const api = await import('../api')
+    vi.mocked(api.answer).mockClear()
+    const t = await inSet()
+    t.elsewhere({ finished_at: 99, items: [row('q1', 'A'), row('q2'), row('q3')] })
+
+    await act(async () => { t.hook.hold('C', 4) })
+    await act(async () => { await t.hook.finish() })
+
+    expect(api.answer).not.toHaveBeenCalled()
+    expect(stored.get(t.id)!.items![0]!.response).toBe('A')
+    expect(t.view).toBe('results')
+    expect(t.hook.shownSet?.finished_at).toBe(99)
+    act(() => t.root.unmount())
+  })
+})
+
+describe('usePracticeSet finish after a delete', () => {
+  it('neither grades nor saves a set deleted elsewhere', async () => {
+    const api = await import('../api')
+    let hook!: PracticeSetApi
+    let view: View = 'home'
+    function Probe() {
+      const [items, setItems] = useState<SetItem[]>([])
+      const [index, setIndex] = useState(0)
+      const [shown, setView] = useState<View>('home')
+      view = shown
+      hook = usePracticeSet({
+        view: shown, items, index, setItems, setIndex, navigate: setView, fail: (e) => { throw e }, dataVersion: 0,
+      })
+      return null
+    }
+    const root = createRoot(document.createElement('div'))
+    await act(async () => root.render(createElement(Probe)))
+    await act(async () => { await hook.start([{ id: 'q1', section: 'RW' } as SetItem], { size: 1 }) })
+    await act(async () => { hook.hold('A', 4) })
+    const id = hook.activeSet!.id
+    stored.delete(id)
+    vi.mocked(api.answer).mockClear()
+    vi.mocked(api.saveSet).mockClear()
+
+    await act(async () => { await hook.finish() })
+
+    expect(api.answer).not.toHaveBeenCalled()
+    expect(api.saveSet).not.toHaveBeenCalled()
+    expect(stored.has(id)).toBe(false)
+    expect(view).toBe('home')
+    act(() => root.unmount())
+  })
+})
+
+describe('latestItems', () => {
+  it('prefers the stored answer, keeps a held one when storage has none, and never lowers time', () => {
+    expect(latestItems([row('a', 'A', 5), row('b', 'B', 1), row('c')], [row('a', 'C', 2), row('b', null, 3)]))
+      .toEqual([row('a', 'C', 5), row('b', 'B', 3), row('c')])
   })
 })
 

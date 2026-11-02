@@ -24,7 +24,7 @@
  */
 import type { HistoryRow } from './lib/progress'
 import { grade } from './lib/grading'
-import { nowSec } from './lib/sets'
+import { nowSec, sumSeconds } from './lib/sets'
 import { normaliseQuestion, type Stub } from './lib/normalize'
 import { byShuffleKey } from './lib/shuffle'
 import * as backup from './lib/backup'
@@ -34,7 +34,7 @@ import * as sync from './lib/sync'
 import * as usage from './lib/usage'
 import type {
   Annotation, Filters, GradeResult, Mistake, MistakeTag, PracticeSet, Question,
-  Section, SetInput, SetItem, Stats, StoredQuestion, TaxonomyRow,
+  Section, SetAnswer, SetInput, SetItem, Stats, StoredQuestion, TaxonomyRow,
 } from './types'
 
 interface Cache {
@@ -613,6 +613,18 @@ export async function saveSet(set: SetInput): Promise<PracticeSet> {
   await store.saveSet(set)
   sync.track('set', set.id)
   return getSet(set.id)
+}
+
+export async function patchSet(
+  set: SetInput, change: (items: SetAnswer[]) => SetAnswer[],
+): Promise<PracticeSet | null> {
+  const row = await store.patchSet(set.id, (held) => {
+    const items = change(held.items ?? [])
+    return { ...held, items, seconds: sumSeconds(items) }
+  })
+  if (!row) return null
+  sync.track('set', set.id)
+  return summarise(row, true)
 }
 
 /**

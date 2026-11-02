@@ -8,7 +8,9 @@ import * as api from '../api'
 import { sample, sampleBalanced } from './draw'
 import { setSeconds } from './pacing'
 import type { View } from './route'
-import { commitItem, gradeItems, holdItem, newSet, nowSec, setAttemptId, sumSeconds, type GradedCache } from './sets'
+import {
+  commitItem, gradeItems, holdItem, latestItems, newSet, nowSec, setAttemptId, sumSeconds, type GradedCache,
+} from './sets'
 import type { Filters, PracticeSet, SetAnswer, SetItem } from '../types'
 
 export type PracticeSetApi = ReturnType<typeof usePracticeSet>
@@ -164,26 +166,20 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
     } catch (e) { fail(e); return false }
   }, [enter, refreshActiveSets, activeSet, shownSet, fail, navigate])
 
-  /** Write the set's progress back. Called after every answer. */
-  const persist = useCallback(async (
-    next: SetAnswer[], finished: boolean, spent: number, retry?: () => void,
-  ) => {
+  /** Save the finished set. Progress before that goes through `write`, a question at a time. */
+  const persist = useCallback(async (next: SetAnswer[], spent: number, retry?: () => void) => {
     const live = activeSetRef.current
     if (!live) return null
     try {
       const saved = await api.saveSet({
         id: live.id,
         created_at: live.created_at,
-        finished_at: finished ? nowSec() : null,
+        finished_at: nowSec(),
         seconds: spent,
         filters: live.filters,
         items: next,
       })
-      // Only the finish path writes back. Adopting the server's row after a
-      // progress write would undo any answer given while the request was in
-      // flight, which is exactly what the HTTP backend's round trip makes easy.
-      // The local ref is authoritative for the length of the session.
-      if (finished) enter(null)
+      enter(null)
       return saved
     } catch (e) { fail(e, retry); return null }
   }, [enter, fail])
@@ -210,17 +206,40 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
     setFinishing(true)
     const retry = () => { void finish() }
     try {
-      const spent = live.seconds ?? 0
+      // Another tab or device may have answered, or even finished, this set.
+      let gone = false
+      const stored = await api.getSet(live.id).catch((e: Error) => {
+        gone = e.message.startsWith('unknown set')
+        return null
+      })
+      // Deleted elsewhere: grading and saving it here would bring it back.
+      if (gone) {
+        enter(null)
+        setRemaining(null)
+        navigate('home', true)
+        refreshActiveSets()
+        return
+      }
+      if (stored?.finished_at) {
+        enter(null)
+        setShownSet(stored)
+        setRemaining(null)
+        navigate('results', true)
+        refreshActiveSets()
+        return
+      }
+      const items = latestItems(live.items ?? [], stored?.items ?? [])
+      const spent = Math.max(live.seconds ?? 0, sumSeconds(items))
       // Each answer was recorded as it was given; grading again here under the
       // same attempt id overwrites it with the final answer and time, and
       // records any a set from before that change still holds. A question left
       // blank is not attempted.
-      const { items: graded, failure } = await gradeItems(live.id, live.items ?? [],
+      const { items: graded, failure } = await gradeItems(live.id, items,
         (q, r, s) => api.answer(q, r, s, setAttemptId(live.id, q)), gradedRef.current)
       // A question that could not be graded is not wrong: stay in the set and
       // offer Retry rather than score it 0 and move on.
       if (failure) { fail(failure, retry); return }
-      const saved = await persist(graded, true, spent, retry)
+      const saved = await persist(graded, spent, retry)
       if (!saved) return
       gradedRef.current.clear()
       setShownSet(saved)
@@ -232,7 +251,7 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
       finishingRef.current = false
       setFinishing(false)
     }
-  }, [persist, refreshActiveSets, navigate, fail])
+  }, [enter, persist, refreshActiveSets, navigate, fail])
 
   /**
    * The set clock.
@@ -310,12 +329,33 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
     banked.current = row?.seconds ?? 0
   }, [currentId])
 
-  /** Write `next` into the live set, with the clock that is its sum, and save it. */
-  const write = useCallback((live: PracticeSet, next: SetAnswer[]) => {
+  /** Writes on their way to storage; only the last one's reply is up to date. */
+  const writing = useRef(0)
+  /**
+   * Apply one question's change to the live set and to the stored row.
+   *
+   * Storage applies `change` to what it holds, never this copy: a whole-set
+   * save from a second tab or a device that had not synced wiped every answer
+   * given elsewhere. When the last write lands, its reply brings those answers
+   * into this copy. An earlier reply would undo an answer still on its way.
+   */
+  const write = useCallback((live: PracticeSet, change: (items: SetAnswer[]) => SetAnswer[]) => {
+    const next = change(live.items ?? [])
     const total = sumSeconds(next)
     enter({ ...live, items: next, seconds: total })
-    void persist(next, false, total)
-  }, [enter, persist])
+    writing.current++
+    api.patchSet({
+      id: live.id, created_at: live.created_at, finished_at: null, seconds: total, filters: live.filters, items: next,
+    }, change)
+      .then((saved) => {
+        writing.current--
+        const now = activeSetRef.current
+        if (saved?.items && !writing.current && now?.id === saved.id) {
+          enter({ ...now, items: saved.items, seconds: saved.seconds })
+        }
+      })
+      .catch((e: unknown) => { writing.current--; fail(e) })
+  }, [enter, fail])
 
   /**
    * Write the time spent on the question on screen into the set.
@@ -325,15 +365,17 @@ export function usePracticeSet({ view, items, index, setItems, setIndex, navigat
   const commit = useCallback((spent: number) => {
     const live = activeSetRef.current
     if (!live || !currentId) return
-    const next = commitItem(live.items ?? [], currentId, banked.current + spent)
-    if (next) write(live, next)
+    const spentNow = banked.current + spent
+    if (!commitItem(live.items ?? [], currentId, spentNow)) return
+    write(live, (items) => commitItem(items, currentId, spentNow) ?? items)
   }, [currentId, write])
 
   /** Hold an answer to the question on screen. A set grades nothing until it is finished. */
   const hold = useCallback((value: string | null, spent: number) => {
     const live = activeSetRef.current
     if (!live || !currentId) return
-    write(live, holdItem(live.items ?? [], currentId, value, banked.current + spent))
+    const spentNow = banked.current + spent
+    write(live, (items) => holdItem(items, currentId, value, spentNow))
   }, [currentId, write])
 
   return {

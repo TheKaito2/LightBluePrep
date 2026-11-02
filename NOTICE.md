@@ -176,5 +176,14 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   Results adds a question strip and a streak moment once a day; Stats gets
   focus cards and skill cells tinted by accuracy; the plan wizard asks one
   question a screen with Bulb.
+- 2026-11-02: Resuming a set: each answer and time now changes one question on
+  the stored set instead of saving a whole copy, so a second tab or device can
+  no longer wipe answers or reopen a finished set (the Worker refuses that too).
+  Finish grades from the stored set. A choice picked but never submitted comes
+  back open to submit, not graded.
+- 2026-11-02: Graphs and diagrams are sized from their own drawings: small
+  PNG figures no longer stay tiny, small SVGs are no longer blown up to fill the
+  column, and tall figures are held to the window height.
+- 2026-11-02: Home shows how many questions are done today and overall.
 
 The full history of changes is in the git log.
