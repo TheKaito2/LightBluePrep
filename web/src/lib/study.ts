@@ -12,7 +12,8 @@ import * as api from '../api'
 import * as store from './store'
 import * as sync from './sync'
 import type { Goal } from './goal'
-import { markFinished, type Plan } from './plan'
+import { markAnswered, markFinished, type AnsweredQuestion, type Plan } from './plan'
+import { loadProcessTypes } from './similar'
 
 export interface Study { goal: Goal | null; plan: Plan | null; updated_at: number }
 
@@ -62,16 +63,46 @@ export function useStudy(): Study & { loaded: boolean } {
 /** Save or clear the plan, keeping the goal as stored. */
 export const savePlan = (plan: Plan | null) => saveStudy({ plan })
 
+/** Every answered question with its type and answer times, and what each type has left. */
+async function answersByQuestion() {
+  const [byId, { history }, types] = await Promise.all([api.questionsById(), api.history(), loadProcessTypes()])
+  const times = new Map<string, { first: number; last: number }>()
+  // Oldest first, so the first seen is the first answer.
+  for (const row of history) {
+    const at = row.answered_at * 1000
+    const t = times.get(row.question_id)
+    if (t) t.last = at
+    else times.set(row.question_id, { first: at, last: at })
+  }
+  const answered: AnsweredQuestion[] = []
+  const unseen = new Map<string, number>()
+  for (const q of byId.values()) {
+    const type = q.cb_id ? types?.q[q.cb_id] : undefined
+    const t = times.get(q.id)
+    if (type) unseen.set(type, (unseen.get(type) ?? 0) + (t ? 0 : 1))
+    if (t) {
+      answered.push({
+        id: q.id, section: q.section, domain: q.domain, skill: q.skill, difficulty: q.difficulty, type,
+        first_at: t.first, last_at: t.last,
+      })
+    }
+  }
+  return { answered: answered.sort((a, b) => a.first_at - b.first_at), unseen: types ? unseen : null }
+}
+
 /**
- * Close every session whose practice set has been finished since. Runs when the
- * Plan page or Home opens, so a set finished anywhere (another device included)
- * ticks its session off. Writes only when something changed.
+ * Close every session or type whose set has finished, or whose questions have
+ * been answered any other way. Runs when the Plan page or Home opens, so work
+ * done anywhere (another device included) ticks it off. Writes only when
+ * something changed.
  */
 export async function closeFinishedSessions(): Promise<void> {
-  const study = await loadStudy()
-  if (!study.plan) return
-  const sets = await api.listSets(false, 500)
+  if (!(await loadStudy()).plan) return
+  const [sets, { answered, unseen }] = await Promise.all([api.listSets(false, 500), answersByQuestion()])
   const finished = new Map(sets.flatMap((x) => (x.finished_at ? [[x.id, x.finished_at] as const] : [])))
-  const next = markFinished(study.plan, finished)
-  if (next !== study.plan) await saveStudy({ plan: next })
+  // Read last, so a plan edit made during the reads above is not overwritten.
+  const { plan } = await loadStudy()
+  if (!plan) return
+  const next = markAnswered(markFinished(plan, finished), answered, unseen)
+  if (next !== plan) await saveStudy({ plan: next })
 }

@@ -185,5 +185,8 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   PNG figures no longer stay tiny, small SVGs are no longer blown up to fill the
   column, and tall figures are held to the window height.
 - 2026-11-02: Home shows how many questions are done today and overall.
+- 2026-11-02: A plan session or question type closes when its questions are
+  answered by any route, not only through the set the plan started. Timed
+  sessions, the final review and the score check still need their own set.
 
 The full history of changes is in the git log.

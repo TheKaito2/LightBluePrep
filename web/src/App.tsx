@@ -229,8 +229,9 @@ export default function App() {
       const prev = planDraft?.session
       await savePlan(putSession(study.plan, {
         ...(prev ?? {}), ...s, id: prev?.id ?? crypto.randomUUID(), date,
-        // New topics start the session over: an old set is not this session.
-        set_id: undefined, done_at: undefined,
+        // New topics start the session over: an old set is not this session,
+        // and neither are answers given before it.
+        set_id: undefined, done_at: undefined, since: Date.now(),
       }))
       endPlanning()
     } catch (e) { fail(e) }

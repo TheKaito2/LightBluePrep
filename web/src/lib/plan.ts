@@ -15,7 +15,7 @@ import { SECONDS_PER_QUESTION } from './pacing'
 import { dayKey } from './progress'
 import { graded } from './score'
 import type { SkillTally } from './taxonomy'
-import type { Filters, Section } from '../types'
+import type { Difficulty, Filters, Section } from '../types'
 
 export type Phase = 'baseline' | 'build' | 'mixed' | 'review' | 'cover'
 
@@ -30,6 +30,8 @@ export interface PlanPart {
   /** The practice set started for this type alone, once there is one. */
   set_id?: string
   done_at?: number
+  /** Answers count from here (ms) rather than from the session or plan: it was reopened. */
+  since?: number
 }
 
 export interface PlanSession {
@@ -44,9 +46,11 @@ export interface PlanSession {
   parts?: PlanPart[]
   /** The practice set started from this session, once there is one. */
   set_id?: string
-  /** When it was finished (its set finished, or marked done by hand). */
+  /** When it was finished (its set or its answers, or marked done by hand). */
   done_at?: number
   skipped?: boolean
+  /** Answers count from here (ms) rather than from the plan: added later, or reopened. */
+  since?: number
 }
 
 export type Focus = 'auto' | Section | string[]
@@ -572,6 +576,84 @@ export function markFinished(plan: Plan, finishedAt: ReadonlyMap<string, number>
   return changed ? { ...plan, sessions } : plan
 }
 
+/** A question answered at least once, with what a session could want of it. */
+export interface AnsweredQuestion {
+  id: string
+  section: Section
+  domain: string
+  skill: string
+  difficulty: string
+  /** "skill.key" in process-types.json, when it has one. */
+  type?: string
+  /** First and latest answer, ms. */
+  first_at: number
+  last_at: number
+}
+
+/** Same rules as the practice pool: a list that names a skill's types narrows that skill alone. */
+function inFilters(q: AnsweredQuestion, f: Filters): boolean {
+  if (f.section && q.section !== f.section) return false
+  if (f.domains?.length && !f.domains.includes(q.domain)) return false
+  if (f.skills?.length && !f.skills.includes(q.skill)) return false
+  if (f.difficulties?.length && !f.difficulties.includes(q.difficulty as Difficulty)) return false
+  if (f.types?.length) {
+    const narrowed = f.types.some((r) => r.slice(0, r.lastIndexOf('.')) === q.skill)
+    if (narrowed && !(q.type && f.types.includes(q.type))) return false
+  }
+  return true
+}
+
+/**
+ * Close what has been answered by any route: open practice or any set, not only
+ * the set the plan started. Sessions fill in date order and each question counts
+ * once, so a type split over two days fills the earlier day first, and what is
+ * already done still takes its share. Timed sessions, the review and the score
+ * check are left out: answers picked by hand cannot show they met those terms.
+ *
+ * `unseenByType` is null when the types did not load, which leaves parts alone.
+ * Returns the same object when nothing changed.
+ */
+export function markAnswered(
+  plan: Plan, answered: readonly AnsweredQuestion[], unseenByType: ReadonlyMap<string, number> | null, now = Date.now(),
+): Plan {
+  const used = new Set<string>()
+  const take = (n: number, fits: (q: AnsweredQuestion) => boolean) => {
+    let got = 0
+    for (const q of answered) {
+      if (got >= n) break
+      if (used.has(q.id) || !fits(q)) continue
+      used.add(q.id)
+      got++
+    }
+    return got
+  }
+  const changes = new Map<string, PlanSession>()
+  for (const s of [...plan.sessions].sort((a, b) => a.date.localeCompare(b.date))) {
+    if (s.skipped || s.filters.speed || (s.phase !== 'build' && s.phase !== 'cover')) continue
+    const from = s.since ?? plan.created_at
+    if (s.parts?.length) {
+      if (!unseenByType) continue
+      const parts = s.parts.map((p) => {
+        // A part draws unanswered questions, so only a first answer clears it.
+        const start = p.since ?? from
+        const got = take(p.n, (q) => q.type === p.ref && q.first_at >= start)
+        // Nothing left to answer closes it too, unless the student reopened it.
+        const noneLeft = p.since === undefined && unseenByType.get(p.ref) === 0
+        return !p.done_at && (got >= p.n || noneLeft) ? { ...p, done_at: now } : p
+      })
+      if (parts.every((p, i) => p === s.parts![i])) continue
+      changes.set(s.id, { ...s, parts, ...(parts.every((p) => p.done_at) && !s.done_at ? { done_at: now } : {}) })
+      continue
+    }
+    const size = s.filters.size ?? 0
+    if (!size) continue
+    const firstOnly = s.filters.statuses?.includes('unseen')
+    const got = take(size, (q) => (firstOnly ? q.first_at : q.last_at) >= from && inFilters(q, s.filters))
+    if (!s.done_at && got >= size) changes.set(s.id, { ...s, done_at: now })
+  }
+  return changes.size ? { ...plan, sessions: plan.sessions.map((s) => changes.get(s.id) ?? s) } : plan
+}
+
 /** The first type of a day not yet done, or null when the day is complete. */
 export function nextPart(s: PlanSession): PlanPart | null {
   return s.parts?.find((p) => !p.done_at) ?? null
@@ -597,7 +679,8 @@ export function togglePart(plan: Plan, sessionId: string, ref: string, now = Dat
   const p = s?.parts?.find((x) => x.ref === ref)
   if (!s?.parts || !p) return plan
   const done = p.done_at ? undefined : now
-  const next = patchPart(plan, sessionId, ref, { done_at: done, ...(done ? {} : { set_id: undefined }) })
+  // Reopened: only answers from now on count, or markAnswered would close it again.
+  const next = patchPart(plan, sessionId, ref, { done_at: done, ...(done ? {} : { set_id: undefined, since: now }) })
   const parts = next.sessions.find((x) => x.id === sessionId)!.parts!
   const allDone = parts.every((x) => x.done_at)
   return patchSession(next, sessionId, { done_at: allDone ? now : undefined })

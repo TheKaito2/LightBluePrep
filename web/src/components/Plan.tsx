@@ -211,7 +211,7 @@ export function Plan({ taxonomy, history, onStartSession, onPickTopics }: {
                              onClick={(e) => { (e.currentTarget.parentElement as HTMLDetailsElement).open = false }}>
                           <button type="button" onClick={() => setEditing(s)}>Edit</button>
                           {s.parts?.length ? null : s.done_at ? (
-                            <button type="button" onClick={() => save(patchSession(plan, s.id, { done_at: undefined, set_id: undefined }))}>Mark not done</button>
+                            <button type="button" onClick={() => save(patchSession(plan, s.id, { done_at: undefined, set_id: undefined, since: Date.now() }))}>Mark not done</button>
                           ) : (
                             <button type="button" onClick={() => save(patchSession(plan, s.id, { done_at: Date.now() }))}>Mark done</button>
                           )}

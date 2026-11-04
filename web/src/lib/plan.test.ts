@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-  WEIGHT_PRESETS, buildPlan, coverPlan, dayQuotas, markFinished, nextPart, patchPart, togglePart, missed, nextSession, phaseCounts, planProgress, questionsFor, reflow,
+  WEIGHT_PRESETS, buildPlan, coverPlan, dayQuotas, markAnswered, markFinished, nextPart, patchPart, togglePart, missed, nextSession, phaseCounts, planProgress, questionsFor, reflow,
   sectionShares, sessionDates, type PlanAnswers,
 } from './plan'
 import type { SkillTally } from './taxonomy'
-import type { Plan } from './plan'
+import type { AnsweredQuestion, Plan, PlanSession } from './plan'
 
 const skill = (code: string, domain: string, section: 'RW' | 'MATH', seen = 0, correct = 0, n = 100): SkillTally =>
   ({ code, name: code, domain, domainName: domain, section, n, seen, correct })
@@ -250,5 +250,93 @@ describe('a day of process types', () => {
     p = togglePart(p, 'd', 'B.1', 7)
     expect(p.sessions[0]!.done_at).toBeUndefined()
     expect(p.sessions[0]!.parts![1]!.done_at).toBeUndefined()
+  })
+})
+
+describe('markAnswered', () => {
+  const answers = (n: number, over: Partial<AnsweredQuestion> = {}, tag = 'q'): AnsweredQuestion[] =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `${tag}${i}`, section: 'RW', domain: 'INI', skill: 'CID', difficulty: 'E', type: 'CID.main',
+      first_at: 2000, last_at: 2000, ...over,
+    }))
+  const part = (n: number, ref = 'CID.main') => ({ ref, label: ref, skill: 'CID', skillName: 'CID', n })
+  const day = (id: string, date: string, over: Partial<PlanSession>): PlanSession =>
+    ({ id, date, phase: 'cover', title: id, filters: {}, ...over })
+  const planOf = (...sessions: PlanSession[]): Plan => ({
+    test_date: '2027-03-06', target: null, days: [], minutes: 30, start_from: 'estimate', focus: 'auto',
+    created_at: 1000, source: 'auto', sessions,
+  })
+  const left = new Map([['CID.main', 5], ['CID.other', 5]])
+
+  it('ticks a type at n answers, not before, and returns the same plan when nothing changes', () => {
+    const plan = planOf(day('a', '2026-11-03', { parts: [part(3)] }))
+    expect(markAnswered(plan, answers(2), left)).toBe(plan)
+    const done = markAnswered(plan, answers(3), left, 7)
+    expect(done.sessions[0]!.parts![0]!.done_at).toBe(7)
+    expect(done.sessions[0]!.done_at).toBe(7)
+    expect(markAnswered(done, answers(3), left)).toBe(done)
+  })
+
+  it('does not count answers from before the plan, or a re-drill of an older question', () => {
+    const plan = planOf(day('a', '2026-11-03', { parts: [part(2)] }))
+    expect(markAnswered(plan, answers(2, { first_at: 500, last_at: 500 }), left)).toBe(plan)
+    expect(markAnswered(plan, answers(2, { first_at: 500, last_at: 2000 }), left)).toBe(plan)
+  })
+
+  it('fills a type split over two days in date order, and each answer once', () => {
+    const plan = planOf(day('later', '2026-11-04', { parts: [part(20)] }), day('first', '2026-11-03', { parts: [part(20)] }))
+    const next = markAnswered(plan, answers(30), left)
+    expect(next.sessions.find((s) => s.id === 'first')!.done_at).toBeDefined()
+    expect(next.sessions.find((s) => s.id === 'later')!.done_at).toBeUndefined()
+  })
+
+  it('closes a day only when all its types are', () => {
+    const plan = planOf(day('a', '2026-11-03', { parts: [part(1), part(1, 'CID.other')] }))
+    const next = markAnswered(plan, answers(1), left, 7)
+    expect(next.sessions[0]!.parts!.map((p) => p.done_at)).toEqual([7, undefined])
+    expect(next.sessions[0]!.done_at).toBeUndefined()
+  })
+
+  it('counts an answer once across sessions that overlap', () => {
+    const f = { skills: ['CID'], size: 2 }
+    const plan = planOf(day('a', '2026-11-03', { phase: 'build', filters: f }), day('b', '2026-11-04', { phase: 'build', filters: f }))
+    const next = markAnswered(plan, answers(3), left)
+    expect(next.sessions.map((s) => Boolean(s.done_at))).toEqual([true, false])
+  })
+
+  it('matches a session to its filters', () => {
+    const plan = planOf(day('a', '2026-11-03', { phase: 'build', filters: { skills: ['COE'], size: 1 } }))
+    expect(markAnswered(plan, answers(3), left)).toBe(plan)
+  })
+
+  it('leaves timed, review, score-check and skipped sessions to their own sets', () => {
+    const f = { size: 1 }
+    const plan = planOf(
+      day('a', '2026-11-03', { phase: 'mixed', filters: f }), day('b', '2026-11-03', { phase: 'review', filters: f }),
+      day('c', '2026-11-03', { phase: 'baseline', filters: f }), day('d', '2026-11-03', { phase: 'build', filters: { ...f, speed: 1 } }),
+      day('e', '2026-11-03', { phase: 'build', filters: f, skipped: true }),
+    )
+    expect(markAnswered(plan, answers(9), left)).toBe(plan)
+  })
+
+  it('ticks a type with nothing left to answer, and leaves parts alone when types did not load', () => {
+    const plan = planOf(day('a', '2026-11-03', { parts: [part(5)] }))
+    expect(markAnswered(plan, [], new Map([['CID.main', 0]]), 7).sessions[0]!.done_at).toBe(7)
+    expect(markAnswered(plan, answers(5), null)).toBe(plan)
+  })
+
+  it('keeps a reopened type open until it has n new answers', () => {
+    const closed = markAnswered(planOf(day('a', '2026-11-03', { parts: [part(2)] })), answers(2), left, 7)
+    const reopened = togglePart(closed, 'a', 'CID.main', 3000)
+    expect(markAnswered(reopened, answers(2), left)).toBe(reopened)
+    const again = markAnswered(reopened, answers(2, { first_at: 4000, last_at: 4000 }), left, 9)
+    expect(again.sessions[0]!.parts![0]!.done_at).toBe(9)
+  })
+
+  it('keeps a reopened type open even with nothing left to answer', () => {
+    const none = new Map([['CID.main', 0]])
+    const closed = markAnswered(planOf(day('a', '2026-11-03', { parts: [part(2)] })), answers(2), none, 7)
+    const reopened = togglePart(closed, 'a', 'CID.main', 3000)
+    expect(markAnswered(reopened, answers(2), none)).toBe(reopened)
   })
 })
