@@ -232,7 +232,7 @@
 @media (max-width: 1279px) {
   .hlayout { grid-template-columns: minmax(0, 1fr); }
   .hrail { position: static; margin-top: var(--sp-4); }
-  .hrail > .nextup { display: none; }
+  .hrail > .nextup, .hrail > .myq { display: none; }
   .scard-wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
   /* The compact row above the topics already has these. */
   .scard-wrap > .done-counts { display: none; }

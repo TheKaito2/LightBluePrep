@@ -9,6 +9,7 @@ import { DifficultyChips } from './home/DifficultyChips'
 import type { TopicPicks } from './home/DomainCard'
 import { Hero } from './home/Hero'
 import { NextUp } from './home/NextUp'
+import { MyQuestions } from './home/MyQuestions'
 import { OptionsDialog } from './home/OptionsDialog'
 import { SectionPanel } from './home/SectionPanel'
 import { StartBar } from './home/StartBar'
@@ -72,6 +73,8 @@ interface Props {
   findIds: (needle: string) => Promise<{ hits: SetItem[]; total: number }>
   /** Open one question on its own. */
   onOpenId: (id: string) => void
+  /** Practise a fixed list of questions under a title (My questions). */
+  onPracticeMany: (ids: string[], title: string) => void
 }
 
 /** The word after a filtered count on a skill row ("87 hard"). */
@@ -88,7 +91,7 @@ const STATUS_WORD: Record<Status, string> = {
 export function Home({
   taxonomy, taxonomyLoading, onRetryBoot, facet, history, value, items, loading, onChange, onOpen, onStart,
   order, onOrder, activeSets, onResume, onAbandon, findIds, onOpenId, onScoreCheck, onStartPlan,
-  planning, onPlanDate, onPlanAdd, onPlanCancel,
+  planning, onPlanDate, onPlanAdd, onPlanCancel, onPracticeMany,
 }: Props) {
   const [showOptions, setShowOptions] = useState(false)
   const study = useStudy()
@@ -174,8 +177,8 @@ export function Home({
   const secStats = useMemo(() => rollup(taxonomy).sections, [taxonomy])
 
   const totals = useMemo(() => {
-    const out = { all: 0, seen: 0, live: 0 }
-    for (const row of taxonomy) { out.all += row.n; out.seen += row.seen; out.live += row.live_n ?? 0 }
+    const out = { all: 0, seen: 0, live: 0, mine: 0 }
+    for (const row of taxonomy) { out.all += row.n; out.seen += row.seen; out.live += row.live_n ?? 0; out.mine += row.mine_n ?? 0 }
     return out
   }, [taxonomy])
 
@@ -311,16 +314,19 @@ export function Home({
   }
 
   const nextUp = (
+    <>
     <NextUp planNext={planNext} hasPlan={!study.loaded || Boolean(study.plan)} resumable={resumable}
             planStarted={Boolean(planNext?.session.set_id && activeSets.some((a) => a.id === planNext.session.set_id))}
             onStartPlan={onStartPlan} onResume={onResume} />
+      <MyQuestions onPractice={onPracticeMany} />
+    </>
   )
 
   const difficulty = <DifficultyChips value={value.difficulties} onChange={(difficulties) => set({ difficulties })} />
 
   return (
     <div className="home">
-      {planning ? null : <Hero total={totals.all} findIds={findIds} onOpenId={onOpenId} />}
+      {planning ? null : <Hero total={totals.all - totals.mine} findIds={findIds} onOpenId={onOpenId} />}
 
       <div className="hwrap">
         {planning ? (

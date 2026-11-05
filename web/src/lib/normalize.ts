@@ -14,7 +14,8 @@ import type { Difficulty, Option, QuestionType, Section, StoredQuestion } from '
 /** One row of the index: metadata only, no question body. */
 export interface Stub {
   _id: string
-  _path: 'external_id' | 'ibn'
+  /** 'custom' is a question of your own, on localhost only (custom-questions.mjs). */
+  _path: 'external_id' | 'ibn' | 'custom'
   _section: Section
   external_id?: string
   ibn?: string

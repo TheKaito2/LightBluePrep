@@ -33,12 +33,23 @@ export function useQuestionList({ view, dataVersion, fail }: {
     if (next === 'random') setSeed(crypto.randomUUID())
   }, [])
 
+  /**
+   * Bumped whenever something else sets the list (one question, a link's list,
+   * a set). A Home list that was still loading then lands on top of it, so its
+   * reply is dropped: a deep link opened on a cold load showed the wrong list.
+   */
+  const outside = useRef(0)
+  const setOutside = useCallback((next: SetItem[] | ((prev: SetItem[]) => SetItem[])) => {
+    outside.current++
+    setItems(next)
+  }, [])
   // Named so the Retry it hands the banner can call it again.
   const loadList = useCallback(function load() {
     let stale = false
+    const asked = outside.current
     setListLoading(true)
     api.questionSet(filters)
-      .then((d) => { if (!stale) { setItems(arrange(d.questions, order, seed)); setIndex(0) } })
+      .then((d) => { if (!stale && outside.current === asked) { setItems(arrange(d.questions, order, seed)); setIndex(0) } })
       .catch((e: Error) => !stale && fail(e, () => { load() }))
       .finally(() => { if (!stale) setListLoading(false) })
     return () => { stale = true }
@@ -75,7 +86,7 @@ export function useQuestionList({ view, dataVersion, fail }: {
   }, [view, dataVersion])
 
   return {
-    filters, setFilters, items, setItems, index, setIndex, listLoading, loadList, order, seed, reorder,
+    filters, setFilters, items, setItems: setOutside, index, setIndex, listLoading, loadList, order, seed, reorder,
     facet: filters.difficulties?.length || filters.statuses?.length ? facetItems : null,
   }
 }

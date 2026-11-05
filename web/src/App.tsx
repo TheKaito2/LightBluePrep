@@ -273,6 +273,7 @@ export default function App() {
             onPlanDate={(date) => setPlanDraft((d) => (d ? { ...d, date } : d))}
             onPlanAdd={(s, date) => { void addPlanSession(s, date) }}
             onPlanCancel={endPlanning}
+            onPracticeMany={practiceMany}
             onScoreCheck={set.scoreCheck} />
     ),
     plan: () => (

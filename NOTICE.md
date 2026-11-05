@@ -188,5 +188,9 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
 - 2026-11-02: A plan session or question type closes when its questions are
   answered by any route, not only through the set the plan started. Timed
   sessions, the final review and the score check still need their own set.
+- 2026-11-05: Your own questions on localhost only (`npm run custom`): JSON
+  files in the gitignored `custom/` folder, served by the dev server and never
+  part of a build (docs/CUSTOM-QUESTIONS.md). Opening a question by link on a
+  cold load no longer shows the Home list in its place.
 
 The full history of changes is in the git log.

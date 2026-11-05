@@ -115,6 +115,8 @@ export interface TaxonomyRow {
   n: number
   /** How many of `n` are on an official practice test. */
   live_n: number
+  /** Your own questions among `n` (localhost only); absent elsewhere. */
+  mine_n?: number
   seen: number
   correct: number
 }

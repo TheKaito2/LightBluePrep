@@ -1,6 +1,8 @@
 # Never commit College Board content. The exporter regenerates it in ~5 min.
 data/
 raw/
+# Your own questions (tutor sheets, TikTok): local practice only, never committed.
+custom/
 *.db
 *.sqlite
 *.sqlite3

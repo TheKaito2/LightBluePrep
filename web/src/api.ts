@@ -155,6 +155,8 @@ export const history = impl.history
 export const listSets = impl.listSets
 export const getSet = impl.getSet
 export const saveSet = impl.saveSet
+/** Your own questions, on the dev server's static backend only (web/custom-questions.mjs). */
+export const customIds = backend === 'local' ? local.customIds : async (): Promise<string[]> => []
 export const patchSet = impl.patchSet
 export const deleteSet = impl.deleteSet
 

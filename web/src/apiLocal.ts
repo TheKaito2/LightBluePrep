@@ -48,6 +48,29 @@ interface Cache {
 let cache: Cache | null = null
 let booting: Promise<Cache> | null = null
 
+/**
+ * Your own questions, served by the dev server alone (web/custom-questions.mjs).
+ * A real build has no such route and `import.meta.env.DEV` is false there, so
+ * this is an empty map and the fetch is never compiled in. Re-read per page
+ * load, so an edited file shows after a refresh.
+ */
+type Custom = Map<string, { stub: Stub; question: StoredQuestion }>
+let custom: Promise<Custom> | null = null
+function loadCustom(): Promise<Custom> {
+  if (!import.meta.env.DEV) return Promise.resolve(new Map())
+  custom ??= fetch('/__custom/questions.json')
+    .then((r) => (r.ok ? r.json() as Promise<{ stub: Stub; question: StoredQuestion }[]> : []))
+    .then((list) => new Map(list.map((q) => [q.stub._id, q])))
+    .catch(() => new Map())
+  return custom
+}
+
+/** The bank's index plus your own questions, which are never stored with it. */
+async function withCustom(stubs: Stub[]): Promise<Stub[]> {
+  const mine = await loadCustom()
+  return mine.size ? [...stubs, ...[...mine.values()].map((q) => q.stub)] : stubs
+}
+
 const INDEX_AGE_KEY = 'index.fetchedAt'
 /**
  * How long a cached index is trusted before it is re-read in the background.
@@ -127,7 +150,7 @@ async function boot(): Promise<Cache> {
         .then(() => store.setMeta(INDEX_AGE_KEY, Date.now()))
         .catch(console.error)
     }
-    cache = { stubs, attempts, flagged, live }
+    cache = { stubs: await withCustom(stubs), attempts, flagged, live }
     return cache
   })()
   // A failed first load (offline on the very first visit) must not be cached:
@@ -217,7 +240,7 @@ export async function refreshIndex(): Promise<number> {
   // what changes both, so refreshing one without the other would leave the
   // filter describing an older bank than the counts next to it.
   const live = await loadLive(true)
-  if (cache) { cache.stubs = stubs; cache.live = live }
+  if (cache) { cache.stubs = await withCustom(stubs); cache.live = live }
   return stubs.length
 }
 
@@ -238,6 +261,8 @@ function loadFull(id: string): Promise<StoredQuestion> {
 }
 
 async function fetchFull(id: string): Promise<StoredQuestion> {
+  const mine = (await loadCustom()).get(id)
+  if (mine) return mine.question
   const cached = await store.loadQuestion(id)
   if (cached) return cached
   const { stubs } = await boot()
@@ -362,6 +387,7 @@ export async function taxonomy(): Promise<{ taxonomy: TaxonomyRow[]; stats: Stat
     }
     row.n++
     if (isLive(stub, c.live)) row.live_n++
+    if (stub._path === 'custom') row.mine_n = (row.mine_n ?? 0) + 1
     const last = lastAttempt(c, stub._id)
     if (last) {
       row.seen++
@@ -386,6 +412,13 @@ export async function questionSet(filters: Filters):
     .map((stub) => toSetItem(stub, c))
     .sort(byShuffleKey)
   return { count: questions.length, questions }
+}
+
+/** Your own questions, newest first, for Home's "My questions". Always empty outside the dev server. */
+export async function customIds(): Promise<string[]> {
+  return [...(await loadCustom()).values()]
+    .sort((a, b) => (b.stub.updateDate ?? 0) - (a.stub.updateDate ?? 0))
+    .map((q) => q.stub._id)
 }
 
 /** What the ID search lists; the rest is a count ("and 12 more"). */

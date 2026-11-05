@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import { customQuestions } from './custom-questions.mjs'
 
 /**
  * The two faces every page paints with, by their source names. Only these:
@@ -53,7 +54,8 @@ function preloadFonts(): Plugin {
 export default defineConfig(({ mode }) => {
   const pages = mode === 'pages'
   return {
-    plugins: [react(), preloadFonts()],
+    // customQuestions is dev-server only (apply: 'serve'): no build ever includes it.
+    plugins: [react(), preloadFonts(), customQuestions()],
     base: pages ? (process.env.BASE ?? '/') : '/',
     server: {
       port: 5173,
