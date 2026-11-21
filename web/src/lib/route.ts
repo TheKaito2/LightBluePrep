@@ -11,9 +11,9 @@ import { fmt } from './labels'
 
 export type View =
   | 'home' | 'practice' | 'results' | 'plan' | 'review' | 'stats'
-  | 'resources' | 'about' | 'settings' | 'inbox'
+  | 'resources' | 'about' | 'settings' | 'inbox' | 'finder'
 
-const ROUTED = ['plan', 'review', 'stats', 'resources', 'about', 'settings', 'inbox'] as const
+const ROUTED = ['plan', 'finder', 'review', 'stats', 'resources', 'about', 'settings', 'inbox'] as const
 
 /** The view a hash names. Home for no hash and for anything unknown. */
 export function parseHash(hash: string): View {
@@ -38,7 +38,7 @@ export function urlFor(view: View, current: string): URL {
 const NAMES: Record<View, string> = {
   home: '', practice: 'Practice', results: 'Results', plan: 'Plan', review: 'Review',
   stats: 'Stats', resources: 'Resources', about: 'About', settings: 'Settings',
-  inbox: 'Inbox',
+  inbox: 'Inbox', finder: 'Weakness finder',
 }
 
 /**

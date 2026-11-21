@@ -192,5 +192,9 @@ Modified by TheKaito2 (https://github.com/TheKaito2). Changes include:
   files in the gitignored `custom/` folder, served by the dev server and never
   part of a build (docs/CUSTOM-QUESTIONS.md). Opening a question by link on a
   cold load no longer shows the Home list in its place.
+- 2026-11-21: Weakness finder page (#finder): builds one untimed set per
+  domain with one question for every question type at every difficulty (no
+  official practice-test questions), then ranks the types that lose points by
+  accuracy and time against the real test's pace, with a day plan to the test.
 
 The full history of changes is in the git log.

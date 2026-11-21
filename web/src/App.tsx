@@ -13,7 +13,7 @@ import { sample } from './lib/draw'
 import { toUserMessage } from './lib/errors'
 import { SECTION_NAME, skillDisplayName } from './lib/labels'
 import { arrange } from './lib/order'
-import { About, Inbox, PlanPage, Resources, Review, SetResults, Settings, StatsPage, warmPages } from './lib/pages'
+import { About, FinderPage, Inbox, PlanPage, Resources, Review, SetResults, Settings, StatsPage, warmPages } from './lib/pages'
 import { nextPart, patchPart, patchSession, putSession, type PlanSession } from './lib/plan'
 import { loadProcessTypes } from './lib/similar'
 import type { View } from './lib/route'
@@ -280,6 +280,7 @@ export default function App() {
       <PlanPage taxonomy={taxonomy} history={attemptLog} onStartSession={(s, ref) => { void startPlanSession(s, ref) }}
                 onPickTopics={planOnHome} />
     ),
+    finder: () => <FinderPage dataVersion={dataVersion} onResume={set.open} onPractice={practiceFilters} fail={fail} />,
     resources: () => <Resources />,
     inbox: () => <Inbox />,
     about: () => <About taxonomy={taxonomy} />,

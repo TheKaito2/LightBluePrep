@@ -13,6 +13,7 @@ import type { View } from '../lib/route'
 const NAV = [
   { key: 'home', label: 'Practice', icon: 'grid' },
   { key: 'plan', label: 'Plan', icon: 'calendar' },
+  { key: 'finder', label: 'Finder', icon: 'target' },
   { key: 'review', label: 'Review', icon: 'history' },
   { key: 'stats', label: 'Stats', icon: 'chart' },
   { key: 'resources', label: 'Resources', icon: 'compass' },

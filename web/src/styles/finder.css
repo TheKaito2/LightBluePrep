@@ -1,0 +1,44 @@
+/* Weakness finder page (components/Finder.tsx). Lays out inside .stats, so
+   the page width, blocks and headings are Stats'; the rows match its focus
+   cards and take their colour from .sec-RW / .sec-MATH. */
+
+.finder .block-head { flex-wrap: wrap; }
+.fsets-over { margin-left: auto; }
+.finder-note { margin: 0 0 var(--sp-4); max-width: 72ch; font: var(--type-small); color: var(--fg-3); }
+.finder .empty { margin-top: var(--sp-10); }
+
+.fweak-list { list-style: none; display: grid; gap: var(--sp-3); margin: 0; padding: 0; }
+.fweak {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "id go" "figs figs";
+  gap: var(--sp-3) var(--sp-4); align-items: start;
+  padding: var(--sp-4); border: 2px solid var(--hair-1); border-radius: var(--rad-lg);
+  background: var(--surface); box-shadow: 0 3px 0 var(--hair-1);
+}
+.fweak-id { grid-area: id; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.fweak-name { font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); overflow-wrap: anywhere; }
+.fweak-skill { font: var(--type-small); font-weight: 500; color: var(--sec-700); }
+.fweak-how { margin-top: var(--sp-1); font: var(--type-small); color: var(--fg-2); max-width: 72ch; }
+.fweak-figs {
+  grid-area: figs; display: flex; flex-wrap: wrap; gap: 6px var(--sp-3);
+  font: var(--type-small); color: var(--fg-2); font-variant-numeric: tabular-nums;
+}
+.fweak-figs .is-slow, .ftable .is-slow { color: var(--warn-700); font-weight: 600; }
+.fweak-tag { padding: 0 8px; border-radius: 999px; background: var(--sec-50); color: var(--sec-700); }
+.fweak-go { grid-area: go; }
+
+.fplan { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-6); }
+.fplan-date { margin: 0 0 var(--sp-3); font: var(--type-h3); letter-spacing: var(--tr-h3); color: var(--fg-1); }
+.fplan-text { margin: 0; font: var(--type-body); color: var(--fg-2); }
+
+.ftable-wrap { overflow-x: auto; border: 2px solid var(--hair-1); border-radius: var(--rad-lg); background: var(--surface); }
+.ftable { width: 100%; border-collapse: collapse; font: var(--type-small); font-variant-numeric: tabular-nums; }
+.ftable th { text-align: left; font-weight: 600; color: var(--fg-2); padding: 10px var(--sp-3); border-bottom: 2px solid var(--hair-1); white-space: nowrap; }
+.ftable td { padding: 10px var(--sp-3); color: var(--fg-1); border-top: 1px solid var(--hair-1); white-space: nowrap; }
+.ftable tr:first-child td { border-top: 0; }
+.ftable .ftable-name { white-space: normal; min-width: 180px; font-weight: 500; }
+.ftable-dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--sec-500); }
+
+@media (max-width: 819px) {
+  .fweak { grid-template-areas: "id" "figs" "go"; grid-template-columns: minmax(0, 1fr); }
+  .fweak-go { justify-self: start; }
+}

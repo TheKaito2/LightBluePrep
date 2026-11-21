@@ -15,6 +15,7 @@ Live: **https://lightblueprep.pages.dev**
 - **Links into the app**: `/?q=<question ID>` opens one question, `/?skill=<code>` practises a skill, `/?type=<skill.key>` one question type. A static page per skill at [/skills/](https://lightblueprep.pages.dev/skills/) lists its question types with those links.
 - **Installable**: Add to Home Screen gives a full-screen app with its own icon.
 - **Bluebook-style practice screen**: split passage view, built-in Desmos, a math reference sheet, highlights and notes, cross-out, mark for review, the official explanation for every answer choice, and a mistake log after a wrong answer.
+- **Weakness finder**: one question of every question type at every difficulty, untimed, then a ranking of the types that cost you points (accuracy and time against the real test's pace) and a day-by-day plan up to your test date.
 - **Progress**: streaks, an estimated score per section, and stats by skill.
 - **Settings**: see what this browser has saved and delete it, or delete your synced copy from the server.
 - **Free, no account, no ads, no tracking.** Questions are fetched by your browser straight from College Board; this project never hosts them. Optional Google sign-in syncs progress between devices. Visits are counted anonymously, with no cookies and no IDs.
